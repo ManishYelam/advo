@@ -8,7 +8,7 @@ const MainLayout = ({ children }) => {
       <Navbar />
 
       {/* Page Content */}
-      <main className="flex-grow container mx-auto px-4 py-6">
+      <main className="flex-grow container mx-auto ">
         {children}
       </main>
 
