@@ -14,7 +14,7 @@ const CaseTable = ({ cases }) => {
             <th className="text-left py-2 px-4 border-b">Documents</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody>         
           {cases.map((c, idx) => (
             <tr key={idx} className="hover:bg-gray-50">
               <td className="py-2 px-4 border-b">{c.caseName}</td>

@@ -1,5 +1,7 @@
 import axios from "./axiosInstance";
 
+const base_url = 'http://localhost:5000/api'
+
 export const getAllDocuments = () => axios.get("/documents");
 
 export const uploadDocument = (formData) =>

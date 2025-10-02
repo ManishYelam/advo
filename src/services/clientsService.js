@@ -1,5 +1,7 @@
 import axios from "./axiosInstance";
 
+const base_url = 'http://localhost:5000/api'
+
 export const getAllClients = () => axios.get("/clients");
 
 export const getClientById = (id) => axios.get(`/clients/${id}`);
