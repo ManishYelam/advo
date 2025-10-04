@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; 
+import CaseDocumentUploader from "../components/CaseDocumentUploader";
+import CaseForm from "../components/CaseForm";
 
 const AddCaseForm = ({ onAdd }) => {
   const [newCase, setNewCase] = useState({
     caseName: "",
+    age: "",             
     status: "Running",
     nextDate: "",
     advocate: "",
@@ -12,16 +15,14 @@ const AddCaseForm = ({ onAdd }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewCase({ ...newCase, [name]: value });
+    setNewCase((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files).map((file) => ({
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type,
+  const handleDocumentsChange = (updatedDocuments) => {
+    setNewCase((prev) => ({
+      ...prev,
+      documents: updatedDocuments,
     }));
-    setNewCase({ ...newCase, documents: files });
   };
 
   const handleSubmit = (e) => {
@@ -29,6 +30,7 @@ const AddCaseForm = ({ onAdd }) => {
     onAdd(newCase);
     setNewCase({
       caseName: "",
+      age: "",
       status: "Running",
       nextDate: "",
       advocate: "",
@@ -38,93 +40,28 @@ const AddCaseForm = ({ onAdd }) => {
   };
 
   return (
-    <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-md max-w-4xl">
-      <h2 className="text-lg font-semibold mb-3">Add New Case</h2>
+    <div className="p-4 w-full rounded-lg shadow-lg min-h-screen">
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Form Left */}
-        <form className="flex-1 grid grid-cols-1 gap-3" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="caseName"
-            placeholder="Case Name"
-            value={newCase.caseName}
-            onChange={handleInputChange}
-            className="p-2 border rounded"
-            required
+      {/* Flex container for side-by-side layout */}
+      {/* <div className="flex flex-col lg:flex-row gap-8"> */}
+        {/* Left: Form */}
+        <div className="flex-1">
+          <CaseForm
+            newCase={newCase}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
           />
-          <input
-            type="text"
-            name="advocate"
-            placeholder="Advocate Name"
-            value={newCase.advocate}
-            onChange={handleInputChange}
-            className="p-2 border rounded"
-            required
-          />
-          <input
-            type="text"
-            name="caseType"
-            placeholder="Case Type"
-            value={newCase.caseType}
-            onChange={handleInputChange}
-            className="p-2 border rounded"
-            required
-          />
-          <input
-            type="date"
-            name="nextDate"
-            value={newCase.nextDate}
-            onChange={handleInputChange}
-            className="p-2 border rounded"
-            required
-          />
-          <select
-            name="status"
-            value={newCase.status}
-            onChange={handleInputChange}
-            className="p-2 border rounded"
-          >
-            <option value="Running">Running</option>
-            <option value="Closed">Closed</option>
-            <option value="Pending">Pending</option>
-            <option value="Adjourned">Adjourned</option>
-          </select>
-          <input
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            className="p-2 border rounded"
-          />
-          <button
-            type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors mt-2"
-          >
-            Save Case
-          </button>
-        </form>
+        </div>
 
-        {/* Preview Right */}
-        <div className="flex-1 p-2 bg-white border rounded-lg shadow-sm max-h-[400px] overflow-y-auto">
-          <h3 className="text-md font-semibold mb-2">Document Preview</h3>
-          {newCase.documents.length === 0 && (
-            <p className="text-gray-500">No documents uploaded yet.</p>
-          )}
-          {newCase.documents.map((doc, idx) => (
-            <div key={idx} className="mb-3">
-              <p className="font-medium">{doc.name}</p>
-              {doc.type.startsWith("image/") ? (
-                <img src={doc.url} alt={doc.name} className="max-h-32 rounded" />
-              ) : doc.type === "application/pdf" ? (
-                <embed src={doc.url} type="application/pdf" className="w-full h-40" />
-              ) : (
-                <p className="text-sm text-gray-600">Preview not available</p>
-              )}
-            </div>
-          ))}
+        {/* Right: Document Uploader */}
+        <div className="flex-1">
+          <CaseDocumentUploader
+            documents={newCase.documents}
+            onDocumentsChange={handleDocumentsChange}
+          />
         </div>
       </div>
-    </div>
+    // </div>
   );
 };
 

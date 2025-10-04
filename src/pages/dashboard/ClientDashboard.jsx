@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaFolderOpen, FaPlus } from "react-icons/fa";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Card from "../../components/Card";
@@ -6,6 +7,7 @@ import CaseTable from "../CaseTable";
 import AddCaseForm from "../AddCaseForm";
 
 const ClientDashboard = () => {
+  const [view, setView] = useState("dashboard");
   const [myCases, setMyCases] = useState([
     {
       caseName: "Case A",
@@ -28,105 +30,123 @@ const ClientDashboard = () => {
     },
   ]);
 
-  const [view, setView] = useState("dashboard"); // "dashboard", "cases", "addCase"
+  const user = JSON.parse(localStorage.getItem("user"));
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user || user.role !== "client") {
+      navigate("/login");
+    }
+  }, [navigate, user]);
 
   const addNewCase = (caseData) => {
     setMyCases([...myCases, caseData]);
     setView("dashboard");
   };
 
-  // Dashboard Cards
   const renderDashboard = () => (
-    <>
-      {/* Header with title and icon buttons */}
-      <div className="flex justify-between items-center mb-6 p-2 border-b border-gray-200">
-        <h1 className="text-1xl font-bold text-gray-800">Client Dashboard</h1>
-        <div className="flex gap-2">
+    <div className="px-4 py-8 max-w-7xl mx-auto">
+      {/* Welcome Card */}
+      <div className="bg-gradient-to-br from-green-700 to-green-400 text-white rounded-lg shadow-lg p-6 mb-8">
+        <h1 className="text-2xl font-bold mb-1">
+          Welcome back, {user?.full_name || "Client"}!
+        </h1>
+        <p className="text-sm">
+          Here’s your dashboard overview. Use the menu to manage your cases and appointments.
+        </p>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="flex justify-end gap-3 mb-6">
+        <button
+          onClick={() => setView("cases")}
+          title="View Cases"
+          className="flex items-center justify-center w-6 h-6 bg-green-600 text-white text-[10px] rounded-lg
+               shadow-[0_8px_15px_rgba(0,100,0,0.5)] hover:shadow-[0_12px_20px_rgba(0,120,0,0.75)]
+               transform hover:-translate-y-1 active:translate-y-0.5 active:shadow-inner
+               transition-all duration-200"
+          style={{
+            boxShadow: "0 8px 15px rgba(0,100,0,0.5), inset 3px 3px 6px rgba(0, 70, 0, 0.8), inset -3px -3px 6px rgba(0, 130, 0, 0.5), inset 0 0 8px rgba(0, 90, 0, 0.7)",
+          }}
+        >
+          <FaFolderOpen />
+        </button>
+
+        <button
+          onClick={() => setView("addCase")}
+          title="Add Case"
+          className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-[10px] rounded-lg
+               shadow-[0_8px_15px_rgba(0,0,120,0.5)] hover:shadow-[0_12px_20px_rgba(0,0,160,0.75)]
+               transform hover:-translate-y-1 active:translate-y-0.5 active:shadow-inner
+               transition-all duration-200"
+          style={{
+            boxShadow: "0 8px 15px rgba(0,0,120,0.5), inset 3px 3px 6px rgba(0, 0, 70, 0.8), inset -3px -3px 6px rgba(0, 0, 130, 0.5), inset 0 0 8px rgba(0, 0, 90, 0.7)",
+          }}
+        >
+          <FaPlus />
+        </button>
+      </div>
+
+      {/* Dashboard Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* My Cases */}
+        <div className="bg-white rounded-lg shadow p-5">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">My Cases</h2>
+          <p className="text-sm text-gray-500">
+            You currently have {myCases.length} active {myCases.length === 1 ? "case" : "cases"}.
+          </p>
           <button
-            className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors duration-300"
             onClick={() => setView("cases")}
-            title="View Cases"
+            className="mt-3 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
           >
-            <FaFolderOpen />
+            View All Cases
           </button>
-          <button
-            className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors duration-300"
-            onClick={() => setView("addCase")}
-            title="Add Case"
-          >
-            <FaPlus />
+        </div>
+
+        {/* Appointments */}
+        <div className="bg-white rounded-lg shadow p-5">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Upcoming Appointments</h2>
+          <p className="text-sm text-gray-500">
+            {
+              myCases.filter((c) => c.status === "Running").length > 0
+                ? "You have upcoming court appearances."
+                : "No upcoming court dates."
+            }
+          </p>
+          <button className="mt-3 px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition">
+            View Calendar
           </button>
         </div>
       </div>
 
-      {/* Cards Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
-        {/* My Cases Card */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-700">My Cases</h2>
-            <span className="text-sm text-gray-500">{myCases.length} Cases</span>
-          </div>
-          {myCases.map((c, idx) => (
-            <p key={idx} className="text-gray-600 text-sm mb-1">
-              {c.caseName} - <span className="font-medium">{c.status}</span>
-            </p>
-          ))}
-        </Card>
-
-        {/* Next Court Date Card */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <h2 className="text-xl font-semibold text-gray-700 mb-3">Next Court Date</h2>
-          <div className="p-4 bg-gradient-to-r from-green-100 to-green-200 rounded-lg shadow-inner">
-            {myCases.filter((c) => c.status === "Running").length > 0 ? (
-              myCases
-                .filter((c) => c.status === "Running")
-                .map((c, idx) => (
-                  <p key={idx} className="text-gray-800 font-medium mb-2">
-                    {c.caseName} - <span className="font-normal">{c.nextDate}</span>
-                  </p>
-                ))
-            ) : (
-              <p className="text-gray-500">No upcoming court dates</p>
-            )}
-          </div>
-        </Card>
-
-        {/* Payment Status Card */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <h2 className="text-xl font-semibold text-gray-700 mb-3">Payment Status</h2>
-          <div className="p-4 bg-gradient-to-r from-blue-100 to-blue-200 rounded-lg shadow-inner">
-            <p className="text-blue-800 font-medium">No pending payments</p>
-          </div>
-        </Card>
-      </div>
-
       {/* Recent Documents */}
-      <div className="mt-8 p-2">
-        <h2 className="text-xl font-semibold text-gray-700 mb-3">Recent Documents</h2>
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold text-gray-700 mb-3">Recent Documents</h2>
         <div className="flex flex-wrap gap-3">
           {myCases.flatMap((c) => c.documents).map((doc, idx) => (
             <a
               key={idx}
               href={doc.url}
               target="_blank"
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow hover:bg-gray-200 transition-colors duration-300"
+              rel="noreferrer"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg shadow hover:bg-gray-200 transition"
             >
               {doc.name}
             </a>
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 
-  // Render based on current view
   return (
-    <DashboardLayout>
-      {view === "dashboard" && renderDashboard()}
-      {view === "cases" && <CaseTable cases={myCases} />}
-      {view === "addCase" && <AddCaseForm onAdd={addNewCase} />}
-    </DashboardLayout>
+    <div className="min-h-screen bg-gray-100">
+      <DashboardLayout>
+        {view === "dashboard" && renderDashboard()}
+        {view === "cases" && <CaseTable cases={myCases} />}
+        {view === "addCase" && <AddCaseForm onAdd={addNewCase} />}
+      </DashboardLayout>
+    </div>
   );
 };
 
