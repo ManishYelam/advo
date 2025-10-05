@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
-import { FiEdit, FiEye, FiPrinter, FiMoreVertical, FiTrash2 } from "react-icons/fi";
+import { FiEdit, FiEye, FiPrinter, FiMoreVertical, FiTrash2, FiFileText, FiFile, FiSave } from "react-icons/fi";
+import EditCaseModal from "../components/EditCaseModal";
 
-const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
+const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
   const [cases, setCases] = useState([]);
   const [filters, setFilters] = useState({
     case_name: "",
@@ -15,6 +16,8 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [totalRecords, setTotalRecords] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [caseToEdit, setCaseToEdit] = useState(null);
 
   const isTokenExpired = (token) => {
     if (!token) return true;
@@ -97,6 +100,18 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
     );
   };
 
+   // Handle Edit Button click
+  const handleEditClick = (caseData) => {
+    setCaseToEdit(caseData); // Store the case data to be edited
+    setIsModalOpen(true); // Open the modal
+  };
+
+  // Handle Save Action
+  const handleSaveEdit = (updatedCase) => {
+    // Perform the save action (could be API call)
+    onSave && onSave(updatedCase); // Pass the updated case to the parent
+  };
+
   return (
     <div className="mx-6 mt-2">
       {/* Loading/Error Handling */}
@@ -155,6 +170,13 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
           >
             <FiTrash2 size={8} />
           </button>
+          <button
+            // onClick={() => onSave && onSave(selectedCaseIds)}
+            // disabled={editselectedCaseIds.length === 0}
+            className="px-2 py-1 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50"
+          > 
+            <FiSave size={8} />
+          </button>   
         </div>
       </div>
 
@@ -213,7 +235,7 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
                       <button className="text-green-600 hover:text-green-700" onClick={() => onView && onView(c)} title="View">
                         <FiEye size={10} />
                       </button>
-                      <button className="text-blue-600 hover:text-blue-700" onClick={() => onEdit && onEdit(c)} title="Edit">
+                      <button className="text-blue-600 hover:text-blue-700" onClick={() => handleEditClick(c)} title="Edit">
                         <FiEdit size={10} />
                       </button>
                       <button className="text-gray-600 hover:text-gray-700" onClick={() => onPrint && onPrint(c)} title="Print">
@@ -224,21 +246,47 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
                       </button>
                     </div>
                   </td>
-                  <td className="px-2 py-1 text-center">{c.case_number}</td>
-                  <td className="px-2 py-1 text-center">{c.case_name}</td>
-                  <td className="px-2 py-1 text-center">{c.case_type}</td>
-                  <td className="px-2 py-1 text-center">{c.status}</td>
-                  <td className="px-2 py-1 text-center">{c.court_name}</td>
-                  <td className="px-2 py-1 text-center">{c.next_hearing_date || "N/A"}</td>
-                  <td className="px-2 py-1 text-center">{c.filing_date || "N/A"}</td>
-                  <td className="px-2 py-1 text-center">{c.fees || "N/A"}</td>
-                  <td className="px-2 py-1 text-center">{c.payment_status}</td>
-                  <td className="px-2 py-1 text-center">{c.case_outcome || "N/A"}</td>
-                  <td className="px-2 py-1 text-center">{c.court_address || "N/A"}</td>
-                  <td className="px-2 py-1 text-center">
-                    {c.documents ? c.documents.join(", ") : "N/A"}
+                  <td className="w-[8%] px-2 py-1 text-center">{c.case_number}</td>
+                  <td className="w-[15%] px-2 py-1 text-center">{c.case_name}</td>
+                  <td className="w-[10%] px-2 py-1 text-center">{c.case_type}</td>
+                  <td className="w-[7%] px-2 py-1 text-center">{c.status}</td>
+                  <td className="w-[12%] px-2 py-1 text-center">{c.court}</td>
+                  <td className="w-[8%] px-2 py-1 text-center">{c.next_hearing}</td>
+                  <td className="w-[8%] px-2 py-1 text-center">{c.filing_date}</td>
+                  <td className="w-[5%] px-2 py-1 text-center">{c.fees}</td>
+                  <td className="w-[8%] px-2 py-1 text-center">{c.payment_status}</td>
+                  <td className="w-[8%] px-2 py-1 text-center">{c.outcome}</td>
+                  <td className="w-[12%] px-2 py-1 text-center">{c.court_address}</td>
+                  <td className="w-[6%] px-2 py-1 text-center">
+                    {/* Document Icons with Tooltip */}
+                    {c.documents && c.documents.length > 0 ? (
+                      c.documents.map((document, index) => (
+                        <span key={index} className="relative group inline-block mx-1">
+                          <FiFile size={10} className="cursor-pointer text-red-700 hover:text-blue-600 cursor-pointer" />
+                          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            {document}
+                          </span>
+                        </span>
+                      ))
+                    ) : (
+                      "N/A"
+                    )}
                   </td>
-                  <td className="px-2 py-1 text-center">{c.documents_shared_with_client || "N/A"}</td>
+                  <td className="w-[6%] px-2 py-1 text-center">
+                    {/* Shared Documents (if any) */}
+                    {c.shared_documents && c.shared_documents.length > 0 ? (
+                      c.shared_documents.map((document, index) => (
+                        <span key={index} className="relative group inline-block mx-1">
+                          <FiFileText size={16} className="cursor-pointer text-gray-700 hover:text-blue-600" />
+                          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            {document}
+                          </span>
+                        </span>
+                      ))
+                    ) : (
+                      "N/A"
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -299,7 +347,14 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onMore }) => {
         </div>
       </div>
 
-
+      {/* Edit Modal */}
+      {isModalOpen && (
+        <EditCaseModal
+          caseData={caseToEdit}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 };
