@@ -75,24 +75,24 @@ const CaseForm = ({ newCase, handleInputChange, handleSubmit }) => {
           required
         />
         <input
-          type="date"
-          name="nextDate"
-          value={newCase.nextDate}
+          type="text"
+          name="contact"
+          placeholder="contact"
+          value={newCase.contact}
           onChange={handleInputChange}
-          className="p-1 border border-gray-300 rounded-md shadow-sm w-36 h-6 text-[8px] focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="p-1 border border-gray-300 rounded-md shadow-sm w-32 h-6 text-[8px] placeholder:text-[8px] focus:outline-none focus:ring-2 focus:ring-green-500"
           required
         />
-        <select
-          name="status"
-          value={newCase.status}
+        <input
+          type="text"
+          name="description"
+          placeholder="description"
+          value={newCase.description}
           onChange={handleInputChange}
-          className="p-1 border border-gray-300 rounded-md shadow-sm w-28 h-6 text-[8px] focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          <option className="text-[8px]" value="Running">Running</option>
-          <option className="text-[8px]" value="Closed">Closed</option>
-          <option className="text-[8px]" value="Pending">Pending</option>
-          <option className="text-[8px]" value="Adjourned">Adjourned</option>
-        </select>
+          className="p-1 border border-gray-300 rounded-md shadow-sm w-32 h-6 text-[8px] placeholder:text-[8px] focus:outline-none focus:ring-2 focus:ring-green-500"
+          required
+        />
+        
       </div>
     </form>
   );
