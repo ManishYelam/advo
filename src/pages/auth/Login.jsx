@@ -23,8 +23,8 @@ const Login = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await loginService(formData);
-      login(res.data.user); // store user in context
+      const res = await loginService(formData);      
+      login(res.data.user, res.data.token);
       if (res.data.user.role === "admin") navigate("/admin");
       else navigate("/client");
     } catch (err) {
