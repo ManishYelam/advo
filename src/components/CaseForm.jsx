@@ -49,8 +49,8 @@ const CaseForm = ({ newCase, handleInputChange, handleSubmit }) => {
         />
         <input
           type="text"
-          name="advocate"
-          placeholder="Advocate Name"
+          name="Court "
+          placeholder="Court Name"
           value={newCase.advocate}
           onChange={handleInputChange}
           className="p-1 border border-gray-300 rounded-md shadow-sm w-40 h-6 text-[8px] placeholder:text-[8px] focus:outline-none focus:ring-2 focus:ring-green-500"

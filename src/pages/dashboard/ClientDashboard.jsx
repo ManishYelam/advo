@@ -10,23 +10,45 @@ const ClientDashboard = () => {
   const [view, setView] = useState("dashboard");
   const [myCases, setMyCases] = useState([
     {
+      id: 1,
       caseName: "Case A",
+      title: "Case A",
+      caseNumber: "CR123",
       status: "Running",
       nextDate: "2025-10-10",
+      nextHearingDate: "2025-10-10",
+      filingDate: "2025-01-01",
+      courtName: "Supreme Court",
+      courtAddress: "Main St, City",
       advocate: "John Doe",
       caseType: "Criminal",
+      fees: 1000,
+      paymentStatus: "Paid",
+      caseOutcome: "Pending",
       documents: [
         { name: "FIR.pdf", url: "/documents/fir.pdf" },
         { name: "Evidence.docx", url: "/documents/evidence.docx" },
       ],
     },
     {
+      id: 2,
       caseName: "Case B",
+      title: "Case B",
+      caseNumber: "CV456",
       status: "Closed",
       nextDate: "2025-09-15",
+      nextHearingDate: "2025-09-15",
+      filingDate: "2025-02-01",
+      courtName: "High Court",
+      courtAddress: "Court Rd, City",
       advocate: "Jane Smith",
       caseType: "Civil",
-      documents: [{ name: "Contract.pdf", url: "/documents/contract.pdf" }],
+      fees: 800,
+      paymentStatus: "Unpaid",
+      caseOutcome: "Resolved",
+      documents: [
+        { name: "Contract.pdf", url: "/documents/contract.pdf" }
+      ],
     },
   ]);
 
@@ -40,8 +62,22 @@ const ClientDashboard = () => {
   }, [navigate, user]);
 
   const addNewCase = (caseData) => {
-    setMyCases([...myCases, caseData]);
+    const newCase = {
+      ...caseData,
+      id: myCases.length + 1,
+      title: caseData.caseName || "Untitled Case",
+    };
+    setMyCases((prev) => [...prev, newCase]);
     setView("dashboard");
+  };
+
+  const handleDeleteCases = (idsToDelete) => {
+    if (
+      window.confirm(`Are you sure you want to delete ${idsToDelete.length} case(s)?`)
+    ) {
+      const updatedCases = myCases.filter((c) => !idsToDelete.includes(c.id));
+      setMyCases(updatedCases);
+    }
   };
 
   const renderDashboard = () => (
@@ -61,13 +97,7 @@ const ClientDashboard = () => {
         <button
           onClick={() => setView("cases")}
           title="View Cases"
-          className="flex items-center justify-center w-6 h-6 bg-green-600 text-white text-[10px] rounded-lg
-               shadow-[0_8px_15px_rgba(0,100,0,0.5)] hover:shadow-[0_12px_20px_rgba(0,120,0,0.75)]
-               transform hover:-translate-y-1 active:translate-y-0.5 active:shadow-inner
-               transition-all duration-200"
-          style={{
-            boxShadow: "0 8px 15px rgba(0,100,0,0.5), inset 3px 3px 6px rgba(0, 70, 0, 0.8), inset -3px -3px 6px rgba(0, 130, 0, 0.5), inset 0 0 8px rgba(0, 90, 0, 0.7)",
-          }}
+          className="flex items-center justify-center w-6 h-6 bg-green-600 text-white text-[10px] rounded-lg transition-all"
         >
           <FaFolderOpen />
         </button>
@@ -75,13 +105,7 @@ const ClientDashboard = () => {
         <button
           onClick={() => setView("addCase")}
           title="Add Case"
-          className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-[10px] rounded-lg
-               shadow-[0_8px_15px_rgba(0,0,120,0.5)] hover:shadow-[0_12px_20px_rgba(0,0,160,0.75)]
-               transform hover:-translate-y-1 active:translate-y-0.5 active:shadow-inner
-               transition-all duration-200"
-          style={{
-            boxShadow: "0 8px 15px rgba(0,0,120,0.5), inset 3px 3px 6px rgba(0, 0, 70, 0.8), inset -3px -3px 6px rgba(0, 0, 130, 0.5), inset 0 0 8px rgba(0, 0, 90, 0.7)",
-          }}
+          className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-[10px] rounded-lg transition-all"
         >
           <FaPlus />
         </button>
@@ -89,7 +113,6 @@ const ClientDashboard = () => {
 
       {/* Dashboard Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* My Cases */}
         <div className="bg-white rounded-lg shadow p-5">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">My Cases</h2>
           <p className="text-sm text-gray-500">
@@ -103,7 +126,6 @@ const ClientDashboard = () => {
           </button>
         </div>
 
-        {/* Appointments */}
         <div className="bg-white rounded-lg shadow p-5">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Upcoming Appointments</h2>
           <p className="text-sm text-gray-500">
@@ -143,7 +165,13 @@ const ClientDashboard = () => {
     <div className="min-h-screen bg-gray-100">
       <DashboardLayout>
         {view === "dashboard" && renderDashboard()}
-        {view === "cases" && <CaseTable cases={myCases} />}
+        {view === "cases" && (
+          <CaseTable
+            cases={myCases}
+            onDelete={handleDeleteCases}
+            // Optionally pass onEdit, onView, etc.
+          />
+        )}
         {view === "addCase" && <AddCaseForm onAdd={addNewCase} />}
       </DashboardLayout>
     </div>
