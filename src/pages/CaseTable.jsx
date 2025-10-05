@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FiEdit, FiEye, FiPrinter, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
-const CaseTable = ({ cases, onEdit, onView, onPrint, onMore }) => {
+const CaseTable = ({ cases, onDelete, onEdit, onView, onPrint, onMore }) => {
   const [filters, setFilters] = useState({
     id: "",
     caseNumber: "",
@@ -46,7 +46,7 @@ const CaseTable = ({ cases, onEdit, onView, onPrint, onMore }) => {
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedCaseIds(filteredCases.map((c) => c.id));
+      setSelectedCaseIds(cases.map((c) => c.id));
     } else {
       setSelectedCaseIds([]);
     }
@@ -58,22 +58,12 @@ const CaseTable = ({ cases, onEdit, onView, onPrint, onMore }) => {
     );
   };
 
-  const deleteSelected = () => {
-    if (selectedCaseIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedCaseIds.length} case(s)?`)) {
-      // Here you can add your delete logic, e.g., call a prop function to delete cases from parent
-      // For demo, we'll just clear selection
-      alert("Delete action triggered for IDs: " + selectedCaseIds.join(", "));
-      setSelectedCaseIds([]);
-    }
-  };
-
   return (
     <div className="mx-6 mt-6">
       <div className="flex justify-between items-center mb-4">
         <h4 className="text-lg font-semibold text-gray-800 mt-2">Cases</h4>
         <button
-          onClick={deleteSelected}
+          onClick={() => onDelete && onDelete(selectedCaseIds)}
           disabled={selectedCaseIds.length === 0}
           title="Delete Selected Cases"
           className={`flex items-center gap-1 px-3 py-1 text-sm rounded

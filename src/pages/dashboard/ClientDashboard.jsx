@@ -169,7 +169,10 @@ const ClientDashboard = () => {
           <CaseTable
             cases={myCases}
             onDelete={handleDeleteCases}
-            // Optionally pass onEdit, onView, etc.
+            // onEdit={handleEdit} 
+            // onView={handleView} 
+            // onPrint={handlePrint} 
+            // onMore={handleMore} 
           />
         )}
         {view === "addCase" && <AddCaseForm onAdd={addNewCase} />}
