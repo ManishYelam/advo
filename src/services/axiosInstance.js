@@ -49,7 +49,7 @@ axiosInstance.interceptors.response.use(
       if (error.response.status === 401) {
         // Token expired or unauthorized, logout the user or redirect
         localStorage.removeItem("user"); // Clear invalid user data
-        // window.location.href = "/login"; // Redirect to login page
+        window.location.href = "/login"; // Redirect to login page
       }
     } else {
       console.error("Error with request or network", error);
