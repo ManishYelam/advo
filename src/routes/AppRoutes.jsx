@@ -10,13 +10,19 @@ import Documents from "../pages/Documents";
 import Payments from "../pages/Payments";
 import { useAuth } from "../hooks/useAuth";
 
+// Public Landing page
+import LandingPage from "../pages/LandingPage";
+import Application from "../pages/Application";
+
 const AppRoutes = () => {
   const { user } = useAuth(); // user context
 
   return (
     <Router>
       <Routes>
-        {/* Auth */}
+        {/* Public Routes */}
+        <Route path="/" element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/client"} /> : <LandingPage />} />
+        <Route path="/apply" element={<Application />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
@@ -49,9 +55,6 @@ const AppRoutes = () => {
           path="/payments"
           element={user ? <Payments /> : <Navigate to="/login" />}
         />
-
-        {/* Default route */}
-        <Route path="/" element={<Navigate to={user ? (user.role === "admin" ? "/admin" : "/client") : "/login"} />} />
       </Routes>
     </Router>
   );
