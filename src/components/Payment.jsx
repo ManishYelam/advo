@@ -1,6 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
+import UPIPayment from "./UPIPayment"; // Adjust the path as needed
 
 const Payment = ({ amount, onPaymentSuccess, onBack }) => {
+  const [showUPI, setShowUPI] = useState(false);
+  const [txnId, setTxnId] = useState("");
+  const [screenshot, setScreenshot] = useState(null);
+
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       if (document.getElementById("razorpay-script")) {
@@ -16,23 +21,26 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
     });
   };
 
-  const handlePayment = async () => {
+  const handleRazorpayPayment = async () => {
     const res = await loadRazorpayScript();
 
     if (!res) {
-      alert("Failed to load Razorpay SDK. Are you online?");
+      alert("⚠️ Razorpay SDK failed to load. Switching to UPI payment.");
+      setShowUPI(true);
       return;
     }
 
     const options = {
-      key: "YOUR_RAZORPAY_KEY", // Replace with your Razorpay API key
-      amount: amount * 100, // Amount in paise (₹1 = 100 paise)
+      key: process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_yourkey",
+      amount: amount * 100,
       currency: "INR",
-      name: "Your Company Name",
-      description: "Case Application Payment",
+      name: "Satyamev Jayate",
+      description: "Case Application Fee",
       handler: function (response) {
-        // Payment success callback
-        onPaymentSuccess(response);
+        onPaymentSuccess({
+          method: "razorpay",
+          paymentId: response.razorpay_payment_id,
+        });
       },
       prefill: {
         name: "",
@@ -40,38 +48,113 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
         contact: "",
       },
       theme: {
-        color: "#3399cc",
+        color: "#22c55e",
       },
     };
 
-    const paymentObject = new window.Razorpay(options);
-    paymentObject.open();
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
+  const handleUPISubmit = () => {
+    if (!txnId || !screenshot) {
+      alert("Please enter transaction ID and upload payment proof.");
+      return;
+    }
+
+    onPaymentSuccess({
+      method: "upi_manual",
+      txnId,
+      screenshot,
+    });
   };
 
   return (
-    <div style={{ fontSize: "10px", fontFamily: '"Times New Roman", Times, serif', lineHeight: 1.4 }}>
-      <h3 className="mb-4 font-semibold" style={{ fontSize: "12px" /* slightly larger for heading */, fontWeight: "bold" }}>
-        Payment Step
-      </h3>
-      <p className="mb-4">Amount to pay: ₹{amount}</p>
+    <div className="text-xs font-serif space-y-4">
+      <h3 className="text-sm font-bold">Payment</h3>
 
-      <div className="flex justify-between">
-        <button
-          onClick={onBack}
-          className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-          style={{ fontSize: "10px" }}
-        >
-          Back
-        </button>
+      {!showUPI ? (
+        <>
+          <p>Amount to pay: ₹{amount}</p>
+          <div className="flex justify-between">
+            <button
+              onClick={onBack}
+              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleRazorpayPayment}
+              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Pay with Razorpay
+            </button>
+          </div>
+          <p className="text-center text-gray-500 text-[10px] mt-2">
+            Having trouble?{" "}
+            <button
+              onClick={() => setShowUPI(true)}
+              className="underline text-blue-500"
+            >
+              Use UPI instead
+            </button>
+          </p>
+        </>
+      ) : (
+        <>
+          <UPIPayment />
 
-        <button
-          onClick={handlePayment}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          style={{ fontSize: "10px" }}
-        >
-          Pay Now
-        </button>
-      </div>
+          <div className="space-y-2 mt-4">
+            <input
+              type="text"
+              placeholder="Transaction ID"
+              value={txnId}
+              onChange={(e) => setTxnId(e.target.value)}
+              className="w-full border px-3 py-1 rounded text-xs"
+            />
+
+            {/* File Input with Label and File Name Display */}
+            <div className="flex items-center space-x-2">
+              <label className="text-[10px] bg-blue-500 text-white px-3 py-1 rounded cursor-pointer hover:bg-blue-600">
+                Choose File
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setScreenshot(e.target.files[0])}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-[10px] text-gray-600 truncate max-w-[200px]">
+                {screenshot ? screenshot.name : "No file chosen"}
+              </span>
+            </div>
+
+            {/* Optional Image Preview (uncomment if needed) */}
+            {/* {screenshot && (
+              <img
+                src={URL.createObjectURL(screenshot)}
+                alt="Payment proof preview"
+                className="mt-2 max-h-24 rounded border"
+              />
+            )} */}
+          </div>
+
+          <div className="flex justify-between mt-3">
+            <button
+              onClick={onBack}
+              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleUPISubmit}
+              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Submit Payment Proof
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
