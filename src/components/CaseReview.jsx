@@ -7,44 +7,37 @@ const CaseReview = ({ formData, onNext, onBack }) => {
     newWindow.document.write(`
       <html>
         <head>
-          <title>Case Review</title>
+          <title>Application Review</title>
           <style>
-            @page {
-              margin: 1in;
-            }
             body {
               font-family: "Times New Roman", Times, serif;
-              font-size: 7.5pt; /* approx 10px */
-              color: #000;
+              font-size: 10px;
               line-height: 1.4;
-              margin: 0;
-              padding: 1in;
+              color: #000;
+              margin: 1in;
             }
             h3 {
-              font-size: 12pt; /* approx 16px */
+              font-size: 16px;
               font-weight: bold;
-              margin-bottom: 16px;
               text-align: center;
               text-decoration: underline;
+              margin-bottom: 16px;
             }
             h4 {
-              font-size: 10pt; /* approx 13px */
+              font-size: 13px;
               font-weight: bold;
-              margin-bottom: 8px;
               border-bottom: 1px solid #000;
               padding-bottom: 2px;
+              margin-bottom: 8px;
             }
             p, ul, li {
               margin: 4px 0;
-              font-size: 7.5pt; /* approx 10px */
+              font-size: 10px;
             }
             ul {
               list-style-type: disc;
               margin-left: 20px;
               margin-bottom: 8px;
-            }
-            li {
-              margin-bottom: 4px;
             }
           </style>
         </head>
@@ -60,69 +53,72 @@ const CaseReview = ({ formData, onNext, onBack }) => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white p-6 border border-gray-300 shadow-lg rounded print:p-0 print:shadow-none print:border-none print:max-w-full print:mx-0 print:rounded-none" style={{ fontSize: "10px", lineHeight: 1.4, fontFamily: '"Times New Roman", Times, serif' }}>
+    <div className="max-w-3xl mx-auto bg-white p-6 border border-gray-300 shadow-lg rounded print:p-0 print:shadow-none print:border-none print:max-w-full print:mx-0 print:rounded-none text-[10px] leading-4">
       <div id="printableArea">
-        <h3 className="text-2xl font-semibold mb-6 text-center border-b pb-2 print:text-3xl print:mb-8" style={{ fontSize: "16px", fontWeight: "bold", textDecoration: "underline", marginBottom: "16px", textAlign: "center" }}>
-          Case Review
-        </h3>
+        <h3 className="text-center">Application Review</h3>
 
-        <div className="mb-4 print:mb-6" style={{ marginBottom: "12px" }}>
-          <h4 className="font-semibold text-lg mb-1 print:text-xl" style={{ fontSize: "13px", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "2px", marginBottom: "8px" }}>
-            Basic Information
-          </h4>
-          <p><strong>Case Name:</strong> {formData.caseName}</p>
-          <p><strong>Age:</strong> {formData.age}</p>
-        </div>
+        {/* Basic Information */}
+        <section className="mb-4">
+          <h4>Basic Information</h4>
+          <p><strong>Full Name:</strong> {formData.name}</p>
+          <p><strong>Surname / Ape:</strong> {formData.surname}</p>
+          <p><strong>Occupation:</strong> {formData.occupation}</p>
+          <p><strong>Address:</strong> {formData.address}</p>
+        </section>
 
-        <div className="mb-4 print:mb-6" style={{ marginBottom: "12px" }}>
-          <h4 className="font-semibold text-lg mb-1 print:text-xl" style={{ fontSize: "13px", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "2px", marginBottom: "8px" }}>
-            Case Details
-          </h4>
-          <p><strong>Next Hearing Date:</strong> {formData.nextDate}</p>
-          <p><strong>Advocate:</strong> {formData.advocate}</p>
-          <p><strong>Case Type:</strong> {formData.caseType}</p>
-        </div>
+        {/* Deposit Details */}
+        <section className="mb-4">
+          <h4>Deposit Details</h4>
+          <p><strong>Saving Account Starting Date:</strong> {formData.savingAccountStartDate}</p>
+          <p><strong>Deposit Type:</strong> {formData.depositType}</p>
+          <p><strong>Deposit Duration (Years):</strong> {formData.depositDurationYears}</p>
 
-        <div className="mb-4 print:mb-6" style={{ marginBottom: "12px" }}>
-          <h4 className="font-semibold text-lg mb-1 print:text-xl" style={{ fontSize: "13px", fontWeight: "bold", borderBottom: "1px solid #000", paddingBottom: "2px", marginBottom: "8px" }}>
-            Documents Uploaded
-          </h4>
-          {formData.documents.length > 0 ? (
-            <ul className="list-disc list-inside" style={{ marginLeft: "20px", marginBottom: "8px" }}>
-              {formData.documents.map((doc, idx) => (
-                <li key={idx} style={{ marginBottom: "4px" }}>{doc.name || doc.fileName || `Document ${idx + 1}`}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No documents uploaded</p>
-          )}
-        </div>
+          <p><strong>Fixed Deposit Total Amount:</strong> {formData.fixedDepositTotalAmount}</p>
+          <p><strong>Interest Rate (FD %):</strong> {formData.interestRateFD}</p>
+
+          <p><strong>Savings Account Total Amount:</strong> {formData.savingAccountTotalAmount}</p>
+          <p><strong>Interest Rate (Savings %):</strong> {formData.interestRateSaving}</p>
+
+          <p><strong>Recurring Deposit Total Amount:</strong> {formData.recurringDepositTotalAmount}</p>
+          <p><strong>Interest Rate (RD %):</strong> {formData.interestRateRecurring}</p>
+
+          <p><strong>Dnyanrudha Investment Total Amount:</strong> {formData.dnyanrudhaInvestmentTotalAmount}</p>
+          <p><strong>Dynadhara Rate (%):</strong> {formData.dynadharaRate}</p>
+        </section>
+
+        {/* Verification */}
+        <section className="mb-4">
+          <h4>Verification</h4>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.verified || false}
+              onChange={(e) => formData.setVerified(e.target.checked)}
+            />
+            <span>I verify that all the above details are correct</span>
+          </label>
+        </section>
       </div>
 
-      <div className="flex justify-between mt-8 print:hidden" style={{ marginTop: "16px" }}>
+      {/* Navigation Buttons */}
+      <div className="flex justify-between mt-8 print:hidden space-x-2">
         <button
           onClick={onBack}
-          className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-          style={{ fontSize: "10px" }}
+          className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 text-[10px] transition"
         >
           Back
         </button>
         <button
+          onClick={handlePrint}
+          className="px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-900 text-[10px] transition"
+        >
+          Print
+        </button>
+        <button
           onClick={onNext}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          style={{ fontSize: "10px" }}
+          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-[10px] transition"
         >
           Next
-        </button>
-      </div>
-
-      <div className="mt-6 text-center print:hidden" style={{ marginTop: "24px" }}>
-        <button
-          onClick={handlePrint}
-          className="px-4 py-2 border border-gray-700 rounded hover:bg-gray-200"
-          style={{ fontSize: "10px" }}
-        >
-          Print this Review
         </button>
       </div>
     </div>

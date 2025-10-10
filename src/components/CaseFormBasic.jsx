@@ -1,40 +1,58 @@
 import React from "react";
 
-const CaseFormBasic = ({ formData, handleInputChange, onNext }) => {
+const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
   const handleNextClick = (e) => {
     e.preventDefault();
     onNext();
   };
 
   return (
-    <form onSubmit={handleNextClick} className="flex flex-col gap-3">
+    <form
+      onSubmit={handleNextClick}
+      className="flex flex-col gap-2 p-3 bg-white rounded shadow-md text-[10px]"
+    >
+      {/* Full Name */}
       <input
         type="text"
-        name="caseName"
-        placeholder="Case Name"
-        value={formData.caseName}
+        name="name"
+        placeholder="Full Name"
+        value={formData.name || ""}
         onChange={handleInputChange}
-        className="p-2 border rounded text-[10px] placeholder:text-[10px]"
+        className="p-1 border rounded text-[10px] placeholder:text-[10px]"
         required
       />
+
+      {/* Occupation */}
       <input
-        type="number"
-        name="age"
-        placeholder="Age"
-        value={formData.age}
+        type="text"
+        name="occupation"
+        placeholder="Occupation"
+        value={formData.occupation || ""}
         onChange={handleInputChange}
-        className="p-2 border rounded text-[10px] placeholder:text-[10px]"
-        required
-        min={0}
+        className="p-1 border rounded text-[10px] placeholder:text-[10px]"
       />
-      <button
-        type="submit"
-        className="mt-4 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition text-[10px]"
-      >
-        Next
-      </button>
+
+      {/* Address */}
+      <textarea
+        name="address"
+        placeholder="Full Address with Pin Code"
+        value={formData.address || ""}
+        onChange={handleInputChange}
+        className="p-1 border rounded text-[10px] placeholder:text-[10px] resize-none"
+        rows={3}
+      />
+
+      {/* Next Button aligned right */}
+      <div className="flex justify-end mt-3">
+        <button
+          type="submit"
+          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-[10px]"
+        >
+          Next
+        </button>
+      </div>
     </form>
   );
 };
 
-export default CaseFormBasic;
+export default BasicInfoForm;

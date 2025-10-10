@@ -8,9 +8,9 @@ const UPIPayment = () => {
       <p className="text-sm mb-4">Scan the QR code using any UPI app</p>
 
       <img
-        src={upiimg} // ✅ use imported image
+        src={upiimg} 
         alt="UPI QR Code"
-        className="mx-auto w-64 h-auto border border-gray-300 rounded shadow-md"
+        className="mx-auto w-20 h-auto border border-gray-300 rounded shadow-md"
       />
 
       <p className="mt-4 text-sm text-gray-600">UPI ID: yourname@bank</p>
