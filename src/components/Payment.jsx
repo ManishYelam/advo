@@ -148,31 +148,31 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
             )}
           </div>
 
-         <div className="relative flex items-center mt-3">
-  {/* Back Button (left) */}
-  <button
-    onClick={onBack}
-    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-  >
-    Back
-  </button>
+          <div className="relative flex items-center mt-3">
+            {/* Back Button (left) */}
+            <button
+              onClick={onBack}
+              className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Back
+            </button>
 
-  {/* Switch to Razorpay Button (center) */}
-  <button
-    onClick={() => setShowUPI(false)}
-    className="absolute left-1/2 transform -translate-x-1/2 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-  >
-    Switch to Razorpay
-  </button>
+            {/* Switch to Razorpay Button (center) */}
+            <button
+              onClick={() => setShowUPI(false)}
+              className="absolute left-1/2 transform -translate-x-1/2 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            >
+              Switch to Razorpay
+            </button>
 
-  {/* Submit Payment Proof Button (right) */}
-  <button
-    onClick={handleUPISubmit}
-    className="ml-auto px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-  >
-    Submit Payment Proof
-  </button>
-</div>
+            {/* Submit Payment Proof Button (right) */}
+            <button
+              onClick={handleUPISubmit}
+              className="ml-auto px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Submit Payment Proof
+            </button>
+          </div>
 
         </>
       )}

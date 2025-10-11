@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Toast from "../components/Toast";
 
 const MainLayout = ({ children }) => {
   return (
@@ -14,6 +15,9 @@ const MainLayout = ({ children }) => {
 
       {/* Footer */}
       <Footer />
+
+      {/* Global Toast Notifications */}
+      <Toast />
     </div>
   );
 };
