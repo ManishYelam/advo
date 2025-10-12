@@ -4,6 +4,7 @@ import CaseFormBasic from "../components/CaseFormBasic"; // Step 1
 import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
 import CaseReview from "../components/CaseReview"; // Step 3
 import Payment from "../components/Payment"; // Step 5
+import Toast from "../components/Toast";
 
 const Application = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -215,6 +216,7 @@ const Application = ({ onSubmit }) => {
           Current Status: <span className="font-medium">{formData.status}</span>
         </p>
       </div>
+      <Toast />
     </div>
   );
 };

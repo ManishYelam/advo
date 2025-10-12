@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import UPIPayment from "./UPIPayment";
 import { createPaymentOrder, verifyPayment } from "../services/paymentsService";
+import { showSuccessToast, showErrorToast, showInfoToast, showWarningToast, } from "../utils/Toastify";
 
 const Payment = ({ amount, onPaymentSuccess, onBack }) => {
   const [showUPI, setShowUPI] = useState(false);
@@ -21,23 +22,20 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
 
   const handleRazorpayPayment = async () => {
     setLoading(true);
-
     try {
       const res = await loadRazorpayScript();
       if (!res) {
-        alert("⚠️ Razorpay SDK failed to load. Switching to UPI payment.");
+        showWarningToast("⚠️ Razorpay SDK failed to load. Switching to UPI payment.");
         setShowUPI(true);
         setLoading(false);
         return;
       }
 
       // 1️⃣ Create order from backend
-      console.log("Creating order...");
       const { data: order } = await createPaymentOrder({ amount });
-       console.log("Order response:", order); 
-       console.log(order.order.id)
+      console.log("Order response:", order);
       if (!order.order?.id) {
-        alert("Failed to create order. Try again.");
+        showErrorToast("Failed to create payment order. Try again.");
         setLoading(false);
         return;
       }
@@ -58,24 +56,24 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
             });
 
             if (verifyRes.data.success) {
-              alert("✅ Payment Successful!");
+              showSuccessToast("✅ Payment Successful!");
               onPaymentSuccess({
                 method: "razorpay",
                 paymentId: response.razorpay_payment_id,
               });
             } else {
-              alert("❌ Payment verification failed!");
+              showErrorToast("❌ Payment verification failed!");
             }
           } catch (err) {
             console.error("Verification error:", err);
-            alert("Verification failed!");
+            showErrorToast("Verification failed!");
           }
         },
         prefill: { name: "", email: "", contact: "" },
         theme: { color: "#22c55e" },
         modal: {
           ondismiss: function () {
-            alert("Payment cancelled. You can retry or choose UPI/QR payment.");
+            showInfoToast("Payment cancelled. You can retry or choose UPI/QR payment.");
           },
         },
       };
@@ -84,7 +82,7 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
       rzp.open();
     } catch (error) {
       console.error("Payment error:", error.message);
-      alert("Something went wrong while initiating payment!");
+      showErrorToast("Something went wrong while initiating payment!");
     } finally {
       setLoading(false);
     }
@@ -92,9 +90,10 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
 
   const handleUPISubmit = () => {
     if (!txnId || !screenshot) {
-      alert("Please enter transaction ID and upload payment proof.");
+      showWarningToast("Please enter transaction ID and upload payment proof.");
       return;
     }
+    showSuccessToast("✅ UPI payment proof submitted successfully!");
     onPaymentSuccess({ method: "upi_manual", txnId, screenshot });
   };
 

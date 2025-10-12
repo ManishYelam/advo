@@ -8,6 +8,9 @@ const MainLayout = ({ children }) => {
       {/* Navbar */}
       <Navbar />
 
+      {/* Global Toast Notifications */}
+      <Toast />
+
       {/* Page Content */}
       <main className="flex-grow container mx-auto ">
         {children}
@@ -16,8 +19,6 @@ const MainLayout = ({ children }) => {
       {/* Footer */}
       <Footer />
 
-      {/* Global Toast Notifications */}
-      <Toast />
     </div>
   );
 };
