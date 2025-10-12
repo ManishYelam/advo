@@ -60,8 +60,8 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
     };
 
     return (
-        <div className="mt-4 max-w-8xl mx-full aligncenter p-6 bg-white rounded-lg shadow-md text-[10px]">
-            <h2 className="font-semibold mb-4 flex items-center space-x-2 text-[10px]">
+        <div className="max-w-8xl mx-full aligncenter p-6 bg-white rounded-lg shadow-md text-[10px]">
+            <h2 className="font-semibold mb-2 flex items-center space-x-2 text-[10px]">
                 <FontAwesomeIcon icon={faFilePdf} className="text-red-600" />
                 <span>Upload Case Documents</span>
             </h2>

@@ -146,12 +146,12 @@ const Application = ({ onSubmit }) => {
 
         {currentStep === 4 && (
           <div>
-            <div className="mb-4">
+            <div>
               <label className="block mb-1 text-[10px] font-medium">Select Exhibit</label>
               <select
                 value={selectedExhibit}
                 onChange={(e) => setSelectedExhibit(e.target.value)}
-                className="border p-2 text-[8px] rounded w-full"
+                className="border p-1 text-[8px] rounded w-full"
               >
                 <option value="Exhibit A">
                   Exhibit A - Copy of the slip of Account Started on date mentioned: 1. Dnyanradha Multistate Society Bank Passbook Copy, 2. Other Bank Passbook Copy for Payment
@@ -174,6 +174,9 @@ const Application = ({ onSubmit }) => {
               onNext={goToNextStep}
               onBack={goToPrevStep}
             />
+            <p className="text-[9px] text-red-600 mt-2">
+              *Please upload all relevant documents for the selected exhibit. Only PDF files are accepted.
+            </p>
           </div>
         )}
 
