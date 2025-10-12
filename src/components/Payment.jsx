@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import UPIPayment from "./UPIPayment"; // Optional UPI component
+import UPIPayment from "./UPIPayment";
+import { createPaymentOrder, verifyPayment } from "../services/paymentsService";
 
 const Payment = ({ amount, onPaymentSuccess, onBack }) => {
   const [showUPI, setShowUPI] = useState(false);
   const [txnId, setTxnId] = useState("");
   const [screenshot, setScreenshot] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // Dynamically load Razorpay SDK
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
       if (document.getElementById("razorpay-script")) return resolve(true);
@@ -18,41 +19,77 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
       document.body.appendChild(script);
     });
 
-  // Handle Razorpay payment
   const handleRazorpayPayment = async () => {
-    const res = await loadRazorpayScript();
-    if (!res) {
-      alert("⚠️ Razorpay SDK failed to load. Switching to UPI payment.");
-      setShowUPI(true);
-      return;
-    }
+    setLoading(true);
 
-    const options = {
-      key: process.env.REACT_APP_RAZORPAY_KEY_ID || "rzp_test_yourkey",
-      amount: amount * 100,
-      currency: "INR",
-      name: "Satyamev Jayate",
-      description: "Case Application Fee",
-      handler: function (response) {
-        onPaymentSuccess({
-          method: "razorpay",
-          paymentId: response.razorpay_payment_id,
-        });
-      },
-      prefill: { name: "", email: "", contact: "" },
-      theme: { color: "#22c55e" },
-      modal: {
-        ondismiss: function () {
-          alert("Payment cancelled. You can retry or choose UPI/QR payment.");
+    try {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        alert("⚠️ Razorpay SDK failed to load. Switching to UPI payment.");
+        setShowUPI(true);
+        setLoading(false);
+        return;
+      }
+
+      // 1️⃣ Create order from backend
+      console.log("Creating order...");
+      const { data: order } = await createPaymentOrder({ amount });
+       console.log("Order response:", order); 
+       console.log(order.order.id)
+      if (!order.order?.id) {
+        alert("Failed to create order. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      // 2️⃣ Open Razorpay checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        currency: order.currency,
+        name: "Satyamev Jayate",
+        description: "Case Application Fee",
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            const verifyRes = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyRes.data.success) {
+              alert("✅ Payment Successful!");
+              onPaymentSuccess({
+                method: "razorpay",
+                paymentId: response.razorpay_payment_id,
+              });
+            } else {
+              alert("❌ Payment verification failed!");
+            }
+          } catch (err) {
+            console.error("Verification error:", err);
+            alert("Verification failed!");
+          }
         },
-      },
-    };
+        prefill: { name: "", email: "", contact: "" },
+        theme: { color: "#22c55e" },
+        modal: {
+          ondismiss: function () {
+            alert("Payment cancelled. You can retry or choose UPI/QR payment.");
+          },
+        },
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error("Payment error:", error.message);
+      alert("Something went wrong while initiating payment!");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle manual UPI/QR payment submission
   const handleUPISubmit = () => {
     if (!txnId || !screenshot) {
       alert("Please enter transaction ID and upload payment proof.");
@@ -66,7 +103,6 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
       <h3 className="text-sm font-bold">Payment</h3>
 
       {!showUPI ? (
-        // Razorpay Section
         <>
           <p>Amount to pay: ₹{amount}</p>
           <div className="flex justify-between">
@@ -79,8 +115,9 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
             <button
               onClick={handleRazorpayPayment}
               className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+              disabled={loading}
             >
-              Pay with Razorpay
+              {loading ? "Processing..." : "Pay with Razorpay"}
             </button>
           </div>
           <p className="text-center text-gray-500 text-[10px] mt-2">
@@ -94,10 +131,8 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
           </p>
         </>
       ) : (
-        // UPI/QR Section
         <>
           <UPIPayment />
-
           <div className="flex flex-col items-center space-y-2 mt-4">
             <input
               type="text"
@@ -106,8 +141,6 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
               onChange={(e) => setTxnId(e.target.value)}
               className="w-60 border px-3 text-center py-1 rounded text-xs"
             />
-
-            {/* File input with remove button */}
             <div className="flex items-center space-x-2">
               <label className="text-[10px] bg-blue-500 text-white px-3 py-1 rounded cursor-pointer hover:bg-blue-600">
                 Choose File
@@ -118,7 +151,6 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
                   className="hidden"
                 />
               </label>
-
               {screenshot ? (
                 <div className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded">
                   <span className="text-[10px] text-gray-600 truncate max-w-[160px]">
@@ -138,7 +170,6 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
                 </span>
               )}
             </div>
-
             {screenshot && (
               <img
                 src={URL.createObjectURL(screenshot)}
@@ -149,23 +180,18 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
           </div>
 
           <div className="relative flex items-center mt-3">
-            {/* Back Button (left) */}
             <button
               onClick={onBack}
               className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
             >
               Back
             </button>
-
-            {/* Switch to Razorpay Button (center) */}
             <button
               onClick={() => setShowUPI(false)}
               className="absolute left-1/2 transform -translate-x-1/2 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
             >
               Switch to Razorpay
             </button>
-
-            {/* Submit Payment Proof Button (right) */}
             <button
               onClick={handleUPISubmit}
               className="ml-auto px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
@@ -173,7 +199,6 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
               Submit Payment Proof
             </button>
           </div>
-
         </>
       )}
     </div>

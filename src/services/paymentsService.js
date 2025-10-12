@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosInstance";
 
-export const createPaymentOrder = (data) => axiosInstance.post("/payments/create-order", data);
+export const createPaymentOrder = (data) => axiosInstance.post("/payment/create-order", data);
 
-export const verifyPayment = (data) => axiosInstance.post("/payments/verify", data);
+export const verifyPayment = (data) => axiosInstance.post("/payment/verify", data);
