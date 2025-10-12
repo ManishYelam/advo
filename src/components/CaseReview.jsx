@@ -20,50 +20,106 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
   };
 
   // ✅ Handle printing
-  const handlePrint = () => {
-    const printContents = document.getElementById("printableArea").innerHTML;
-    const newWindow = window.open("", "_blank", "width=900,height=700");
-    newWindow.document.write(`
-      <html>
-        <head>
-          <title>Application Review - Legal Format</title>
-          <style>
-            @page { size: A4; margin: 1in 1in 1in 1.25in; }
-            body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; color: #000; text-align: justify; background-color: #fff; }
-            header { text-align: center; margin-bottom: 20px; font-size: 14pt; font-weight: bold; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 6px; }
-            h3 { font-size: 13pt; text-align: center; text-transform: uppercase; font-weight: bold; text-decoration: underline; margin-bottom: 20px; }
-            h4 { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-top: 16px; margin-bottom: 8px; }
-            p { margin: 4px 0; font-size: 11pt; text-align: justify; }
-            .section { margin-bottom: 18px; }
-            .signature-block { margin-top: 40px; text-align: right; font-size: 11pt; }
-            .signature-block p { margin: 2px 0; }
-            footer { position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 10pt; color: #555; }
-            .verification { margin-top: 20px; padding: 10px; border: 1px solid #000; font-style: italic; }
-            .border-box { border: 1px solid #000; padding: 15px; border-radius: 4px; background-color: #fafafa; }
-          </style>
-        </head>
-        <body>
-          <header>IN THE HONOURABLE COURT OF JUSTICE</header>
-          <h3>APPLICATION REVIEW</h3>
-          <div class="border-box">${printContents}</div>
-          <div class="signature-block">
-            <p>Place: _______________________</p>
-            <p>Date: ____ / ____ / ______</p>
-            <br/><br/>
-            <p><strong>Signature of Applicant</strong></p>
-            <p>(Authorized Signatory)</p>
-          </div>
-          <footer>*This document is electronically generated for court submission purposes*</footer>
-        </body>
-      </html>
-    `);
-    newWindow.document.close();
-    newWindow.focus();
-    // newWindow.print();
-    // newWindow.close();
+ const handlePrint = () => {
+  const printContents = document.getElementById("printableArea").innerHTML;
+  const { name, dob, gender, phone_number, age, occupation, adhar_number, email, address, notes,
+          savingAccountStartDate, depositType, depositDurationYears,
+          fixedDepositTotalAmount, interestRateFD, savingAccountTotalAmount, interestRateSaving,
+          recurringDepositTotalAmount, interestRateRecurring, dnyanrudhaInvestmentTotalAmount, dynadharaRate } = formData;
 
-    showSuccessToast("Legal copy sent to printer successfully!");
-  };
+  const newWindow = window.open("", "_blank", "width=900,height=700");
+
+  newWindow.document.write(`
+    <html>
+      <head>
+        <title>Application Review - Legal Format</title>
+        <style>
+          @page { size: A4; margin: 10mm; }
+          body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.2; color: #000; text-align: justify; margin:0; padding:0; }
+          header { text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 10px; }
+          .partition { border: 1px solid #000; padding: 10px; margin-bottom: 10px; background-color: #fafafa; }
+          .partition-title { font-weight: bold; margin-bottom: 5px; text-decoration: underline; }
+          .info-line { margin-bottom: 4px; }
+          .signature-block { margin-top: 15px; text-align: right; }
+          .signature-block div { margin: 2px 0; }
+          .verification { margin-top: 10px; padding: 10px; border: 1px solid #000; font-style: italic; }
+          .columns { display: flex; gap: 10px; }
+          .column { flex: 1; }
+        </style>
+      </head>
+      <body>
+        <header>APPLICATION DETAILS</header>
+
+        <!-- Partition 1: Basic Information -->
+        <div class="partition">
+          <div class="partition-title">1. BASIC INFORMATION</div>
+          <div class="columns">
+            <div class="column">
+              <div class="info-line"><strong>Full Name:</strong> ${name}</div>
+              <div class="info-line"><strong>Date of Birth:</strong> ${dob}</div>
+              <div class="info-line"><strong>Gender:</strong> ${gender}</div>
+            </div>
+            <div class="column">
+              <div class="info-line"><strong>Phone No.:</strong> ${phone_number}</div>
+              <div class="info-line"><strong>Age:</strong> ${age}</div>
+              <div class="info-line"><strong>Occupation:</strong> ${occupation}</div>
+            </div>
+            <div class="column">
+              <div class="info-line"><strong>Aadhar No.:</strong> ${adhar_number}</div>
+              <div class="info-line"><strong>Email:</strong> ${email}</div>
+              <div class="info-line"><strong>Address:</strong> ${address}</div>
+              <div class="info-line"><strong>Notes:</strong> ${notes}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Partition 2: Deposit Details -->
+        <div class="partition">
+          <div class="partition-title">2. DEPOSIT DETAILS</div>
+          <div class="columns">
+            <div class="column">
+              <div class="info-line"><strong>Saving Account Starting Date:</strong> ${savingAccountStartDate}</div>
+              <div class="info-line"><strong>Deposit Type:</strong> ${depositType}</div>
+              <div class="info-line"><strong>Deposit Duration (Years):</strong> ${depositDurationYears}</div>
+            </div>
+            <div class="column">
+              <div class="info-line"><strong>Fixed Deposit Total Amount:</strong> ${fixedDepositTotalAmount}</div>
+              <div class="info-line"><strong>Interest Rate (FD %):</strong> ${interestRateFD}</div>
+              <div class="info-line"><strong>Savings Account Total Amount:</strong> ${savingAccountTotalAmount}</div>
+              <div class="info-line"><strong>Interest Rate (Savings %):</strong> ${interestRateSaving}</div>
+            </div>
+            <div class="column">
+              <div class="info-line"><strong>Recurring Deposit Total Amount:</strong> ${recurringDepositTotalAmount}</div>
+              <div class="info-line"><strong>Interest Rate (RD %):</strong> ${interestRateRecurring}</div>
+              <div class="info-line"><strong>Dnyanrudha Investment Total Amount:</strong> ${dnyanrudhaInvestmentTotalAmount}</div>
+              <div class="info-line"><strong>Dynadhara Rate (%):</strong> ${dynadharaRate}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Verification Section -->
+        <div class="verification">
+          I hereby solemnly affirm that the information provided above is true and correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
+          <div style="margin-top:6px;"><strong>Declaration Verified ✔</strong></div>
+        </div>
+
+        <!-- Signature Block -->
+        <div class="signature-block">
+          <div>Place: _______________________</div>
+          <div>Date: ____ / ____ / ______</div>
+          <div><strong>Signature of Applicant</strong></div>
+          <div>(Authorized Signatory)</div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  newWindow.document.close();
+  // newWindow.focus();
+  newWindow.print();
+  showSuccessToast("Legal copy sent to printer successfully!");
+};
+
 
   // ✅ Validation before proceeding
   const handleNext = () => {
