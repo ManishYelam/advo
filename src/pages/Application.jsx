@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import CaseDocumentUploader from "../components/CaseDocumentUploader";
+import CaseDocumentUploader from "../components/CaseDocumentUploader"; // Step 4
 import CaseFormBasic from "../components/CaseFormBasic"; // Step 1
 import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
 import CaseReview from "../components/CaseReview"; // Step 3
