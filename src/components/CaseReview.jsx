@@ -59,8 +59,8 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
     `);
     newWindow.document.close();
     newWindow.focus();
-    newWindow.print();
-    newWindow.close();
+    // newWindow.print();
+    // newWindow.close();
 
     showSuccessToast("Legal copy sent to printer successfully!");
   };
