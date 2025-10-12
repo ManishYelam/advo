@@ -1,12 +1,18 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
-import { showSuccessToast, showWarningToast } from "../utils/Toastify"; // ✅ adjust path
+import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 
 const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsChange, onNext, onBack }) => {
     const [documents, setDocuments] = useState(initialDocuments);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const fileInputRef = useRef(null);
+
+    // ✅ Reset uploader when prop changes
+    useEffect(() => {
+        setDocuments(initialDocuments);
+        setSelectedDoc(initialDocuments[0] || null);
+    }, [initialDocuments]);
 
     const handleFileChange = (e) => {
         const newFiles = Array.from(e.target.files).map((file) => ({
@@ -32,8 +38,7 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
         });
 
         setSelectedDoc(newFiles[0] || null);
-
-        e.target.value = ""; // reset input
+        e.target.value = "";
     };
 
     const removeDocument = (name) => {
@@ -43,9 +48,7 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
             return filtered;
         });
 
-        if (selectedDoc?.name === name) {
-            setSelectedDoc(null);
-        }
+        if (selectedDoc?.name === name) setSelectedDoc(null);
     };
 
     const handleNextClick = () => {
@@ -80,7 +83,6 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
                 >
                     Choose Files
                 </button>
-
                 <div className="text-gray-600 text-[8px]">
                     {documents.length > 0
                         ? `${documents.length} file${documents.length > 1 ? "s" : ""} selected`
@@ -99,11 +101,10 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
                             >
                                 <button
                                     onClick={() => setSelectedDoc(doc)}
-                                    className={`focus:outline-none ${
-                                        selectedDoc?.name === doc.name
+                                    className={`focus:outline-none ${selectedDoc?.name === doc.name
                                             ? "text-white bg-green-600 rounded px-2 py-0.5 text-[6px]"
                                             : "text-green-600 hover:bg-green-100 rounded px-2 py-0.5 text-[6px]"
-                                    }`}
+                                        }`}
                                 >
                                     {doc.name}
                                 </button>
@@ -124,30 +125,17 @@ const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsCha
             <div className="border rounded-lg overflow-hidden h-[400px] text-[10px]">
                 {selectedDoc ? (
                     selectedDoc.type === "application/pdf" ? (
-                        <iframe
-                            src={selectedDoc.url}
-                            title={selectedDoc.name}
-                            className="w-full h-full"
-                        />
+                        <iframe src={selectedDoc.url} title={selectedDoc.name} className="w-full h-full" />
                     ) : selectedDoc.type.startsWith("image/") ? (
-                        <img
-                            src={selectedDoc.url}
-                            alt={selectedDoc.name}
-                            className="object-contain w-full h-full"
-                        />
+                        <img src={selectedDoc.url} alt={selectedDoc.name} className="object-contain w-full h-full" />
                     ) : (
-                        <p className="p-4 text-center text-gray-600">
-                            Preview not available for this file type.
-                        </p>
+                        <p className="p-4 text-center text-gray-600">Preview not available for this file type.</p>
                     )
                 ) : (
-                    <p className="p-4 text-center text-gray-500">
-                        No document selected. Click on a document name above to preview.
-                    </p>
+                    <p className="p-4 text-center text-gray-500">No document selected. Click on a document name above to preview.</p>
                 )}
             </div>
 
-            {/* ✅ Navigation buttons inside uploader */}
             <div className="flex justify-between mt-3">
                 <button
                     type="button"

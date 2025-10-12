@@ -5,7 +5,7 @@ import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
 import CaseReview from "../components/CaseReview"; // Step 3
 import Payment from "../components/Payment"; // Step 5
 import Toast from "../components/Toast";
-import { showSuccessToast } from "../utils/Toastify";
+import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 
 const Application = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -15,77 +15,63 @@ const Application = ({ onSubmit }) => {
     nextDate: "",
     advocate: "",
     caseType: "",
-    documents: [],
+    documents: {}, // { "Exhibit A": [], "Exhibit B": [], ... }
   });
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedExhibit, setSelectedExhibit] = useState("Exhibit A");
 
-  const steps = [
-    "Basic Info",
-    "Case Details",
-    "Review Case",
-    "Documents",
-    "Payment",
-  ];
+  const steps = ["Basic Info", "Case Details", "Review Case", "Documents", "Payment"];
+  const exhibits = ["Exhibit A", "Exhibit B", "Exhibit C", "Exhibit D"];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDocumentsChange = (updatedDocuments) => {
-    setFormData((prev) => ({ ...prev, documents: updatedDocuments }));
+  const handleDocumentsChange = (updatedFiles) => {
+    setFormData((prev) => ({
+      ...prev,
+      documents: {
+        ...prev.documents,
+        [selectedExhibit]: updatedFiles,
+      },
+    }));
   };
 
   const goToNextStep = () => {
-    if (currentStep === 1) {
-      setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }));
-      showSuccessToast("Basic Info saved successfully!");
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      setFormData((prev) => ({ ...prev, status: "Case Details Completed" }));
-      showSuccessToast("Case Details saved successfully!");
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      setFormData((prev) => ({ ...prev, status: "Case Reviewed" }));
-      showSuccessToast("Case reviewed successfully!");
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }));
-      showSuccessToast("Documents uploaded successfully!");
-      setCurrentStep(5);
+    if (currentStep === 4) {
+      // ✅ Validate all exhibits have at least one file
+      const missingExhibits = exhibits.filter(
+        (exhibit) => !formData.documents[exhibit] || formData.documents[exhibit].length === 0
+      );
+      if (missingExhibits.length > 0) {
+        showWarningToast(
+          `Please upload documents for all exhibits: ${missingExhibits.join(", ")}`
+        );
+        return; // do not proceed
+      }
     }
+
+    // ✅ Normal step progression
+    if (currentStep === 1) setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }), setCurrentStep(2));
+    else if (currentStep === 2) setFormData((prev) => ({ ...prev, status: "Case Details Completed" }), setCurrentStep(3));
+    else if (currentStep === 3) setFormData((prev) => ({ ...prev, status: "Case Reviewed" }), setCurrentStep(4));
+    else if (currentStep === 4) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(5));
   };
 
   const goToPrevStep = () => {
-    if (currentStep === 2) {
-      setFormData((prev) => ({ ...prev, status: "Not Started" }));
-      setCurrentStep(1);
-    } else if (currentStep === 3) {
-      setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }));
-      setCurrentStep(2);
-    } else if (currentStep === 4) {
-      setFormData((prev) => ({ ...prev, status: "Case Details Completed" }));
-      setCurrentStep(3);
-    } else if (currentStep === 5) {
-      setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }));
-      setCurrentStep(4);
-    }
+    if (currentStep === 2) setFormData((prev) => ({ ...prev, status: "Not Started" }), setCurrentStep(1));
+    else if (currentStep === 3) setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }), setCurrentStep(2));
+    else if (currentStep === 4) setFormData((prev) => ({ ...prev, status: "Case Details Completed" }), setCurrentStep(3));
+    else if (currentStep === 5) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(4));
   };
 
   const handlePaymentSuccess = (paymentResponse) => {
-    setFormData((prev) => ({
-      ...prev,
-      paymentResponse,
-      status: "Payment Completed",
-    }));
+    setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
+    onSubmit({ ...formData, paymentResponse });
 
-    onSubmit({
-      ...formData,
-      paymentResponse,
-    });
-
-    // Reset form
+    // Reset
     setFormData({
       caseName: "",
       age: "",
@@ -93,9 +79,10 @@ const Application = ({ onSubmit }) => {
       nextDate: "",
       advocate: "",
       caseType: "",
-      documents: [],
+      documents: {},
     });
     setCurrentStep(1);
+    setSelectedExhibit("Exhibit A");
   };
 
   const renderSteps = () => (
@@ -116,26 +103,7 @@ const Application = ({ onSubmit }) => {
                   : "bg-gray-200 text-gray-600"
               }`}
             onClick={() => {
-              if (stepNumber < currentStep) {
-                setCurrentStep(stepNumber);
-                if (stepNumber === 1)
-                  setFormData((prev) => ({ ...prev, status: "Not Started" }));
-                else if (stepNumber === 2)
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: "Basic Info Completed",
-                  }));
-                else if (stepNumber === 3)
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: "Case Details Completed",
-                  }));
-                else if (stepNumber === 4)
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: "Case Reviewed",
-                  }));
-              }
+              if (stepNumber < currentStep) setCurrentStep(stepNumber);
             }}
           >
             {step}
@@ -149,7 +117,6 @@ const Application = ({ onSubmit }) => {
     <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-green-50 py-10 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 sm:p-10">
         <h2 className="font-bold text-green-800 mb-8">Application Form</h2>
-
         {renderSteps()}
 
         {currentStep === 1 && (
@@ -178,12 +145,36 @@ const Application = ({ onSubmit }) => {
         )}
 
         {currentStep === 4 && (
-          <CaseDocumentUploader
-            documents={formData.documents}
-            onDocumentsChange={handleDocumentsChange}
-            onNext={goToNextStep}
-            onBack={goToPrevStep}
-          />
+          <div>
+            <div className="mb-4">
+              <label className="block mb-1 text-[10px] font-medium">Select Exhibit</label>
+              <select
+                value={selectedExhibit}
+                onChange={(e) => setSelectedExhibit(e.target.value)}
+                className="border p-2 text-[8px] rounded w-full"
+              >
+                <option value="Exhibit A">
+                  Exhibit A - Copy of the slip of Account Started on date mentioned: 1. Dnyanradha Multistate Society Bank Passbook Copy, 2. Other Bank Passbook Copy for Payment
+                </option>
+                <option value="Exhibit B">
+                  Exhibit B - Fixed Deposit (FD Amount Details), Saving Bank Account Total Amount Details & Recurring Deposits (RD) Total Amount in Excel Sheet Chart & Copy of the Statement by Applicant to The Liquidator, Dnyanradha Multistate Cooperative Credit Society
+                </option>
+                <option value="Exhibit C">
+                  Exhibit C - Copy of the Deposits amount by Applicant to the "said bank"
+                </option>
+                <option value="Exhibit D">
+                  Exhibit D - Copy of the Statement by Applicant to Shrirampur Police Station
+                </option>
+              </select>
+            </div>
+
+            <CaseDocumentUploader
+              documents={formData.documents[selectedExhibit] || []}
+              onDocumentsChange={handleDocumentsChange}
+              onNext={goToNextStep}
+              onBack={goToPrevStep}
+            />
+          </div>
         )}
 
         {currentStep === 5 && (
