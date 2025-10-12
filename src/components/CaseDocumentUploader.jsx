@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { showSuccessToast, showWarningToast } from "../utils/Toastify"; // ✅ adjust path
 
-const CaseDocumentUploader = ({ onDocumentsChange }) => {
-    const [documents, setDocuments] = useState([]);
+const CaseDocumentUploader = ({ documents: initialDocuments = [], onDocumentsChange, onNext, onBack }) => {
+    const [documents, setDocuments] = useState(initialDocuments);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -20,6 +21,12 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
             const updatedDocs = [...prevDocs, ...filteredNewFiles];
 
             if (onDocumentsChange) onDocumentsChange(updatedDocs);
+
+            if (filteredNewFiles.length > 0) {
+                showSuccessToast(
+                    `${filteredNewFiles.length} file${filteredNewFiles.length > 1 ? "s" : ""} uploaded successfully!`
+                );
+            }
 
             return updatedDocs;
         });
@@ -41,6 +48,14 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
         }
     };
 
+    const handleNextClick = () => {
+        if (documents.length === 0) {
+            showWarningToast("Please upload at least one document before proceeding.");
+            return;
+        }
+        if (onNext) onNext();
+    };
+
     return (
         <div className="mt-4 max-w-8xl mx-full aligncenter p-6 bg-white rounded-lg shadow-md text-[10px]">
             <h2 className="font-semibold mb-4 flex items-center space-x-2 text-[10px]">
@@ -48,7 +63,6 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
                 <span>Upload Case Documents</span>
             </h2>
 
-            {/* Hidden native input */}
             <input
                 type="file"
                 multiple
@@ -58,7 +72,6 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
                 className="hidden"
             />
 
-            {/* Custom file upload button */}
             <div className="flex items-center space-x-4 mb-4">
                 <button
                     type="button"
@@ -86,10 +99,11 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
                             >
                                 <button
                                     onClick={() => setSelectedDoc(doc)}
-                                    className={`focus:outline-none ${selectedDoc?.name === doc.name
+                                    className={`focus:outline-none ${
+                                        selectedDoc?.name === doc.name
                                             ? "text-white bg-green-600 rounded px-2 py-0.5 text-[6px]"
                                             : "text-green-600 hover:bg-green-100 rounded px-2 py-0.5 text-[6px]"
-                                        }`}
+                                    }`}
                                 >
                                     {doc.name}
                                 </button>
@@ -107,7 +121,7 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
                 </div>
             )}
 
-            <div className="border rounded-lg overflow-hidden h-[600px] text-[10px]">
+            <div className="border rounded-lg overflow-hidden h-[400px] text-[10px]">
                 {selectedDoc ? (
                     selectedDoc.type === "application/pdf" ? (
                         <iframe
@@ -131,6 +145,24 @@ const CaseDocumentUploader = ({ onDocumentsChange }) => {
                         No document selected. Click on a document name above to preview.
                     </p>
                 )}
+            </div>
+
+            {/* ✅ Navigation buttons inside uploader */}
+            <div className="flex justify-between mt-3">
+                <button
+                    type="button"
+                    onClick={onBack}
+                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-[10px]"
+                >
+                    Back
+                </button>
+                <button
+                    type="button"
+                    onClick={handleNextClick}
+                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-[10px]"
+                >
+                    Next
+                </button>
             </div>
         </div>
     );

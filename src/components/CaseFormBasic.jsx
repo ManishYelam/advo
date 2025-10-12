@@ -1,8 +1,14 @@
 import React from "react";
+import { showSuccessToast } from "../utils/Toastify"; // ✅ adjust path if needed
 
 const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
   const handleNextClick = (e) => {
     e.preventDefault();
+
+    // ✅ Show success toast
+    showSuccessToast("Basic information filled successfully!");
+
+    // ✅ Proceed to next step
     onNext();
   };
 

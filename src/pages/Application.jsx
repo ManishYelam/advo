@@ -5,6 +5,7 @@ import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
 import CaseReview from "../components/CaseReview"; // Step 3
 import Payment from "../components/Payment"; // Step 5
 import Toast from "../components/Toast";
+import { showSuccessToast } from "../utils/Toastify";
 
 const Application = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -39,15 +40,19 @@ const Application = ({ onSubmit }) => {
   const goToNextStep = () => {
     if (currentStep === 1) {
       setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }));
+      showSuccessToast("Basic Info saved successfully!");
       setCurrentStep(2);
     } else if (currentStep === 2) {
       setFormData((prev) => ({ ...prev, status: "Case Details Completed" }));
+      showSuccessToast("Case Details saved successfully!");
       setCurrentStep(3);
     } else if (currentStep === 3) {
       setFormData((prev) => ({ ...prev, status: "Case Reviewed" }));
+      showSuccessToast("Case reviewed successfully!");
       setCurrentStep(4);
     } else if (currentStep === 4) {
       setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }));
+      showSuccessToast("Documents uploaded successfully!");
       setCurrentStep(5);
     }
   };
@@ -80,6 +85,7 @@ const Application = ({ onSubmit }) => {
       paymentResponse,
     });
 
+    // Reset form
     setFormData({
       caseName: "",
       age: "",
@@ -89,7 +95,6 @@ const Application = ({ onSubmit }) => {
       caseType: "",
       documents: [],
     });
-
     setCurrentStep(1);
   };
 
@@ -104,10 +109,9 @@ const Application = ({ onSubmit }) => {
           <div
             key={step}
             className={`text-center py-2 rounded-full text-[10px] font-medium cursor-pointer transition-all duration-300
-              ${
-                isActive
-                  ? "bg-green-700 text-white shadow-lg"
-                  : isCompleted
+              ${isActive
+                ? "bg-green-700 text-white shadow-lg"
+                : isCompleted
                   ? "bg-green-300 text-green-800 hover:bg-green-400"
                   : "bg-gray-200 text-gray-600"
               }`}
@@ -144,9 +148,7 @@ const Application = ({ onSubmit }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-green-50 py-10 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 sm:p-10">
-        <h2 className="font-bold text-green-800 mb-8">
-          Application Form
-        </h2>
+        <h2 className="font-bold text-green-800 mb-8">Application Form</h2>
 
         {renderSteps()}
 
@@ -176,32 +178,12 @@ const Application = ({ onSubmit }) => {
         )}
 
         {currentStep === 4 && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              goToNextStep();
-            }}
-          >
-            <CaseDocumentUploader
-              documents={formData.documents}
-              onDocumentsChange={handleDocumentsChange}
-            />
-            <div className="flex justify-between mt-8">
-              <button
-                type="button"
-                onClick={goToPrevStep}
-                className="px-5 py-2 bg-gray-300 rounded-md text-[10px] hover:bg-gray-400 transition-all"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-green-600 text-white rounded-md text-[10px] hover:bg-green-700 transition-all transform hover:scale-105 shadow"
-              >
-                Next
-              </button>
-            </div>
-          </form>
+          <CaseDocumentUploader
+            documents={formData.documents}
+            onDocumentsChange={handleDocumentsChange}
+            onNext={goToNextStep}
+            onBack={goToPrevStep}
+          />
         )}
 
         {currentStep === 5 && (

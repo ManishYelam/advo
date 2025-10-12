@@ -1,8 +1,10 @@
 import React from "react";
+import { showSuccessToast } from "../utils/Toastify"; 
 
 const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => {
   const handleNextClick = (e) => {
     e.preventDefault();
+    showSuccessToast("Deposit details filled successfully!");
     onNext();
   };
 
