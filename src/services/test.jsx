@@ -53,21 +53,9 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
         <header className="text-center font-bold text-[14px] mb-3">
           APPLICATION DETAILS
         </header>
-        {/* Top Right Date */}
-        <div className="flex justify-between items-center mb-2">
-          <div></div> {/* Empty left space for balance */}
-          <div className="text-right text-[11px] text-gray-700 italic">
-            Date: {new Date().toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
-          </div>
-        </div>
-
 
         {/* Partition 1: Basic Information */}
-        <section className="border border-gray-400 p-3 rounded mb-4">
+        <section className="border border-gray-400 bg-gray-50 p-3 rounded mb-4">
           <h4 className="font-bold underline mb-2 text-[12px]">
             1. BASIC INFORMATION
           </h4>
@@ -92,7 +80,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
         </section>
 
         {/* Partition 2: Deposit Details */}
-        <section className="border border-gray-400 p-3 rounded mb-4">
+        <section className="border border-gray-400 bg-gray-50 p-3 rounded mb-4">
           <h4 className="font-bold underline mb-2 text-[12px]">
             2. DEPOSIT DETAILS
           </h4>
@@ -141,19 +129,6 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
           <p><strong>Signature of Applicant</strong></p>
           <p>(Authorized Signatory)</p>
         </section>
-
-        {/* Footer Section */}
-        <footer className="mt-6 border-t border-gray-400 pt-2 text-center text-[10px] text-gray-600 italic">
-          <p>This is a system-generated document. No manual signature is required.</p>
-          <p>
-            {new Date().toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-        </footer>
-
       </div>
 
       {/* Buttons */}
