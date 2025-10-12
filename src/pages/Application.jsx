@@ -69,19 +69,19 @@ const Application = () => {
 
   const handlePaymentSuccess = (paymentResponse) => {
     setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
-    console.log(formData);
+    console.log(formData, paymentResponse,);
     
     // onSubmit({ ...formData, paymentResponse });
 
     // Reset
     setFormData({
-      caseName: "",
-      age: "",
-      status: "Not Started",
-      nextDate: "",
-      advocate: "",
-      caseType: "",
-      documents: {},
+      // caseName: "",
+      // age: "",
+      // status: "Not Started",
+      // nextDate: "",
+      // advocate: "",
+      // caseType: "",
+      // documents: {},
     });
     setCurrentStep(1);
     setSelectedExhibit("Exhibit A");

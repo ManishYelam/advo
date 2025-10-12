@@ -1,5 +1,5 @@
 import React from "react";
-import { showSuccessToast } from "../utils/Toastify"; 
+import { showSuccessToast } from "../utils/Toastify";
 
 const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => {
   const handleNextClick = (e) => {
@@ -21,7 +21,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Column 1 */}
         <div className="flex flex-col gap-2">
-          <label className="font-semibold">Saving Account Starting Date</label>
+          <label className="font-semibold">
+            Saving Account Starting Date <span className="text-red-500">*</span>
+          </label>
           <input
             type="date"
             name="savingAccountStartDate"
@@ -31,7 +33,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             required
           />
 
-          <label className="font-semibold">Deposit Type</label>
+          <label className="font-semibold">
+            Deposit Type <span className="text-red-500">*</span>
+          </label>
           <select
             name="depositType"
             value={formData.depositType || ""}
@@ -48,7 +52,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             </option>
           </select>
 
-          <label className="font-semibold">Deposit Duration (Years)</label>
+          <label className="font-semibold">
+            Deposit Duration (Years) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="depositDurationYears"
@@ -63,7 +69,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
 
         {/* Column 2 */}
         <div className="flex flex-col gap-2">
-          <label className="font-semibold">Fixed Deposit Total Amount</label>
+          <label className="font-semibold">
+            Fixed Deposit Total Amount <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="fixedDepositTotalAmount"
@@ -71,9 +79,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             value={formData.fixedDepositTotalAmount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           />
 
-          <label className="font-semibold">Interest Rate (FD %)</label>
+          <label className="font-semibold">
+            Interest Rate (FD %) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="interestRateFD"
@@ -82,9 +93,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
+            required
           />
 
-          <label className="font-semibold">Savings Account Total Amount</label>
+          <label className="font-semibold">
+            Savings Account Total Amount <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="savingAccountTotalAmount"
@@ -92,9 +106,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             value={formData.savingAccountTotalAmount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           />
 
-          <label className="font-semibold">Interest Rate (Savings %)</label>
+          <label className="font-semibold">
+            Interest Rate (Savings %) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="interestRateSaving"
@@ -103,12 +120,15 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
+            required
           />
         </div>
 
         {/* Column 3 */}
         <div className="flex flex-col gap-2">
-          <label className="font-semibold">Recurring Deposit Total Amount</label>
+          <label className="font-semibold">
+            Recurring Deposit Total Amount <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="recurringDepositTotalAmount"
@@ -116,9 +136,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             value={formData.recurringDepositTotalAmount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           />
 
-          <label className="font-semibold">Interest Rate (RD %)</label>
+          <label className="font-semibold">
+            Interest Rate (RD %) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="interestRateRecurring"
@@ -127,9 +150,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
+            required
           />
 
-          <label className="font-semibold">Dnyanrudha Investment Total Amount</label>
+          <label className="font-semibold">
+            Dnyanrudha Investment Total Amount <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="dnyanrudhaInvestmentTotalAmount"
@@ -137,9 +163,12 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             value={formData.dnyanrudhaInvestmentTotalAmount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           />
 
-          <label className="font-semibold">Dynadhara Rate (%)</label>
+          <label className="font-semibold">
+            Dynadhara Rate (%) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
             name="dynadharaRate"
@@ -148,6 +177,7 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
+            required
           />
         </div>
       </div>

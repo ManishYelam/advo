@@ -78,27 +78,63 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 border border-gray-300 shadow-lg rounded text-[11px] leading-5 print:p-0 print:shadow-none print:border-none print:max-w-full print:mx-0 print:rounded-none">
       <div id="printableArea">
-        <section className="section">
-          <h4>1. BASIC INFORMATION</h4>
-          <p><strong>Full Name:</strong> {formData.name}</p>
-          <p><strong>Surname / Ape:</strong> {formData.surname}</p>
-          <p><strong>Occupation:</strong> {formData.occupation}</p>
-          <p><strong>Address:</strong> {formData.address}</p>
+        <section className="section grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Column 1 */}
+          <div>
+            <h4>1. BASIC INFORMATION</h4>
+            <p><strong>Full Name:</strong> {formData.name}</p>
+            <p><strong>Date of Birth:</strong> {formData.dob}</p>
+            <p><strong>Gender:</strong> {formData.gender}</p>
+
+          </div>
+
+          {/* Column 2 */}
+          <div>
+            <h4>&nbsp;</h4>
+            <p><strong>Phone No.:</strong> {formData.phone_number}</p>
+            <p><strong>Age:</strong> {formData.age}</p>
+
+            <p><strong>Occupation:</strong> {formData.occupation}</p>
+
+          </div>
+
+          {/* Column 3 */}
+          <div>
+            <h4>&nbsp;</h4>
+            <p><strong>Aadhar No.:</strong> {formData.adhar_number}</p>
+            <p><strong>Email:</strong> {formData.email}</p>
+
+            <p><strong>Address:</strong> {formData.address}</p>
+            <p><strong>Additional Notes:</strong> {formData.notes}</p>
+          </div>
         </section>
 
-        <section className="section">
-          <h4>2. DEPOSIT DETAILS</h4>
-          <p><strong>Saving Account Starting Date:</strong> {formData.savingAccountStartDate}</p>
-          <p><strong>Deposit Type:</strong> {formData.depositType}</p>
-          <p><strong>Deposit Duration (Years):</strong> {formData.depositDurationYears}</p>
-          <p><strong>Fixed Deposit Total Amount:</strong> {formData.fixedDepositTotalAmount}</p>
-          <p><strong>Interest Rate (FD %):</strong> {formData.interestRateFD}</p>
-          <p><strong>Savings Account Total Amount:</strong> {formData.savingAccountTotalAmount}</p>
-          <p><strong>Interest Rate (Savings %):</strong> {formData.interestRateSaving}</p>
-          <p><strong>Recurring Deposit Total Amount:</strong> {formData.recurringDepositTotalAmount}</p>
-          <p><strong>Interest Rate (RD %):</strong> {formData.interestRateRecurring}</p>
-          <p><strong>Dnyanrudha Investment Total Amount:</strong> {formData.dnyanrudhaInvestmentTotalAmount}</p>
-          <p><strong>Dynadhara Rate (%):</strong> {formData.dynadharaRate}</p>
+        <section className="section grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Column 1 */}
+          <div>
+            <h4>2. DEPOSIT DETAILS</h4>
+            <p><strong>Saving Account Starting Date:</strong> {formData.savingAccountStartDate}</p>
+            <p><strong>Deposit Type:</strong> {formData.depositType}</p>
+            <p><strong>Deposit Duration (Years):</strong> {formData.depositDurationYears}</p>
+          </div>
+
+          {/* Column 2 */}
+          <div>
+            <h4>&nbsp;</h4>
+            <p><strong>Fixed Deposit Total Amount:</strong> {formData.fixedDepositTotalAmount}</p>
+            <p><strong>Interest Rate (FD %):</strong> {formData.interestRateFD}</p>
+            <p><strong>Savings Account Total Amount:</strong> {formData.savingAccountTotalAmount}</p>
+            <p><strong>Interest Rate (Savings %):</strong> {formData.interestRateSaving}</p>
+          </div>
+
+          {/* Column 3 */}
+          <div>
+            <h4>&nbsp;</h4>
+            <p><strong>Recurring Deposit Total Amount:</strong> {formData.recurringDepositTotalAmount}</p>
+            <p><strong>Interest Rate (RD %):</strong> {formData.interestRateRecurring}</p>
+            <p><strong>Dnyanrudha Investment Total Amount:</strong> {formData.dnyanrudhaInvestmentTotalAmount}</p>
+            <p><strong>Dynadhara Rate (%):</strong> {formData.dynadharaRate}</p>
+          </div>
         </section>
 
         <section className="section verification">
