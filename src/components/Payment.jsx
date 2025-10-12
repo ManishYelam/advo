@@ -42,19 +42,22 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
 
       // 2️⃣ Open Razorpay checkout
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        currency: order.currency,
-        name: "Satyamev Jayate",
-        description: "Case Application Fee",
-        order_id: order.id,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Your Razorpay Key ID
+        amount: order.order.amount,                 // Amount in paise
+        currency: order.order.currency,             // Currency from backend
+        name: "Satyamev Jayate",                    // Merchant / App name
+        description: "Case Application Fee",       // Payment description
+        order_id: order.order.id,                   // Must be backend order id
         handler: async (response) => {
+          const verification_data = {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+          }
+          // console.log(verification_data);
           try {
-            const verifyRes = await verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
+            const verifyRes = await verifyPayment(verification_data);
+            // console.log("verify-response", verifyRes);
             if (verifyRes.data.success) {
               showSuccessToast("✅ Payment Successful!");
               onPaymentSuccess({
@@ -65,12 +68,21 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
               showErrorToast("❌ Payment verification failed!");
             }
           } catch (err) {
-            console.error("Verification error:", err);
+            console.error("Verification error:", err.message);
             showErrorToast("Verification failed!");
           }
         },
-        prefill: { name: "", email: "", contact: "" },
-        theme: { color: "#22c55e" },
+        prefill: {
+          name: "",   // optionally fill user name
+          email: "",  // optionally fill user email
+          contact: "" // optionally fill user contact number
+        },
+        notes: {
+          note1: "Case Payment", // optional notes
+        },
+        theme: {
+          color: "#22c55e", // your theme color
+        },
         modal: {
           ondismiss: function () {
             showInfoToast("Payment cancelled. You can retry or choose UPI/QR payment.");

@@ -7,7 +7,7 @@ import Payment from "../components/Payment"; // Step 5
 import Toast from "../components/Toast";
 import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 
-const Application = ({ onSubmit }) => {
+const Application = () => {
   const [formData, setFormData] = useState({
     caseName: "",
     age: "",
@@ -69,7 +69,9 @@ const Application = ({ onSubmit }) => {
 
   const handlePaymentSuccess = (paymentResponse) => {
     setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
-    onSubmit({ ...formData, paymentResponse });
+    console.log(formData);
+    
+    // onSubmit({ ...formData, paymentResponse });
 
     // Reset
     setFormData({

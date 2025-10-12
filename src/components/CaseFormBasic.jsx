@@ -28,6 +28,19 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
         required
       />
 
+      {/* Age */}
+      <input
+        type="number"
+        name="age"
+        placeholder="Age"
+        value={formData.age || ""}
+        onChange={handleInputChange}
+        className="p-1 border rounded text-[10px] placeholder:text-[10px]"
+        min="1"
+        max="120"
+        required
+      />
+
       {/* Occupation */}
       <input
         type="text"
