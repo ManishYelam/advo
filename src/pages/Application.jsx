@@ -70,7 +70,7 @@ const Application = () => {
   const handlePaymentSuccess = (paymentResponse) => {
     setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
     console.log(formData, paymentResponse,);
-    
+
     // onSubmit({ ...formData, paymentResponse });
 
     // Reset
@@ -141,6 +141,7 @@ const Application = () => {
         {currentStep === 3 && (
           <CaseReview
             formData={formData}
+            setFormData={setFormData}
             onNext={goToNextStep}
             onBack={goToPrevStep}
           />
