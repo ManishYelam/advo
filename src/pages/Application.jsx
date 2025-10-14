@@ -6,6 +6,8 @@ import CaseReview from "../components/CaseReview"; // Step 3
 import Payment from "../components/Payment"; // Step 5
 import Toast from "../components/Toast";
 import { showSuccessToast, showWarningToast } from "../utils/Toastify";
+import { generateCourtApplicationPDF } from "../utils/generateCourtApplicationPDF";
+import { saveApplicationData } from "../services/applicationService";
 
 const Application = () => {
   const [formData, setFormData] = useState({
@@ -67,24 +69,76 @@ const Application = () => {
     else if (currentStep === 5) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(4));
   };
 
-  const handlePaymentSuccess = (paymentResponse) => {
-    setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
-    console.log(formData, paymentResponse,);
+  // const handlePaymentSuccess = (paymentResponse) => {
+  //   setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
+  //   console.log(formData, paymentResponse,);
 
-    // onSubmit({ ...formData, paymentResponse });
+  //   // onSubmit({ ...formData, paymentResponse });
 
-    // Reset
-    setFormData({
-      // caseName: "",
-      // age: "",
-      // status: "Not Started",
-      // nextDate: "",
-      // advocate: "",
-      // caseType: "",
-      // documents: {},
-    });
-    setCurrentStep(1);
-    setSelectedExhibit("Exhibit A");
+  //   // Reset
+  //   setFormData({
+  //     // caseName: "",
+  //     // age: "",
+  //     // status: "Not Started",
+  //     // nextDate: "",
+  //     // advocate: "",
+  //     // caseType: "",
+  //     // documents: {},
+  //   });
+  //   setCurrentStep(1);
+  //   setSelectedExhibit("Exhibit A");
+  // };
+
+  const handlePaymentSuccess = async (paymentResponse) => {
+    try {
+      // ✅ Step 1: Update form data
+      const updatedFormData = {
+        ...formData,
+        paymentResponse,
+        status: "Payment Completed",
+      };
+      setFormData(updatedFormData);
+
+      console.log("Updated formData:", updatedFormData);
+      console.log("paymentResponse:", paymentResponse);
+
+      // ✅ Step 2: Generate PDF
+      const pdfBlob = await generateCourtApplicationPDF(updatedFormData, paymentResponse);
+
+      // ✅ Step 3: Save data using backend service
+      const res = await saveApplicationData(updatedFormData, pdfBlob); // Implement in applicationService
+
+      if (!res || !res.success) {
+        showErrorToast("❌ Failed to save application data. Try again!");
+        return;
+      }
+
+      // ✅ Step 4: Offer PDF download
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Court_Application.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showSuccessToast("✅ Payment successful and PDF generated!");
+    } catch (error) {
+      console.error("Payment success handling error:", error);
+      showErrorToast("❌ Something went wrong after payment!");
+    } finally {
+      // ✅ Step 5: Reset form after completion
+      setFormData({
+        caseName: "",
+        age: "",
+        status: "Not Started",
+        nextDate: "",
+        advocate: "",
+        caseType: "",
+        documents: {},
+      });
+      setCurrentStep(1);
+      setSelectedExhibit("Exhibit A");
+    }
   };
 
   const renderSteps = () => (

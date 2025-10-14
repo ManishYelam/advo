@@ -1,4 +1,3 @@
-// src/utils/generateCourtApplicationPDF.js
 import html2pdf from "html2pdf.js";
 
 export const generateCourtApplicationPDF = async (formData = {}, exhibits = [], paymentDetails = {}) => {
@@ -21,7 +20,7 @@ export const generateCourtApplicationPDF = async (formData = {}, exhibits = [], 
       </div>
 
       <div style="margin: 2rem 0;">
-        <p><b>${formData.applicantName || "Manish Yelam"}</b> ….. Applicant</p>
+        <p><b>${formData.applicantName}</b> ….. Applicant</p>
         <p>VERSUS</p>
         <p>DYANDHARA MULTISTATE CO-OPERATIVE CREDIT SOCIETY ….. <b>Accused</b></p>
         <p>DIRECTORATE OF ENFORCEMENT ….. <b>Complainant</b></p>
