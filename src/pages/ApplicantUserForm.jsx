@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
-import { showSuccessToast, showErrorToast } from "../utils/Toastify";
+import { showErrorToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { userApplicant, updateUserApplicant } from "../services/applicationService";
 
 const ApplicantUserForm = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     full_name: "",
     date_of_birth: "",
@@ -21,6 +23,7 @@ const ApplicantUserForm = () => {
     confirm_password: "",
     additional_notes: "",
   });
+
   const [loading, setLoading] = useState(true);
   const [linkExpired, setLinkExpired] = useState(false);
 
@@ -32,7 +35,6 @@ const ApplicantUserForm = () => {
         const response = await userApplicant(userId);
         const data = response.data.user;
 
-        // If user not found or password already exists → link expired
         if (!data || Object.keys(data).length === 0 || data.password) {
           setLinkExpired(true);
         } else {
@@ -101,11 +103,8 @@ const ApplicantUserForm = () => {
       const response = await updateUserApplicant(userId, formData);
       if (response.data.message) {
         alert("User data updated successfully!");
-        setLinkExpired(true); // Optional: Disable form after successful submission
-        // Navigate after short delay to let toast show
-        setTimeout(() => {
-          navigate("/login");
-        }, 0);
+        setLinkExpired(true);
+        setTimeout(() => navigate("/login"), 0);
       } else {
         showErrorToast("Failed to update user data.");
       }
@@ -126,7 +125,7 @@ const ApplicantUserForm = () => {
   if (linkExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Link Expired</h2>
           <p className="text-gray-700">
             Sorry, the link is invalid or the data is no longer available.
@@ -137,31 +136,26 @@ const ApplicantUserForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-green-800 via-green-700 to-green-500 flex items-center justify-center px-4">
-      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl p-8 md:p-12">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-center text-green-900 mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-green-800 via-green-700 to-green-500 px-4">
+      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-6 md:p-8 my-4">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-center text-green-900 mb-6">
           Applicant Registration Form
         </h2>
 
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm" onSubmit={handleSubmit}>
+        <form className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm" onSubmit={handleSubmit}>
           {/* Column 1 */}
-          <div className="flex flex-col gap-3">
-            <label className="font-semibold text-green-800">
-              Full Name <span className="text-red-500">*</span>
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-green-800">Full Name <span className="text-red-500">*</span></label>
             <input
               type="text"
               name="full_name"
-              placeholder="Enter your full name"
               value={formData.full_name}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
 
-            <label className="font-semibold text-green-800">
-              Date of Birth <span className="text-red-500">*</span>
-            </label>
+            <label className="font-semibold text-green-800">Date of Birth <span className="text-red-500">*</span></label>
             <input
               type="date"
               name="date_of_birth"
@@ -171,13 +165,10 @@ const ApplicantUserForm = () => {
               required
             />
 
-            <label className="font-semibold text-green-800">
-              Age <span className="text-red-500">*</span>
-            </label>
+            <label className="font-semibold text-green-800">Age <span className="text-red-500">*</span></label>
             <input
               type="number"
               name="age"
-              placeholder="Enter your age"
               value={formData.age}
               onChange={handleAgeChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -188,10 +179,8 @@ const ApplicantUserForm = () => {
           </div>
 
           {/* Column 2 */}
-          <div className="flex flex-col gap-3">
-            <label className="font-semibold text-green-800">
-              Phone Number <span className="text-red-500">*</span>
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-green-800">Phone Number <span className="text-red-500">*</span></label>
             <input
               type="tel"
               name="phone_number"
@@ -202,9 +191,7 @@ const ApplicantUserForm = () => {
               required
             />
 
-            <label className="font-semibold text-green-800">
-              Email <span className="text-red-500">*</span>
-            </label>
+            <label className="font-semibold text-green-800">Email <span className="text-red-500">*</span></label>
             <input
               type="email"
               name="email"
@@ -214,9 +201,7 @@ const ApplicantUserForm = () => {
               required
             />
 
-            <label className="font-semibold text-green-800">
-              Gender <span className="text-red-500">*</span>
-            </label>
+            <label className="font-semibold text-green-800">Gender <span className="text-red-500">*</span></label>
             <select
               name="gender"
               value={formData.gender}
@@ -232,10 +217,8 @@ const ApplicantUserForm = () => {
           </div>
 
           {/* Column 3 */}
-          <div className="flex flex-col gap-3">
-            <label className="font-semibold text-green-800">
-              Occupation <span className="text-red-500">*</span>
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-green-800">Occupation <span className="text-red-500">*</span></label>
             <input
               type="text"
               name="occupation"
@@ -245,9 +228,7 @@ const ApplicantUserForm = () => {
               required
             />
 
-            <label className="font-semibold text-green-800">
-              Aadhar Number
-            </label>
+            <label className="font-semibold text-green-800">Aadhar Number</label>
             <input
               type="text"
               name="adhar_number"
@@ -257,9 +238,7 @@ const ApplicantUserForm = () => {
               pattern="[0-9]{12}"
             />
 
-            <label className="font-semibold text-green-800">
-              Address <span className="text-red-500">*</span>
-            </label>
+            <label className="font-semibold text-green-800">Address <span className="text-red-500">*</span></label>
             <textarea
               name="address"
               value={formData.address}
@@ -271,10 +250,8 @@ const ApplicantUserForm = () => {
           </div>
 
           {/* Passwords & Notes */}
-          <div className="flex flex-col gap-3">
-            <label className="font-semibold text-green-800">
-              Password <span className="text-red-500">*</span>
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-green-800">Password <span className="text-red-500">*</span></label>
             <input
               type="password"
               name="password"
@@ -285,10 +262,8 @@ const ApplicantUserForm = () => {
             />
           </div>
 
-          <div className="flex flex-col gap-3">
-            <label className="font-semibold text-green-800">
-              Confirm Password <span className="text-red-500">*</span>
-            </label>
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-green-800">Confirm Password <span className="text-red-500">*</span></label>
             <input
               type="password"
               name="confirm_password"
@@ -299,7 +274,7 @@ const ApplicantUserForm = () => {
             />
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <label className="font-semibold text-green-800">Additional Notes</label>
             <textarea
               name="additional_notes"
@@ -311,10 +286,10 @@ const ApplicantUserForm = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="md:col-span-3 flex justify-center mt-6">
+          <div className="md:col-span-3 flex justify-center mt-4">
             <button
               type="submit"
-              className="px-8 py-3 bg-yellow-400 text-green-900 font-bold rounded-full shadow-lg hover:bg-yellow-300 transition-all transform hover:scale-105"
+              className="px-6 py-2 bg-yellow-400 text-green-900 font-bold rounded-full shadow-lg hover:bg-yellow-300 transition-all transform hover:scale-105"
             >
               Submit
             </button>
