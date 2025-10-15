@@ -26,8 +26,8 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="date"
-            name="savingAccountStartDate"
-            value={formData.savingAccountStartDate || ""}
+            name="saving_account_start_date"
+            value={formData.saving_account_start_date || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -37,8 +37,8 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             Deposit Type <span className="text-red-500">*</span>
           </label>
           <select
-            name="depositType"
-            value={formData.depositType || ""}
+            name="deposit_type"
+            value={formData.deposit_type || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -57,9 +57,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="depositDurationYears"
+            name="deposit_duration_years"
             placeholder="Duration in Years"
-            value={formData.depositDurationYears || ""}
+            value={formData.deposit_duration_years || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             min={0}
@@ -74,9 +74,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="fixedDepositTotalAmount"
+            name="fixed_deposit_total_amount"
             placeholder="FD Total Amount"
-            value={formData.fixedDepositTotalAmount || ""}
+            value={formData.fixed_deposit_total_amount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -87,9 +87,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="interestRateFD"
+            name="interest_rate_fd"
             placeholder="FD Interest Rate"
-            value={formData.interestRateFD || ""}
+            value={formData.interest_rate_fd || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
@@ -101,9 +101,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="savingAccountTotalAmount"
+            name="saving_account_total_amount"
             placeholder="Savings Total Amount"
-            value={formData.savingAccountTotalAmount || ""}
+            value={formData.saving_account_total_amount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -114,9 +114,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="interestRateSaving"
+            name="interest_rate_saving"
             placeholder="Savings Interest Rate"
-            value={formData.interestRateSaving || ""}
+            value={formData.interest_rate_saving || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
@@ -131,9 +131,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="recurringDepositTotalAmount"
+            name="recurring_deposit_total_amount"
             placeholder="RD Total Amount"
-            value={formData.recurringDepositTotalAmount || ""}
+            value={formData.recurring_deposit_total_amount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -144,9 +144,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="interestRateRecurring"
+            name="interest_rate_recurring"
             placeholder="RD Interest Rate"
-            value={formData.interestRateRecurring || ""}
+            value={formData.interest_rate_recurring || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"
@@ -158,9 +158,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="dnyanrudhaInvestmentTotalAmount"
+            name="dnyanrudha_investment_total_amount"
             placeholder="Investment Total Amount"
-            value={formData.dnyanrudhaInvestmentTotalAmount || ""}
+            value={formData.dnyanrudha_investment_total_amount || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -171,9 +171,9 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
           </label>
           <input
             type="number"
-            name="dynadharaRate"
+            name="dynadhara_rate"
             placeholder="Dynadhara Rate"
-            value={formData.dynadharaRate || ""}
+            value={formData.dynadhara_rate || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             step="0.01"

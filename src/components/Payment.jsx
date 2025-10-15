@@ -63,6 +63,8 @@ const Payment = ({ amount, onPaymentSuccess, onBack }) => {
               onPaymentSuccess({
                 method: "razorpay",
                 paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                order,  // <-- store backend order info in formData
               });
             } else {
               showErrorToast("❌ Payment verification failed!");

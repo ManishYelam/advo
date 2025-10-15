@@ -15,18 +15,18 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
 
   // Handle DOB change
   const handleDOBChange = (e) => {
-    const dob = e.target.value;
-    handleInputChange({ target: { name: "dob", value: dob } });
-    const age = calculateAgeFromDOB(dob);
+    const date_of_birth = e.target.value;
+    const age = calculateAgeFromDOB(date_of_birth);
+    handleInputChange({ target: { name: "date_of_birth", value: date_of_birth } });
     handleInputChange({ target: { name: "age", value: age } });
   };
 
   // Handle Age change
   const handleAgeChange = (e) => {
     const age = e.target.value;
+    const date_of_birth = calculateDOBFromAge(age);
     handleInputChange({ target: { name: "age", value: age } });
-    const dob = calculateDOBFromAge(age);
-    handleInputChange({ target: { name: "dob", value: dob } });
+    handleInputChange({ target: { name: "date_of_birth", value: date_of_birth } });
   };
 
   return (
@@ -42,9 +42,9 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
           </label>
           <input
             type="text"
-            name="name"
+            name="full_name"
             placeholder="Full Name"
-            value={formData.name || ""}
+            value={formData.full_name || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -55,8 +55,8 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
           </label>
           <input
             type="date"
-            name="dob"
-            value={formData.dob || ""}
+            name="date_of_birth"
+            value={formData.date_of_birth || ""}
             onChange={handleDOBChange}
             className="p-1 border rounded text-[10px]"
             required
@@ -115,6 +115,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.gender || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           >
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
@@ -135,11 +136,10 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.occupation || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px]"
+            required
           />
 
-          <label className="font-semibold">
-            Aadhar Number 
-          </label>
+          <label className="font-semibold">Aadhar Number</label>
           <input
             type="text"
             name="adhar_number"
@@ -169,9 +169,9 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
         <div className="md:col-span-3 flex flex-col">
           <label className="font-semibold">Additional Notes</label>
           <textarea
-            name="notes"
+            name="additional_notes"
             placeholder="Any additional information"
-            value={formData.notes || ""}
+            value={formData.additional_notes || ""}
             onChange={handleInputChange}
             className="p-1 border rounded text-[10px] resize-none"
             rows={1}
@@ -179,7 +179,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
         </div>
       </div>
 
-      {/* Navigation Buttons */}
+      {/* Next button */}
       <div className="flex justify-end mt-3">
         <button
           type="submit"

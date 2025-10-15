@@ -52,7 +52,7 @@ export const generateCourtApplicationPDF = async (formData = {}, exhibits = [], 
       <div style="display:flex; justify-content:space-between; font-size:12px;">
         <div>
           <p><b>Place:</b> Mumbai</p>
-          <p><b>Date:</b> 13/10/2025</p>
+          <p><b>Date:</b> ${new Date().toLocaleDateString()}</p>
         </div>
         <div style="text-align:right;">
           <p>___________________________</p>
