@@ -20,32 +20,40 @@ const ApplicantUserForm = () => {
     confirm_password: "",
     additional_notes: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
 
     const fetchUserData = async () => {
       try {
-        const response = await userApplicant(id);
+        const response = await userApplicant(userId); // corrected variable
         const data = response.data;
 
-        setFormData({
-          full_name: data.full_name || "",
-          date_of_birth: data.date_of_birth || "",
-          age: data.age || "",
-          gender: data.gender || "",
-          phone_number: data.phone_number || "",
-          email: data.email || "",
-          occupation: data.occupation || "",
-          adhar_number: data.adhar_number || "",
-          address: data.address || "",
-          password: "", 
-          confirm_password: "",
-          additional_notes: data.additional_notes || "",
-        });
+        if (!data || Object.keys(data).length === 0) {
+          setLinkExpired(true);
+        } else {
+          setFormData({
+            full_name: data.full_name || "",
+            date_of_birth: data.date_of_birth || "",
+            age: data.age || "",
+            gender: data.gender || "",
+            phone_number: data.phone_number || "",
+            email: data.email || "",
+            occupation: data.occupation || "",
+            adhar_number: data.adhar_number || "",
+            address: data.address || "",
+            password: "", 
+            confirm_password: "",
+            additional_notes: data.additional_notes || "",
+          });
+        }
       } catch (error) {
-        showErrorToast("Failed to fetch user data.");
         console.error(error);
+        setLinkExpired(true);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -88,6 +96,25 @@ const ApplicantUserForm = () => {
     console.log("Applicant Form Data:", formData);
     // TODO: Call your backend API here
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-green-900 text-xl font-semibold">Loading...</p>
+      </div>
+    );
+  }
+
+  if (linkExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Link Expired</h2>
+          <p className="text-gray-700">Sorry, the link is invalid or the data is no longer available.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-green-800 via-green-700 to-green-500 flex items-center justify-center px-4">
@@ -229,7 +256,7 @@ const ApplicantUserForm = () => {
             />
           </div>
 
-          {/* New Row: Passwords and Notes */}
+          {/* Passwords and Notes */}
           <div className="flex flex-col gap-3">
             <label className="font-semibold text-green-800">
               Password <span className="text-red-500">*</span>
