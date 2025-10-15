@@ -5,7 +5,7 @@ import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
 import CaseReview from "../components/CaseReview"; // Step 3
 import Payment from "../components/Payment"; // Step 5
 import Toast from "../components/Toast";
-import { showSuccessToast, showWarningToast } from "../utils/Toastify";
+import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { generateCourtApplicationPDF } from "../utils/generateCourtApplicationPDF";
 import { saveApplicationData } from "../services/applicationService";
 
@@ -91,42 +91,38 @@ const Application = () => {
 
   const handlePaymentSuccess = async (paymentResponse) => {
     try {
-      // ✅ Step 1: Update form data
-      const updatedFormData = {
-        ...formData,
-        paymentResponse,
-        status: "Payment Completed",
-      };
+      // 1️⃣ Update form data
+      const updatedFormData = { ...formData, status: "Payment Completed" };
       setFormData(updatedFormData);
 
-      console.log("Updated formData:", updatedFormData);
-      console.log("paymentResponse:", paymentResponse);
+      // 2️⃣ Generate PDF ArrayBuffer
+      const pdfArrayBuffer = await generateCourtApplicationPDF(updatedFormData, paymentResponse);
 
-      // ✅ Step 2: Generate PDF
-      const pdfBlob = await generateCourtApplicationPDF(updatedFormData, paymentResponse);
+      // 3️⃣ Save data to backend
+      const res = await saveApplicationData(updatedFormData, pdfArrayBuffer, paymentResponse);
 
-      // ✅ Step 3: Save data using backend service
-      const res = await saveApplicationData(updatedFormData, pdfBlob); // Implement in applicationService
-
-      if (!res || !res.success) {
-        showErrorToast("❌ Failed to save application data. Try again!");
+      if (!res.success) {
+        showErrorToast("❌ Failed to save application data!");
         return;
       }
 
-      // ✅ Step 4: Offer PDF download
+      // 4️⃣ Trigger PDF download
+      const pdfBlob = new Blob([pdfArrayBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = "Court_Application.pdf";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
 
       showSuccessToast("✅ Payment successful and PDF generated!");
     } catch (error) {
       console.error("Payment success handling error:", error);
       showErrorToast("❌ Something went wrong after payment!");
     } finally {
-      // ✅ Step 5: Reset form after completion
+      // 5️⃣ Reset form
       setFormData({
         caseName: "",
         age: "",
@@ -134,12 +130,13 @@ const Application = () => {
         nextDate: "",
         advocate: "",
         caseType: "",
-        documents: {},
+        documents: [],
       });
-      setCurrentStep(1);
+      // setCurrentStep(1);
       setSelectedExhibit("Exhibit A");
     }
   };
+
 
   const renderSteps = () => (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-10">

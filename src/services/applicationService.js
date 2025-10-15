@@ -1,17 +1,23 @@
 import axiosInstance from "./axiosInstance";
 
-export const saveApplicationData = async (formData, pdfBlob) => {
+export const saveApplicationData = async (formData, pdfArrayBuffer, paymentResponse) => {
   try {
-    const form = new FormData();
-    form.append("data", JSON.stringify(formData));
+    const updatedformdata = { ...formData, ...paymentResponse }
+    console.log(updatedformdata);
+    console.log(pdfArrayBuffer);
+    
+    
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: "application/pdf" });
 
-    if (pdfBlob) {
-      form.append("pdfFile", pdfBlob, "Court_Application.pdf");
-    }
+    const formDataObj = new FormData();
+    formDataObj.append("pdf", pdfBlob, "Court_Application.pdf");
+    formDataObj.append("data", JSON.stringify(updatedformdata));
 
-    const response = await axiosInstance.post("/save-application", form, {
+    const response = await axiosInstance.post("/users/save-application", formDataObj, {
       headers: {
         "Content-Type": "multipart/form-data",
+        "upload-type": "single",
+        "upload-category": "documents",
       },
     });
 
