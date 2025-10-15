@@ -5,7 +5,7 @@ import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { userApplicant, updateUserApplicant } from "../services/applicationService";
 
 const ApplicantUserForm = () => {
-  const { userId } = useParams(); 
+  const { userId } = useParams();
   const [formData, setFormData] = useState({
     full_name: "",
     date_of_birth: "",
@@ -28,10 +28,11 @@ const ApplicantUserForm = () => {
 
     const fetchUserData = async () => {
       try {
-        const response = await userApplicant(userId); 
+        const response = await userApplicant(userId);
         const data = response.data.user;
 
-        if (!data || Object.keys(data).length === 0) {
+        // If user not found or password already exists → link expired
+        if (!data || Object.keys(data).length === 0 || data.password) {
           setLinkExpired(true);
         } else {
           setFormData({
@@ -44,7 +45,7 @@ const ApplicantUserForm = () => {
             occupation: data.occupation || "",
             adhar_number: data.adhar_number || "",
             address: data.address || "",
-            password: "", 
+            password: "",
             confirm_password: "",
             additional_notes: data.additional_notes || "",
           });
@@ -79,10 +80,17 @@ const ApplicantUserForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.full_name || !formData.email || !formData.phone_number) {
       showErrorToast("Please fill all required fields!");
       return;
     }
+
+    if (!formData.password || !formData.confirm_password) {
+      showErrorToast("Please enter password and confirm password!");
+      return;
+    }
+
     if (formData.password !== formData.confirm_password) {
       showErrorToast("Passwords do not match!");
       return;
@@ -90,8 +98,9 @@ const ApplicantUserForm = () => {
 
     try {
       const response = await updateUserApplicant(userId, formData);
-      if (response.data.success) {
+      if (response.data.message) {
         showSuccessToast("User data updated successfully!");
+        setLinkExpired(true); // Optional: Disable form after successful submission
       } else {
         showErrorToast("Failed to update user data.");
       }
@@ -114,7 +123,9 @@ const ApplicantUserForm = () => {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Link Expired</h2>
-          <p className="text-gray-700">Sorry, the link is invalid or the data is no longer available.</p>
+          <p className="text-gray-700">
+            Sorry, the link is invalid or the data is no longer available.
+          </p>
         </div>
       </div>
     );
@@ -149,7 +160,6 @@ const ApplicantUserForm = () => {
             <input
               type="date"
               name="date_of_birth"
-              placeholder="Select date of birth"
               value={formData.date_of_birth}
               onChange={handleDOBChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -180,7 +190,6 @@ const ApplicantUserForm = () => {
             <input
               type="tel"
               name="phone_number"
-              placeholder="Enter phone number"
               value={formData.phone_number}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -194,7 +203,6 @@ const ApplicantUserForm = () => {
             <input
               type="email"
               name="email"
-              placeholder="Enter email"
               value={formData.email}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -226,7 +234,6 @@ const ApplicantUserForm = () => {
             <input
               type="text"
               name="occupation"
-              placeholder="Enter occupation"
               value={formData.occupation}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -239,7 +246,6 @@ const ApplicantUserForm = () => {
             <input
               type="text"
               name="adhar_number"
-              placeholder="Enter Aadhar Number"
               value={formData.adhar_number}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -251,7 +257,6 @@ const ApplicantUserForm = () => {
             </label>
             <textarea
               name="address"
-              placeholder="Enter full address with pin code"
               value={formData.address}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"
@@ -268,7 +273,6 @@ const ApplicantUserForm = () => {
             <input
               type="password"
               name="password"
-              placeholder="Enter password"
               value={formData.password}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -283,7 +287,6 @@ const ApplicantUserForm = () => {
             <input
               type="password"
               name="confirm_password"
-              placeholder="Confirm password"
               value={formData.confirm_password}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -295,7 +298,6 @@ const ApplicantUserForm = () => {
             <label className="font-semibold text-green-800">Additional Notes</label>
             <textarea
               name="additional_notes"
-              placeholder="Any extra information..."
               value={formData.additional_notes}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"

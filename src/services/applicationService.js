@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
@@ -26,5 +27,7 @@ export const saveApplicationData = async (formData, pdfArrayBuffer, paymentRespo
   }
 };
 
-export const userApplicant = (id) => axios.get(`${baseURL}/users/${id}`);
+export const userApplicant = (id) => axiosInstance.get(`${baseURL}/users/${id}`);
+
+export const updateUserApplicant = (id, data) => axios.put(`${baseURL}/users/${id}`, data);
 
