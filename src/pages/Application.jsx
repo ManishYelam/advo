@@ -25,6 +25,21 @@ const Application = () => {
 
   const steps = ["Basic Info", "Case Details", "Review Case", "Documents", "Payment"];
   const exhibits = ["Exhibit A", "Exhibit B", "Exhibit C", "Exhibit D"];
+  const requiredDocuments = {
+    "Exhibit A": [
+      "Dnyanradha Multistate Society Bank Passbook Copy",
+      "Other Bank Passbook Copy for Payment",
+      "Copy of the Slip of Account Started (Date mentioned)",
+    ],
+    "Exhibit B": [
+      "Fixed Deposit (FD Amount Details)",
+      "Saving Bank Account Total Amount Details",
+      "Recurring Deposits (RD) Total Amount Sheet",
+    ],
+    "Exhibit C": ["Copy of Deposits made by Applicant to the said bank"],
+    "Exhibit D": ["Statement Copy submitted to Shrirampur Police Station"],
+  };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -227,6 +242,7 @@ const Application = () => {
               onDocumentsChange={handleDocumentsChange}
               onNext={goToNextStep}
               onBack={goToPrevStep}
+              requiredDocs={requiredDocuments[selectedExhibit]} // ✅ New prop
             />
 
             {/* ✅ Summary Section */}
