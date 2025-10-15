@@ -228,6 +228,30 @@ const Application = () => {
               onNext={goToNextStep}
               onBack={goToPrevStep}
             />
+
+            {/* ✅ Summary Section */}
+            <div className="mt-6 border-t pt-3">
+              <h3 className="font-semibold text-[9px] text-green-800 mb-2">Uploaded Documents Summary</h3>
+              {Object.keys(formData.documents).length === 0 ? (
+                <p className="text-[8px] text-gray-500">No documents uploaded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {Object.entries(formData.documents).map(([exhibit, files]) => (
+                    <div key={exhibit} className="bg-gray-50 p-2 rounded border">
+                      <p className="font-medium text-[8px] text-green-700 mb-1">
+                        {exhibit} — {files.length} document{files.length !== 1 ? "s" : ""}
+                      </p>
+                      <ul className="list-disc pl-4 text-[8px] text-gray-600">
+                        {files.map((file, i) => (
+                          <li key={i}>{file.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <p className="text-[9px] text-red-600 mt-2">
               *Please upload all relevant documents for the selected exhibit. Only PDF files are accepted.
             </p>
