@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
+import Toast from "../components/Toast";
 import { showSuccessToast, showErrorToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { userApplicant, updateUserApplicant } from "../services/applicationService";
@@ -99,8 +100,12 @@ const ApplicantUserForm = () => {
     try {
       const response = await updateUserApplicant(userId, formData);
       if (response.data.message) {
-        showSuccessToast("User data updated successfully!");
+        alert("User data updated successfully!");
         setLinkExpired(true); // Optional: Disable form after successful submission
+        // Navigate after short delay to let toast show
+        setTimeout(() => {
+          navigate("/login");
+        }, 0);
       } else {
         showErrorToast("Failed to update user data.");
       }
@@ -316,6 +321,7 @@ const ApplicantUserForm = () => {
           </div>
         </form>
       </div>
+      <Toast />
     </div>
   );
 };
