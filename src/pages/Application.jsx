@@ -11,14 +11,36 @@ import { saveApplicationData } from "../services/applicationService";
 
 const Application = () => {
   const [formData, setFormData] = useState({
-    caseName: "",
-    age: "",
     status: "Not Started",
-    nextDate: "",
-    advocate: "",
-    caseType: "",
-    documents: {}, // { "Exhibit A": [], "Exhibit B": [], ... }
+    full_name: "",
+    date_of_birth: "",
+    age: "",
+    phone_number: "",
+    email: "",
+    gender: "",
+    occupation: "",
+    adhar_number: "",
+    address: "",
+    additional_notes: "",
+    saving_account_start_date: "",
+    deposit_type: "",
+    deposit_duration_years: "",
+    fixed_deposit_total_amount: "",
+    interest_rate_fd: "",
+    saving_account_total_amount: "",
+    interest_rate_saving: "",
+    recurring_deposit_total_amount: "",
+    interest_rate_recurring: "",
+    dnyanrudha_investment_total_amount: "",
+    dynadhara_rate: "",
+    documents: {
+      "Exhibit A": [],
+      "Exhibit B": [],
+      "Exhibit C": [],
+      "Exhibit D": [],
+    },
   });
+
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedExhibit, setSelectedExhibit] = useState("Exhibit A");
@@ -84,74 +106,73 @@ const Application = () => {
     else if (currentStep === 5) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(4));
   };
 
-  // const handlePaymentSuccess = (paymentResponse) => {
-  //   setFormData((prev) => ({ ...prev, paymentResponse, status: "Payment Completed" }));
-  //   console.log(formData, paymentResponse,);
-
-  //   // onSubmit({ ...formData, paymentResponse });
-
-  //   // Reset
-  //   setFormData({
-  //     // caseName: "",
-  //     // age: "",
-  //     // status: "Not Started",
-  //     // nextDate: "",
-  //     // advocate: "",
-  //     // caseType: "",
-  //     // documents: {},
-  //   });
-  //   setCurrentStep(1);
-  //   setSelectedExhibit("Exhibit A");
-  // };
-
   const handlePaymentSuccess = async (paymentResponse) => {
     try {
-      // 1️⃣ Update form data
-      const updatedFormData = { ...formData, status: "Payment Completed" };
+      // Merge payment response into form data
+      const updatedFormData = { ...formData, ...paymentResponse, status: "Paid" };
       setFormData(updatedFormData);
+      console.log("Before saving, updatedFormData:", updatedFormData);
 
-      // 2️⃣ Generate PDF ArrayBuffer
-      const pdfArrayBuffer = await generateCourtApplicationPDF(updatedFormData, paymentResponse);
+      // 1️⃣ Save data to backend
+      const res = await saveApplicationData(updatedFormData);
+      console.log("After save response:", res);
 
-      // 3️⃣ Save data to backend
-      const res = await saveApplicationData(updatedFormData, pdfArrayBuffer, paymentResponse);
-
-      if (!res.success) {
+      if (!res.data?.success) {
         showErrorToast("❌ Failed to save application data!");
         return;
       }
 
-      // 4️⃣ Trigger PDF download
-      const pdfBlob = new Blob([pdfArrayBuffer], { type: "application/pdf" });
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Court_Application.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      // 2️⃣ Extract saved objects from backend response
+      const { user, case: savedCase, payment: savedPayment } = res.data;
 
-      showSuccessToast("✅ Payment successful and PDF generated!");
+      // 3️⃣ Show detailed success toast
+      showSuccessToast(
+        `✅ Application saved for ${user.full_name}.\n` +
+        `Payment: ${savedPayment.status} (${savedPayment.method})\n` +
+        `Case ID: ${savedCase.id}`
+      );
+
+      console.log("Payment success handled for user:", user.id);
+
     } catch (error) {
       console.error("Payment success handling error:", error);
       showErrorToast("❌ Something went wrong after payment!");
     } finally {
-      // 5️⃣ Reset form
+      // 5️⃣ Reset form for next entry
       setFormData({
-        caseName: "",
-        age: "",
         status: "Not Started",
-        nextDate: "",
-        advocate: "",
-        caseType: "",
-        documents: [],
+        full_name: "",
+        date_of_birth: "",
+        age: "",
+        phone_number: "",
+        email: "",
+        gender: "",
+        occupation: "",
+        adhar_number: "",
+        address: "",
+        additional_notes: "",
+        saving_account_start_date: "",
+        deposit_type: "",
+        deposit_duration_years: "",
+        fixed_deposit_total_amount: "",
+        interest_rate_fd: "",
+        saving_account_total_amount: "",
+        interest_rate_saving: "",
+        recurring_deposit_total_amount: "",
+        interest_rate_recurring: "",
+        dnyanrudha_investment_total_amount: "",
+        dynadhara_rate: "",
+        documents: {
+          "Exhibit A": [],
+          "Exhibit B": [],
+          "Exhibit C": [],
+          "Exhibit D": [],
+        },
       });
-      // setCurrentStep(1);
       setSelectedExhibit("Exhibit A");
+      setCurrentStep(1); 
     }
   };
-
 
   const renderSteps = () => (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-10">
