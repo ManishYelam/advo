@@ -28,9 +28,10 @@ const ApplicantUserForm = () => {
 
     const fetchUserData = async () => {
       try {
-        const response = await userApplicant(userId); // corrected variable
-        const data = response.data;
-
+        const response = await userApplicant(userId); 
+        const data = response.data.user;
+       
+        console.log(response.data.user)
         if (!data || Object.keys(data).length === 0) {
           setLinkExpired(true);
         } else {
