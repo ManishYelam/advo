@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
-import { showErrorToast } from "../utils/Toastify";
+import { showErrorToast, showSuccessToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { userApplicant, updateUserApplicant } from "../services/applicationService";
 
@@ -26,6 +26,7 @@ const ApplicantUserForm = () => {
 
   const [loading, setLoading] = useState(true);
   const [linkExpired, setLinkExpired] = useState(false);
+  const [formDisabled, setFormDisabled] = useState(false); // disable after submit
 
   useEffect(() => {
     if (!userId) return;
@@ -84,11 +85,13 @@ const ApplicantUserForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Required fields validation
     if (!formData.full_name || !formData.email || !formData.phone_number) {
       showErrorToast("Please fill all required fields!");
       return;
     }
 
+    // Password validation
     if (!formData.password || !formData.confirm_password) {
       showErrorToast("Please enter password and confirm password!");
       return;
@@ -100,17 +103,21 @@ const ApplicantUserForm = () => {
     }
 
     try {
+      setFormDisabled(true); // disable form while submitting
       const response = await updateUserApplicant(userId, formData);
+
       if (response.data.message) {
-        alert("User data updated successfully!");
-        setLinkExpired(true);
-        setTimeout(() => navigate("/login"), 0);
+        showSuccessToast("User data updated successfully!");
+        // Redirect after short delay to let toast show
+        setTimeout(() => navigate("/login"), 1500);
       } else {
         showErrorToast("Failed to update user data.");
+        setFormDisabled(false); // re-enable form if error
       }
     } catch (error) {
       console.error("Update error:", error);
       showErrorToast("An error occurred while updating user data.");
+      setFormDisabled(false); // re-enable form if error
     }
   };
 
@@ -151,6 +158,7 @@ const ApplicantUserForm = () => {
               name="full_name"
               value={formData.full_name}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -161,6 +169,7 @@ const ApplicantUserForm = () => {
               name="date_of_birth"
               value={formData.date_of_birth}
               onChange={handleDOBChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -171,6 +180,7 @@ const ApplicantUserForm = () => {
               name="age"
               value={formData.age}
               onChange={handleAgeChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               min="1"
               max="120"
@@ -186,6 +196,7 @@ const ApplicantUserForm = () => {
               name="phone_number"
               value={formData.phone_number}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               pattern="[0-9]{10}"
               required
@@ -197,6 +208,7 @@ const ApplicantUserForm = () => {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -206,6 +218,7 @@ const ApplicantUserForm = () => {
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             >
@@ -224,6 +237,7 @@ const ApplicantUserForm = () => {
               name="occupation"
               value={formData.occupation}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -234,6 +248,7 @@ const ApplicantUserForm = () => {
               name="adhar_number"
               value={formData.adhar_number}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               pattern="[0-9]{12}"
             />
@@ -243,6 +258,7 @@ const ApplicantUserForm = () => {
               name="address"
               value={formData.address}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"
               rows={2}
               required
@@ -257,6 +273,7 @@ const ApplicantUserForm = () => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -269,6 +286,7 @@ const ApplicantUserForm = () => {
               name="confirm_password"
               value={formData.confirm_password}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
               required
             />
@@ -280,6 +298,7 @@ const ApplicantUserForm = () => {
               name="additional_notes"
               value={formData.additional_notes}
               onChange={handleInputChange}
+              disabled={formDisabled}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"
               rows={2}
             />
@@ -289,7 +308,8 @@ const ApplicantUserForm = () => {
           <div className="md:col-span-3 flex justify-center mt-4">
             <button
               type="submit"
-              className="px-6 py-2 bg-yellow-400 text-green-900 font-bold rounded-full shadow-lg hover:bg-yellow-300 transition-all transform hover:scale-105"
+              disabled={formDisabled}
+              className="px-6 py-2 bg-yellow-400 text-green-900 font-bold rounded-full shadow-lg hover:bg-yellow-300 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Submit
             </button>
