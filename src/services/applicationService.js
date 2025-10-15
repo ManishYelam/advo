@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
 export const saveApplicationData = async (formData, pdfArrayBuffer, paymentResponse) => {
   try {
     const updatedFormData = { ...formData, ...paymentResponse };
@@ -9,7 +11,7 @@ export const saveApplicationData = async (formData, pdfArrayBuffer, paymentRespo
     formDataObj.append("file", pdfBlob, "Court_Application.pdf"); // Must match backend key: 'file'
     formDataObj.append("data", JSON.stringify(updatedFormData)); // Must match req.body.data
 
-    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+    // const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
     const response = await axios.post(`${baseURL}/users/save-application`, formDataObj, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -23,3 +25,6 @@ export const saveApplicationData = async (formData, pdfArrayBuffer, paymentRespo
     return { success: false, message: "Failed to save application data" };
   }
 };
+
+export const userApplicant = (id) => axios.get(`${baseURL}/users/${id}`);
+

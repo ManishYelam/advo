@@ -1,9 +1,11 @@
-// ApplicantUserForm.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { showSuccessToast, showErrorToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
+import { userApplicant } from "../services/applicationService";
 
 const ApplicantUserForm = () => {
+  const { userId } = useParams(); 
   const [formData, setFormData] = useState({
     full_name: "",
     date_of_birth: "",
@@ -18,6 +20,37 @@ const ApplicantUserForm = () => {
     confirm_password: "",
     additional_notes: "",
   });
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchUserData = async () => {
+      try {
+        const response = await userApplicant(id);
+        const data = response.data;
+
+        setFormData({
+          full_name: data.full_name || "",
+          date_of_birth: data.date_of_birth || "",
+          age: data.age || "",
+          gender: data.gender || "",
+          phone_number: data.phone_number || "",
+          email: data.email || "",
+          occupation: data.occupation || "",
+          adhar_number: data.adhar_number || "",
+          address: data.address || "",
+          password: "", 
+          confirm_password: "",
+          additional_notes: data.additional_notes || "",
+        });
+      } catch (error) {
+        showErrorToast("Failed to fetch user data.");
+        console.error(error);
+      }
+    };
+
+    fetchUserData();
+  }, [userId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -85,7 +118,7 @@ const ApplicantUserForm = () => {
             <input
               type="date"
               name="date_of_birth"
-              placeholder="Select your date of birth"
+              placeholder="Select date of birth"
               value={formData.date_of_birth}
               onChange={handleDOBChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -116,7 +149,7 @@ const ApplicantUserForm = () => {
             <input
               type="tel"
               name="phone_number"
-              placeholder="Enter your phone number"
+              placeholder="Enter phone number"
               value={formData.phone_number}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -130,7 +163,7 @@ const ApplicantUserForm = () => {
             <input
               type="email"
               name="email"
-              placeholder="Enter your email address"
+              placeholder="Enter email"
               value={formData.email}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -162,7 +195,7 @@ const ApplicantUserForm = () => {
             <input
               type="text"
               name="occupation"
-              placeholder="Enter your occupation"
+              placeholder="Enter occupation"
               value={formData.occupation}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -175,7 +208,7 @@ const ApplicantUserForm = () => {
             <input
               type="text"
               name="adhar_number"
-              placeholder="Enter your Aadhar number"
+              placeholder="Enter Aadhar Number"
               value={formData.adhar_number}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -187,7 +220,7 @@ const ApplicantUserForm = () => {
             </label>
             <textarea
               name="address"
-              placeholder="Enter your full address"
+              placeholder="Enter full address with pin code"
               value={formData.address}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"
@@ -204,7 +237,7 @@ const ApplicantUserForm = () => {
             <input
               type="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder="Enter password"
               value={formData.password}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -219,7 +252,7 @@ const ApplicantUserForm = () => {
             <input
               type="password"
               name="confirm_password"
-              placeholder="Confirm your password"
+              placeholder="Confirm password"
               value={formData.confirm_password}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800"
@@ -231,7 +264,7 @@ const ApplicantUserForm = () => {
             <label className="font-semibold text-green-800">Additional Notes</label>
             <textarea
               name="additional_notes"
-              placeholder="Any additional notes..."
+              placeholder="Any extra information..."
               value={formData.additional_notes}
               onChange={handleInputChange}
               className="p-2 rounded-md border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 resize-none"
