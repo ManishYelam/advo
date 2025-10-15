@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 // Public Landing page
 import LandingPage from "../pages/LandingPage";
 import Application from "../pages/Application";
+import ApplicantUserForm from "../pages/ApplicantUserForm";
 
 const AppRoutes = () => {
   const { user } = useAuth(); // user context
@@ -25,6 +26,7 @@ const AppRoutes = () => {
         <Route path="/apply" element={<Application />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/applicant-register" element={<ApplicantUserForm />} />
 
         {/* Protected Routes */}
         <Route

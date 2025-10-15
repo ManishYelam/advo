@@ -4,7 +4,7 @@ export const saveApplicationData = async (formData, pdfArrayBuffer, paymentRespo
   try {
     const updatedFormData = { ...formData, ...paymentResponse };
     const pdfBlob = new Blob([pdfArrayBuffer], { type: "application/pdf" });
-
+    // console.log(updatedFormData)
     const formDataObj = new FormData();
     formDataObj.append("file", pdfBlob, "Court_Application.pdf"); // Must match backend key: 'file'
     formDataObj.append("data", JSON.stringify(updatedFormData)); // Must match req.body.data
