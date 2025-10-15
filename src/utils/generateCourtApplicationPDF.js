@@ -1,6 +1,13 @@
 import html2pdf from "html2pdf.js";
 
-export const generateCourtApplicationPDF = async (formData = {}, paymentDetails = {}) => {
+/**
+ * Generate Court Application PDF with dynamic exhibits.
+ * @param {Object} formData - Application form data
+ * @param {Object} paymentDetails - Payment details
+ * @param {Array} exhibits - Array of exhibits [{ title: "Exhibit A", description: "Copy of deposit slip" }, ...]
+ * @returns {Promise<ArrayBuffer>}
+ */
+export const generateCourtApplicationPDF = async (formData = {}, paymentDetails = {}, exhibits = []) => {
   const container = document.createElement("div");
   container.style.display = "none";
   document.body.appendChild(container);
@@ -40,12 +47,14 @@ export const generateCourtApplicationPDF = async (formData = {}, paymentDetails 
         <tbody>
           <tr><td style="border:1px solid black; text-align:center;">1</td><td style="border:1px solid black;">Application</td><td style="border:1px solid black; text-align:center;"></td><td style="border:1px solid black; text-align:center;">1</td></tr>
           <tr><td style="border:1px solid black; text-align:center;">2</td><td style="border:1px solid black;">List of Documents</td><td style="border:1px solid black; text-align:center;"></td><td style="border:1px solid black; text-align:center;">1–6</td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">3</td><td style="border:1px solid black;">Copy of the slip of Account started on 17.11.2022</td><td style="border:1px solid black; text-align:center;">A</td><td style="border:1px solid black; text-align:center;"></td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">4</td><td style="border:1px solid black;">Copy of the Deposits Amount by Applicant to the said bank</td><td style="border:1px solid black; text-align:center;">B</td><td style="border:1px solid black; text-align:center;"></td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">5</td><td style="border:1px solid black;">Copy of the statement by Applicant to Shrirampur Police Station</td><td style="border:1px solid black; text-align:center;">C</td><td style="border:1px solid black; text-align:center;"></td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">6</td><td style="border:1px solid black;">Memorandum of Address</td><td style="border:1px solid black; text-align:center;"></td><td style="border:1px solid black; text-align:center;"></td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">7</td><td style="border:1px solid black;">Affidavit-in-Support of the Application</td><td style="border:1px solid black; text-align:center;"></td><td style="border:1px solid black; text-align:center;"></td></tr>
-          <tr><td style="border:1px solid black; text-align:center;">8</td><td style="border:1px solid black;">Vakalatnama</td><td style="border:1px solid black; text-align:center;"></td><td style="border:1px solid black; text-align:center;"></td></tr>
+          ${exhibits.map((ex, i) => `
+            <tr>
+              <td style="border:1px solid black; text-align:center;">${i+3}</td>
+              <td style="border:1px solid black;">${ex.description}</td>
+              <td style="border:1px solid black; text-align:center;">${ex.title}</td>
+              <td style="border:1px solid black; text-align:center;"></td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
 
@@ -65,11 +74,9 @@ export const generateCourtApplicationPDF = async (formData = {}, paymentDetails 
     <div style="page-break-before: always; padding:2rem; font-family:'Times New Roman'; font-size:12px;">
       <h3 style="text-align:center; text-decoration:underline;">APPLICATION</h3>
       <p>TO, THE HON’BLE SPECIAL JUDGE FOR PMLA CASES, MUMBAI.</p>
-      <br/>
       <p>Most Respectfully Sheweth,</p>
       <p>1. That the applicant submits that he is filing this application in respect to the ongoing matter concerning ECIR/MBZO-1//2025.</p>
       <p>2. That the applicant prays that the Hon’ble Court may kindly consider his request for submission of the supporting documents and affidavit.</p>
-      <br/>
       <p><b>PRAYER:</b></p>
       <ol>
         <li>Take the accompanying documents on record.</li>
@@ -84,21 +91,16 @@ export const generateCourtApplicationPDF = async (formData = {}, paymentDetails 
     <!-- PAGE 3: Applicant Info + Deposit Details -->
     <div style="page-break-before: always; padding:2rem; font-family:'Times New Roman'; font-size:12px;">
       <h3 style="text-align:center; text-decoration:underline;">APPLICATION DETAILS</h3>
-      <div>
-        <p><b>Full Name:</b> ${formData.name}</p>
-        <p><b>Email:</b> ${formData.email}</p>
-        <p><b>Phone:</b> ${formData.phone_number || ""}</p>
-        <p><b>Case Type:</b> ${formData.caseType || ""}</p>
-      </div>
-      <br/>
+      <p><b>Full Name:</b> ${formData.name}</p>
+      <p><b>Email:</b> ${formData.email}</p>
+      <p><b>Phone:</b> ${formData.phone_number || ""}</p>
+      <p><b>Case Type:</b> ${formData.caseType || ""}</p>
+
       <h4>Deposit Details</h4>
-      <div>
-        <p><b>Saving Account Start Date:</b> ${formData.savingAccountStartDate || ""}</p>
-        <p><b>Deposit Type:</b> ${formData.depositType || ""}</p>
-        <p><b>Fixed Deposit Total:</b> ${formData.fixedDepositTotalAmount || ""}</p>
-        <p><b>Recurring Deposit Total:</b> ${formData.recurringDepositTotalAmount || ""}</p>
-      </div>
-      <br/>
+      <p><b>Saving Account Start Date:</b> ${formData.savingAccountStartDate || ""}</p>
+      <p><b>Deposit Type:</b> ${formData.depositType || ""}</p>
+      <p><b>Fixed Deposit Total:</b> ${formData.fixedDepositTotalAmount || ""}</p>
+      <p><b>Recurring Deposit Total:</b> ${formData.recurringDepositTotalAmount || ""}</p>
       <p style="font-style:italic;">I hereby affirm that the above information is true and correct to the best of my knowledge.</p>
       <div style="text-align:right; margin-top:2rem;">
         <p>_________________________</p>
@@ -106,7 +108,16 @@ export const generateCourtApplicationPDF = async (formData = {}, paymentDetails 
       </div>
     </div>
 
-    <!-- PAGE 4: Payment Receipt -->
+    <!-- DYNAMIC EXHIBITS -->
+    ${exhibits.map(ex => `
+      <div style="page-break-before: always; padding:2rem; font-family:'Times New Roman'; font-size:12px;">
+        <h3 style="text-align:center; text-decoration:underline;">${ex.title}</h3>
+        <p>${ex.description}</p>
+        ${ex.content || ""} <!-- optional detailed content -->
+      </div>
+    `).join('')}
+
+    <!-- PAGE LAST: Payment Receipt -->
     <div style="page-break-before: always; padding:2rem; font-family:'Times New Roman'; font-size:12px;">
       <h2 style="text-align:center; text-decoration:underline;">PAYMENT RECEIPT</h2>
       <p style="text-align:center;">This receipt acknowledges payment for the court application.</p>
