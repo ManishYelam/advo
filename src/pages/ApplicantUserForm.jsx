@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { showSuccessToast, showErrorToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
-import { userApplicant } from "../services/applicationService";
+import { userApplicant, updateUserApplicant } from "../services/applicationService";
 
 const ApplicantUserForm = () => {
   const { userId } = useParams(); 
@@ -30,8 +30,7 @@ const ApplicantUserForm = () => {
       try {
         const response = await userApplicant(userId); 
         const data = response.data.user;
-       
-        console.log(response.data.user)
+
         if (!data || Object.keys(data).length === 0) {
           setLinkExpired(true);
         } else {
@@ -78,14 +77,10 @@ const ApplicantUserForm = () => {
     setFormData((prev) => ({ ...prev, age, date_of_birth }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.email || !formData.phone_number) {
       showErrorToast("Please fill all required fields!");
-      return;
-    }
-    if (!formData.password || !formData.confirm_password) {
-      showErrorToast("Please enter password and confirm password!");
       return;
     }
     if (formData.password !== formData.confirm_password) {
@@ -93,9 +88,17 @@ const ApplicantUserForm = () => {
       return;
     }
 
-    showSuccessToast("Form submitted successfully!");
-    console.log("Applicant Form Data:", formData);
-    // TODO: Call your backend API here
+    try {
+      const response = await updateUserApplicant(userId, formData);
+      if (response.data.success) {
+        showSuccessToast("User data updated successfully!");
+      } else {
+        showErrorToast("Failed to update user data.");
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      showErrorToast("An error occurred while updating user data.");
+    }
   };
 
   if (loading) {
@@ -257,7 +260,7 @@ const ApplicantUserForm = () => {
             />
           </div>
 
-          {/* Passwords and Notes */}
+          {/* Passwords & Notes */}
           <div className="flex flex-col gap-3">
             <label className="font-semibold text-green-800">
               Password <span className="text-red-500">*</span>
