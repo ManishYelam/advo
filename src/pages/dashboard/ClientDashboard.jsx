@@ -5,6 +5,7 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 import Card from "../../components/Card";
 import CaseTable from "../CaseTable";
 import AddCaseForm from "../AddCaseForm";
+import Application from "../Application";
 
 const ClientDashboard = () => {
   const [view, setView] = useState("dashboard");
@@ -175,7 +176,7 @@ const ClientDashboard = () => {
             // onMore={handleMore} 
           />
         )}
-        {view === "addCase" && <AddCaseForm onAdd={addNewCase} />}
+        {view === "addCase" && <Application  onAdd={addNewCase} />}
       </DashboardLayout>
     </div>
   );

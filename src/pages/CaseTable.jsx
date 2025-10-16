@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
 import { FiEdit, FiEye, FiPrinter, FiMoreVertical, FiTrash2, FiFileText, FiFile, FiSave } from "react-icons/fi";
 import EditCaseModal from "../components/EditCaseModal";
+import { FaPlus } from "react-icons/fa";
 
 const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
   const [cases, setCases] = useState([]);
@@ -100,7 +101,7 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
     );
   };
 
-   // Handle Edit Button click
+  // Handle Edit Button click
   const handleEditClick = (caseData) => {
     setCaseToEdit(caseData); // Store the case data to be edited
     setIsModalOpen(true); // Open the modal
@@ -166,17 +167,17 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
           <button
             onClick={() => onDelete && onDelete(selectedCaseIds)}
             disabled={selectedCaseIds.length === 0}
-            className="px-2 py-1 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-700 disabled:opacity-50"
+            className="flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            <FiTrash2 size={8} />
+            <FiTrash2 size={10} />
           </button>
           <button
             // onClick={() => onSave && onSave(selectedCaseIds)}
             // disabled={editselectedCaseIds.length === 0}
-            className="px-2 py-1 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50"
-          > 
-            <FiSave size={8} />
-          </button>   
+            className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-lg transition-all"
+          >
+            <FaPlus size={10}/>
+          </button>
         </div>
       </div>
 
