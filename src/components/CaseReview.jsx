@@ -22,7 +22,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
 
     const opt = {
       margin: 10,
-      filename: `Application_${formData.name || "Applicant"}.pdf`,
+      filename: `Application_${formData.full_name || "Applicant"}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -48,7 +48,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
     // Configure html2pdf to return PDF as a Blob
     const opt = {
       margin: 10,
-      filename: `Application_${formData.name || "Applicant"}.pdf`,
+      filename: `Application_${formData.full_name || "Applicant"}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -101,8 +101,8 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p><strong>Full Name:</strong> {formData.name}</p>
-              <p><strong>Date of Birth:</strong> {formData.dob}</p>
+              <p><strong>Full Name:</strong> {formData.full_name}</p>
+              <p><strong>Date of Birth:</strong> {formData.date_of_birth}</p>
               <p><strong>Gender:</strong> {formData.gender}</p>
             </div>
             <div>
@@ -114,7 +114,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
               <p><strong>Aadhar No.:</strong> {formData.adhar_number}</p>
               <p><strong>Email:</strong> {formData.email}</p>
               <p><strong>Address:</strong> {formData.address}</p>
-              <p><strong>Notes:</strong> {formData.notes}</p>
+              <p><strong>Notes:</strong> {formData.additional_notes}</p>
             </div>
           </div>
         </section>
@@ -126,21 +126,21 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p><strong>Saving Account Start Date:</strong> {formData.savingAccountStartDate}</p>
-              <p><strong>Deposit Type:</strong> {formData.depositType}</p>
-              <p><strong>Deposit Duration (Years):</strong> {formData.depositDurationYears}</p>
+              <p><strong>Saving Account Start Date:</strong> {formData.saving_account_start_date}</p>
+              <p><strong>Deposit Type:</strong> {formData.deposit_type}</p>
+              <p><strong>Deposit Duration (Years):</strong> {formData.deposit_duration_years}</p>
             </div>
             <div>
-              <p><strong>Fixed Deposit Total Amount:</strong> {formData.fixedDepositTotalAmount}</p>
-              <p><strong>Interest Rate (FD %):</strong> {formData.interestRateFD}</p>
-              <p><strong>Savings Account Total Amount:</strong> {formData.savingAccountTotalAmount}</p>
-              <p><strong>Interest Rate (Savings %):</strong> {formData.interestRateSaving}</p>
+              <p><strong>Fixed Deposit Total Amount:</strong> {formData.fixed_deposit_total_amount}</p>
+              <p><strong>Interest Rate (FD %):</strong> {formData.interest_rate_fd}</p>
+              <p><strong>Savings Account Total Amount:</strong> {formData.saving_account_total_amount}</p>
+              <p><strong>Interest Rate (Savings %):</strong> {formData.interest_rate_saving}</p>
             </div>
             <div>
-              <p><strong>Recurring Deposit Total Amount:</strong> {formData.recurringDepositTotalAmount}</p>
-              <p><strong>Interest Rate (RD %):</strong> {formData.interestRateRecurring}</p>
-              <p><strong>Dnyanrudha Investment Total Amount:</strong> {formData.dnyanrudhaInvestmentTotalAmount}</p>
-              <p><strong>Dynadhara Rate (%):</strong> {formData.dynadharaRate}</p>
+              <p><strong>Recurring Deposit Total Amount:</strong> {formData.recurring_deposit_total_amount}</p>
+              <p><strong>Interest Rate (RD %):</strong> {formData.interest_rate_recurring}</p>
+              <p><strong>Dnyanrudha Investment Total Amount:</strong> {formData.dnyanrudha_investment_total_amount}</p>
+              <p><strong>Dynadhara Rate (%):</strong> {formData.dynadhara_rate}</p>
             </div>
           </div>
         </section>
@@ -195,9 +195,14 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
 
         <button
           onClick={handleGeneratePDF}
-          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-[10px] flex items-center gap-1 transition"
+          disabled={!formData.isAdmin} // ✅ Disable if not admin
+          className={`px-3 py-1 text-white rounded text-[10px] flex items-center gap-1 transition 
+              ${formData.isAdmin
+              ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              : "bg-gray-300 cursor-not-allowed"
+            }`}
         >
-          <FaFilePdf size={12} /> Generate PDF
+          <FaFilePdf size={12} />
         </button>
 
         <button
