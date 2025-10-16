@@ -38,12 +38,40 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
 
   // ✅ Validation before proceeding
   const handleNext = () => {
-    if (check) {
-      showSuccessToast("Declaration verified successfully!");
-      onNext();
-    } else {
+    if (!check) {
       showWarningToast("Please verify the declaration before proceeding.");
+      return;
     }
+
+    const element = document.getElementById("printableArea");
+
+    // Configure html2pdf to return PDF as a Blob
+    const opt = {
+      margin: 10,
+      filename: `Application_${formData.name || "Applicant"}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      returnPromise: true, // ✅ important for getting Blob
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .outputPdf('blob') // ✅ generate PDF as Blob
+      .then((pdfBlob) => {
+        // Store the actual PDF Blob in formData
+        const updatedData = {
+          ...formData,
+          verified: check,
+          application_form: pdfBlob, // store PDF directly
+        };
+
+        setFormData(updatedData); // update parent
+        showSuccessToast("PDF generated and stored successfully!");
+        onNext(updatedData); // pass updated data to next step
+      })
+      .catch(() => showWarningToast("Failed to generate PDF!"));
   };
 
   return (
