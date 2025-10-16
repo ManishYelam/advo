@@ -252,13 +252,19 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
                   <td className="w-[8%] px-2 py-1 text-center">{c.outcome}</td>
                   <td className="w-[12%] px-2 py-1 text-center">{c.court_address}</td>
                   <td className="w-[6%] px-2 py-1 text-center">
-                    {/* Document Icons with Tooltip */}
                     {c.documents && c.documents.length > 0 ? (
-                      c.documents.map((document, index) => (
+                      c.documents.map((doc, index) => (
                         <span key={index} className="relative group inline-block mx-1">
-                          <FiFile size={10} className="cursor-pointer text-red-700 hover:text-blue-600 cursor-pointer" />
+                          <a
+                            href={doc.url || doc.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={doc.originalname || doc.filename || "View Document"}
+                          >
+                            <FiFile size={10} className="text-red-700 hover:text-blue-600 cursor-pointer" />
+                          </a>
                           <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            {document}
+                            {doc.originalname || doc.filename}
                           </span>
                         </span>
                       ))
@@ -266,14 +272,21 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
                       "N/A"
                     )}
                   </td>
+
                   <td className="w-[6%] px-2 py-1 text-center">
-                    {/* Shared Documents (if any) */}
                     {c.shared_documents && c.shared_documents.length > 0 ? (
-                      c.shared_documents.map((document, index) => (
+                      c.shared_documents.map((doc, index) => (
                         <span key={index} className="relative group inline-block mx-1">
-                          <FiFileText size={16} className="cursor-pointer text-gray-700 hover:text-blue-600" />
+                          <a
+                            href={doc.url || doc.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={doc.originalname || doc.filename || "View Shared Document"}
+                          >
+                            <FiFileText size={10} className="text-gray-700 hover:text-blue-600 cursor-pointer" />
+                          </a>
                           <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            {document}
+                            {doc.originalname || doc.filename}
                           </span>
                         </span>
                       ))
@@ -281,6 +294,7 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
                       "N/A"
                     )}
                   </td>
+
                 </tr>
               ))
             )}

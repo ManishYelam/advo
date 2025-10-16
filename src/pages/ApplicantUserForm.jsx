@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
-import { userApplicant, updateUserApplicant } from "../services/applicationService";
+import { userApplicant, updateUserApplicant, checkExistsEmail } from "../services/applicationService";
 
 const ApplicantUserForm = () => {
   const { userId } = useParams();
@@ -24,6 +24,7 @@ const ApplicantUserForm = () => {
     additional_notes: "",
   });
 
+  const [originalEmail, setOriginalEmail] = useState(""); 
   const [loading, setLoading] = useState(true);
   const [linkExpired, setLinkExpired] = useState(false);
   const [formDisabled, setFormDisabled] = useState(false); // disable after submit
@@ -53,6 +54,7 @@ const ApplicantUserForm = () => {
             confirm_password: "",
             additional_notes: data.additional_notes || "",
           });
+          setOriginalEmail(data.email || "");
         }
       } catch (error) {
         console.error(error);
@@ -103,7 +105,17 @@ const ApplicantUserForm = () => {
     }
 
     try {
-      setFormDisabled(true); // disable form while submitting
+      setFormDisabled(true);
+      // ✅ Check email existence only if changed
+      if (formData.email !== originalEmail) {
+        const res = await checkExistsEmail(formData.email);
+        if (res.data.exists) {
+          showErrorToast("This email is already registered. Please use another one.");
+          setFormDisabled(false);
+          return; // stop submission
+        }
+      }
+      // ✅ Submit updated data
       const response = await updateUserApplicant(userId, formData);
 
       if (response.data.message) {
