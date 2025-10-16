@@ -171,13 +171,6 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
           >
             <FiTrash2 size={10} />
           </button>
-          <button
-            // onClick={() => onSave && onSave(selectedCaseIds)}
-            // disabled={editselectedCaseIds.length === 0}
-            className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded-lg transition-all"
-          >
-            <FaPlus size={10}/>
-          </button>
         </div>
       </div>
 
