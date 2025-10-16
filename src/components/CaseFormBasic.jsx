@@ -1,16 +1,35 @@
 import React from "react";
-import { showSuccessToast } from "../utils/Toastify";
+import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
+import { checkExistsEmail } from "../services/applicationService";
 
 const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
-  const handleNextClick = (e) => {
+  const handleNextClick = async(e) => {
     e.preventDefault();
-
-    // ✅ Show success toast
-    showSuccessToast("Basic information filled successfully!");
-
-    // ✅ Proceed to next step
-    onNext();
+    const { email } = formData;
+    //console.log(email);
+    
+    if (!email) {
+      showWarningToast("Please enter an email before proceeding.");
+      return;
+    }
+    try {
+      // ✅ Check email existence
+// ✅ Check email existence before going next
+      const res = await checkExistsEmail(email);
+            console.log(res);
+      
+      if (res.data.exists) {
+        showWarningToast("This email is already registered. Please use another one.");
+        return; // Stop the next step
+      }
+      // ✅ If email does not exist, proceed
+      showSuccessToast("Basic information filled successfully!");
+      onNext();
+    } catch (error) {
+      console.error("Error checking email:", error);
+      showWarningToast("Something went wrong while checking the email.");
+    }
   };
 
   // Handle DOB change

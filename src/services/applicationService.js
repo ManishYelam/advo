@@ -58,6 +58,8 @@ export const saveApplicationData = async (formData) => {
   }
 };
 
+export const checkExistsEmail = (email) => axios.post(`${baseURL}/users/email`, {email});
+
 export const userApplicant = (id) => axios.get(`${baseURL}/users/${id}`);
 
 export const updateUserApplicant = (id, data) => axios.put(`${baseURL}/users/${id}`, data);
