@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiEdit } from "react-icons/fi";
+import { FiEdit, FiArrowLeft, FiSave, FiRefreshCcw } from "react-icons/fi";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
@@ -22,24 +22,18 @@ const Profile = () => {
     additional_notes: "",
   });
 
+  const [initialData, setInitialData] = useState({});
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Fetch profile
   const fetchProfile = async () => {
     try {
-      if (!userId) {
-        showErrorToast("User not logged in!");
-        return;
-      }
+      if (!userId) return showErrorToast("User not logged in!");
 
       const res = await userApplicant(userId);
       const data = res?.data?.user || res?.data || {};
 
-      if (!data || Object.keys(data).length === 0) {
-        showWarningToast("Profile not found.");
-        return;
-      }
+      if (!data || Object.keys(data).length === 0) return showWarningToast("Profile not found.");
 
       setFormData({
         full_name: data.full_name || "",
@@ -53,8 +47,12 @@ const Profile = () => {
         address: data.address || "",
         additional_notes: data.additional_notes || "",
       });
+
+      setInitialData({
+        ...data,
+      });
     } catch (error) {
-      console.error("Error loading profile:", error);
+      console.error(error);
       showWarningToast("Failed to load profile data.");
     } finally {
       setLoading(false);
@@ -65,43 +63,41 @@ const Profile = () => {
     if (userId) fetchProfile();
   }, [userId]);
 
-  // Input change
+  // Input handlers
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // DOB → Age
   const handleDOBChange = (e) => {
     const dob = e.target.value;
-    const age = calculateAgeFromDOB(dob);
-    setFormData((prev) => ({ ...prev, date_of_birth: dob, age }));
+    setFormData((prev) => ({ ...prev, date_of_birth: dob, age: calculateAgeFromDOB(dob) }));
   };
 
-  // Age → DOB
   const handleAgeChange = (e) => {
     let age = e.target.value;
     if (age < 1) age = 1;
     if (age > 120) age = 120;
-    const dob = calculateDOBFromAge(age);
-    setFormData((prev) => ({ ...prev, age, date_of_birth: dob }));
+    setFormData((prev) => ({ ...prev, age, date_of_birth: calculateDOBFromAge(age) }));
   };
 
-  // Edit toggle
+  // Edit, back, reset, update
   const handleEditClick = () => setIsEditing(true);
 
-  // Cancel edit
-  const handleCancel = () => {
+  const handleBack = () => {
     setIsEditing(false);
-    fetchProfile();
+    setFormData(initialData);
   };
 
-  // Update profile
+  const handleReset = () => {
+    setFormData(initialData);
+    showWarningToast("Form reset to last saved data.");
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.phone_number || !formData.email) {
-      showErrorToast("Please fill all required fields!");
-      return;
+      return showErrorToast("Please fill all required fields!");
     }
 
     try {
@@ -109,10 +105,11 @@ const Profile = () => {
       if (res.data.message) {
         showSuccessToast("Profile updated successfully!");
         setIsEditing(false);
-        if (res.data.user) setFormData(res.data.user);
-      } else {
-        showErrorToast("Failed to update profile.");
-      }
+        if (res.data.user) {
+          setFormData(res.data.user);
+          setInitialData(res.data.user);
+        }
+      } else showErrorToast("Failed to update profile.");
     } catch (error) {
       console.error(error);
       showErrorToast("Error updating profile.");
@@ -127,6 +124,12 @@ const Profile = () => {
     );
   }
 
+  const mandatoryLabel = (label) => (
+    <>
+      {label} <span className="text-red-600">*</span>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-green-50 py-10 px-4">
       <Toast />
@@ -135,21 +138,34 @@ const Profile = () => {
           User Profile
         </h2>
 
-        {/* Edit Icon */}
-        {!isEditing && (
-          <button
-            onClick={handleEditClick}
-            className="absolute top-4 right-4"
-            title="Edit Profile"
-          >
-            <FiEdit size={20} />
-          </button>
-        )}
+        {/* Top Icons */}
+        <div className="absolute top-4 w-full px-4 flex justify-between">
+          {isEditing && (
+            <button
+              onClick={handleBack}
+              className="flex items-center text-green-700 hover:text-green-900"
+              title="Back"
+            >
+              <FiArrowLeft size={22} />
+            </button>
+          )}
+          {!isEditing && (
+            <div className="ml-auto mr-12">
+              <button
+                onClick={handleEditClick}
+                className="flex items-center text-green-900 hover:text-green-700"
+                title="Edit Profile"
+              >
+                <FiEdit size={22} />
+              </button>
+            </div>
+          )}
+        </div>
 
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px]" onSubmit={handleUpdate}>
+        <form className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] mt-8" onSubmit={handleUpdate}>
           {/* Column 1 */}
           <div className="flex flex-col gap-2">
-            <label>Full Name *</label>
+            <label>{mandatoryLabel("Full Name")}</label>
             <input
               type="text"
               name="full_name"
@@ -160,7 +176,7 @@ const Profile = () => {
               required
             />
 
-            <label>Date of Birth *</label>
+            <label>{mandatoryLabel("Date of Birth")}</label>
             <input
               type="date"
               name="date_of_birth"
@@ -171,7 +187,7 @@ const Profile = () => {
               required
             />
 
-            <label>Age *</label>
+            <label>{mandatoryLabel("Age")}</label>
             <input
               type="number"
               name="age"
@@ -187,7 +203,7 @@ const Profile = () => {
 
           {/* Column 2 */}
           <div className="flex flex-col gap-2">
-            <label>Phone Number *</label>
+            <label>{mandatoryLabel("Phone Number")}</label>
             <input
               type="tel"
               name="phone_number"
@@ -199,7 +215,7 @@ const Profile = () => {
               required
             />
 
-            <label>Email *</label>
+            <label>{mandatoryLabel("Email")}</label>
             <input
               type="email"
               name="email"
@@ -209,7 +225,7 @@ const Profile = () => {
               required
             />
 
-            <label>Gender *</label>
+            <label>{mandatoryLabel("Gender")}</label>
             <select
               name="gender"
               value={formData.gender}
@@ -227,7 +243,7 @@ const Profile = () => {
 
           {/* Column 3 */}
           <div className="flex flex-col gap-2">
-            <label>Occupation *</label>
+            <label>{mandatoryLabel("Occupation")}</label>
             <input
               type="text"
               name="occupation"
@@ -249,7 +265,7 @@ const Profile = () => {
               disabled={!isEditing}
             />
 
-            <label>Address *</label>
+            <label>{mandatoryLabel("Address")}</label>
             <textarea
               name="address"
               value={formData.address}
@@ -274,24 +290,27 @@ const Profile = () => {
             />
           </div>
 
-          {/* Buttons */}
+          {/* Save & Reset buttons */}
           {isEditing && (
-            <div className="md:col-span-3 flex justify-end gap-2 mt-2">
+            <div className="md:col-span-3 flex justify-center gap-3 mt-2">
               <button
                 type="button"
-                onClick={handleCancel}
-                className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                onClick={handleReset}
+                className="p-2 bg-blue-400 text-white rounded hover:bg-blue-500 flex items-center"
+                title="Reset"
               >
-                Cancel
+                <FiRefreshCcw size={18} />
               </button>
               <button
                 type="submit"
-                className="px-3 py-1 bg-yellow-400 text-green-900 rounded hover:bg-yellow-300"
+                className="p-2 bg-green-800 text-white rounded flex items-center"
+                title="Save"
               >
-                Update
+                <FiSave size={18} />
               </button>
             </div>
           )}
+
         </form>
       </div>
     </div>
