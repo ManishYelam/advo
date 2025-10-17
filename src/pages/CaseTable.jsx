@@ -159,9 +159,12 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       {onBack && (
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-gray-700 hover:text-gray-900 mb-2"
+          className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-2"
         >
-          <FaArrowLeft size={12} /> Back
+          <FaArrowLeft size={14} />
+          <h1 className="font-bold text-lg ">
+            Cases
+          </h1>
         </button>
       )}
 
