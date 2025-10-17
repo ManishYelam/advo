@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
 import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical } from "react-icons/fi";
+import { FaCheck, FaTimes } from "react-icons/fa";
 import EditCaseModal from "../components/EditCaseModal";
 
 const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
@@ -12,7 +13,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     searchValue: "",
     status: "",
     priority: "",
-    verified: "", // ✅ Verified filter
+    verified: false,
   });
   const [selectedCaseIds, setSelectedCaseIds] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,8 +48,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           filters: {
             status: filters.status || undefined,
             priority: filters.priority || undefined,
+            verified: filters.verified ? true : undefined,
           },
         };
+
         const response = await getAllCases(payload);
         setCases(response.data.data || []);
         setTotalRecords(response.data.totalRecords || 0);
@@ -61,48 +64,51 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     fetchCases();
   }, [filters, pagination]);
 
+  // ✅ Handle filters dynamically
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFilters((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked.toString() : value,
-      page: 1,
+      [name]: type === "checkbox" ? checked : value,
     }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handlePaginationChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
+  // ✅ Multi-filter logic
   const filteredCases = cases.filter((c) => {
-    // Global search
-    if (filters.globalSearch) {
-      const search = filters.globalSearch.toLowerCase();
-      return (
-        (c.case_name?.toLowerCase().includes(search) ||
-          c.client_name?.toLowerCase().includes(search) ||
-          c.status?.toLowerCase().includes(search) ||
-          c.priority?.toLowerCase().includes(search) ||
-          (c.verified ? "yes" : "no").includes(search))
+    const matchesGlobalSearch =
+      !filters.globalSearch ||
+      Object.values(c).some((val) =>
+        val?.toString().toLowerCase().includes(filters.globalSearch.toLowerCase())
       );
-    }
 
-    // Field-specific search
-    if (filters.searchField && filters.searchValue) {
-      return c[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
-    }
+    const matchesFieldSearch =
+      !filters.searchField ||
+      !filters.searchValue ||
+      c[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
 
-    // Verified checkbox filter
-    if (filters.verified) {
-      return c.verified === (filters.verified === "true");
-    }
+    const matchesStatus =
+      !filters.status || c.status?.toLowerCase() === filters.status.toLowerCase();
 
-    return true;
+    const matchesPriority =
+      !filters.priority || c.priority?.toLowerCase() === filters.priority.toLowerCase();
+
+    const matchesVerified =
+      filters.verified === false || c.verified === filters.verified;
+
+    return (
+      matchesGlobalSearch &&
+      matchesFieldSearch &&
+      matchesStatus &&
+      matchesPriority &&
+      matchesVerified
+    );
   });
 
   const toggleSelectAll = (e) => {
@@ -125,7 +131,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     onSave && onSave(updatedCase);
   };
 
-  // Generate page numbers for pagination with ellipsis
+  // ✅ Pagination
   const totalPages = Math.ceil(totalRecords / pagination.limit);
   const getPageNumbers = () => {
     const delta = 2;
@@ -155,7 +161,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       {loading && <div>Loading cases...</div>}
       {error && <div className="text-red-600">{error}</div>}
 
-      {/* Filters */}
+      {/* ✅ Filters */}
       <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
         <div className="flex gap-2 flex-wrap items-center">
           {/* Global Search */}
@@ -164,7 +170,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             name="globalSearch"
             value={filters.globalSearch}
             onChange={handleSearchChange}
-            placeholder="Global Search"
+            placeholder="Global Search..."
             className="px-2 py-1 border rounded text-[9px] hover:border-green-500"
           />
 
@@ -192,79 +198,62 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             <option value="payment_status">Payment Status</option>
           </select>
 
-          {/* Dynamic Input / Dropdown */}
-          {filters.searchField === "status" && (
-            <select
-              name="searchValue"
-              value={filters.searchValue || ""}
-              onChange={handleSearchChange}
-              className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
-            >
-              <option value="">Select Status</option>
-              <option value="Running">Running</option>
-              <option value="Closed">Closed</option>
-              <option value="Pending">Pending</option>
-            </select>
-          )}
+          {/* Field Value */}
+          <input
+            type="text"
+            name="searchValue"
+            value={filters.searchValue}
+            onChange={handleSearchChange}
+            placeholder={
+              filters.searchField
+                ? `${filters.searchField
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (char) => char.toUpperCase())}`
+                : "Search by Field"
+            }
+            className="px-2 py-1 border rounded text-[9px] hover:border-green-500"
+          />
 
-          {filters.searchField === "priority" && (
-            <select
-              name="searchValue"
-              value={filters.searchValue || ""}
-              onChange={handleSearchChange}
-              className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
-            >
-              <option value="">Select Priority</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          )}
-
-          {(filters.searchField === "case_name" || filters.searchField === "client_name") && (
-            <input
-              type="text"
-              name="searchValue"
-              value={filters.searchValue || ""}
-              onChange={handleSearchChange}
-              placeholder={`Search ${filters.searchField === "case_name" ? "Case" : "Client"}`}
-              className="px-2 py-1 border rounded text-[9px] hover:border-green-500"
-            />
-          )}
+          {/* Status Filter */}
           <select
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="px-2 py-1 border rounded text-[9px]"
+            className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
           >
             <option value="">Status</option>
             <option value="Running">Running</option>
             <option value="Closed">Closed</option>
             <option value="Pending">Pending</option>
           </select>
+
+          {/* Priority Filter */}
           <select
             name="priority"
             value={filters.priority}
             onChange={handleFilterChange}
-            className="px-2 py-1 border rounded text-[9px]"
+            className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
           >
             <option value="">Priority</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
-          <label className="flex items-center gap-1 text-[9px]">
+
+          {/* Verified Checkbox */}
+          <label className="flex items-center gap-1 cursor-pointer">
             <input
               type="checkbox"
               name="verified"
-              checked={filters.verified === "true"}
+              checked={filters.verified}
               onChange={handleFilterChange}
               className="scale-75 cursor-pointer"
             />
-            Verified
+            <span>Verified</span>
           </label>
         </div>
 
+        {/* Delete Button */}
         <div>
           <button
             onClick={() => onDelete && onDelete(selectedCaseIds)}
@@ -276,7 +265,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         </div>
       </div>
 
-      {/* Table */}
+      {/* ✅ Table */}
       <div className="overflow-x-auto border border-gray-200 rounded shadow">
         <table className="min-w-full table-fixed border-collapse text-[9px]">
           <thead>
@@ -303,6 +292,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
               <th className="px-1 py-1 w-[6%]">Dnyanrudha Total</th>
               <th className="px-1 py-1 w-[6%]">Dynadhara Rate</th>
               <th className="px-1 py-1 w-[3%]">Verified</th>
+              <th className="px-1 py-1 w-[3%]">Status</th>
               <th className="px-1 py-1 w-[6%]">Payment Status</th>
               <th className="px-1 py-1 w-[6%]">Created At</th>
               <th className="px-1 py-1 w-[6%]">Updated At</th>
@@ -373,10 +363,21 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                   <td className="px-1 py-1 text-center">{c.interest_rate_recurring}</td>
                   <td className="px-1 py-1 text-center">{c.dnyanrudha_investment_total_amount}</td>
                   <td className="px-1 py-1 text-center">{c.dynadhara_rate}</td>
-                  <td className="px-1 py-1 text-center">{c.verified ? "Yes" : "No"}</td>
+                  <td className="px-1 py-1 text-center">
+                    {c.verified ? (
+                      <FaCheck className="text-green-600 mx-auto" size={10} />
+                    ) : (
+                      <FaTimes className="text-red-600 mx-auto" size={10} />
+                    )}
+                  </td>
+                  <td className="px-1 py-1 text-center">{c.status}</td>
                   <td className="px-1 py-1 text-center">{c.payment_status || "Pending"}</td>
-                  <td className="px-1 py-1 text-center">{c.created_at ? new Date(c.created_at).toLocaleDateString() : "-"}</td>
-                  <td className="px-1 py-1 text-center">{c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "-"}</td>
+                  <td className="px-1 py-1 text-center">
+                    {c.created_at ? new Date(c.created_at).toLocaleDateString() : "-"}
+                  </td>
+                  <td className="px-1 py-1 text-center">
+                    {c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "-"}
+                  </td>
                   <td className="px-1 py-1 text-center">
                     {c.documents && c.documents.length > 0
                       ? c.documents.map((doc, i) => (
@@ -399,17 +400,21 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* ✅ Pagination stays same */}
       <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2 text-[9px]">
         <div>
-          Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>
-          to <span className="font-medium">{Math.min(pagination.page * pagination.limit, totalRecords)}</span>
+          Showing{" "}
+          <span className="font-medium">
+            {(pagination.page - 1) * pagination.limit + 1}
+          </span>{" "}
+          to{" "}
+          <span className="font-medium">
+            {Math.min(pagination.page * pagination.limit, totalRecords)}
+          </span>{" "}
           of <span className="font-medium">{totalRecords}</span> cases
         </div>
 
-
         <div className="flex items-center gap-1 flex-wrap">
-          {/* Items per page */}
           <div className="flex items-center gap-1 ml-2">
             <span>Show</span>
             <select
@@ -431,34 +436,34 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             </select>
             <span>per page</span>
           </div>
+
           <button
-            onClick={() => handlePaginationChange(1)}
+            onClick={() => setPagination({ ...pagination, page: 1 })}
             disabled={pagination.page === 1}
             className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             First
           </button>
           <button
-            onClick={() => handlePaginationChange(pagination.page - 1)}
+            onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
             disabled={pagination.page === 1}
             className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Prev
           </button>
 
-          {/* Page Numbers */}
-          {getPageNumbers().map((p, idx) =>
+          {getPageNumbers().map((p, i) =>
             p === "..." ? (
-              <span key={idx} className="px-2 py-1 text-gray-500">
+              <span key={i} className="px-2 py-1 text-gray-500">
                 ...
               </span>
             ) : (
               <button
-                key={idx}
-                onClick={() => handlePaginationChange(p)}
+                key={i}
+                onClick={() => setPagination({ ...pagination, page: p })}
                 className={`px-2 py-1 rounded ${pagination.page === p
-                  ? "bg-green-800 text-white"
-                  : "bg-white border border-gray-300 hover:bg-green-100"
+                    ? "bg-green-800 text-white"
+                    : "bg-white border border-gray-300 hover:bg-green-100"
                   }`}
               >
                 {p}
@@ -466,23 +471,20 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             )
           )}
 
-
           <button
-            onClick={() => handlePaginationChange(pagination.page + 1)}
+            onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
             disabled={pagination.page === totalPages}
             className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Next
           </button>
           <button
-            onClick={() => handlePaginationChange(totalPages)}
+            onClick={() => setPagination({ ...pagination, page: totalPages })}
             disabled={pagination.page === totalPages}
             className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Last
           </button>
-
-
         </div>
       </div>
 
