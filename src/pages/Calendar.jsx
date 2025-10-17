@@ -9,13 +9,23 @@ const Calendar = () => {
 
   return (
     <DashboardLayout>
-      <h1 className="text-3xl font-bold mb-6">Calendar</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {upcomingDates.map((d, idx) => (
-          <Card key={idx} title={d.case}>
-            <p>Next Court Date: {d.date}</p>
-          </Card>
-        ))}
+      {/* Container with 12px margin */}
+      <div className="m-3">
+        {/* Heading */}
+        <div className="flex items-center gap-2 mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Calendar</h1>
+        </div>
+
+        {/* Grid of upcoming dates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {upcomingDates.map((d, idx) => (
+            <Card key={idx} title={d.case}>
+              <p className="text-sm text-gray-700">
+                Next Court Date: <span className="font-medium">{d.date}</span>
+              </p>
+            </Card>
+          ))}
+        </div>
       </div>
     </DashboardLayout>
   );
