@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiEdit, FiArrowLeft, FiSave, FiRefreshCcw } from "react-icons/fi";
+import { FiEdit, FiArrowLeft, FiSave, FiRefreshCcw, FiInfo } from "react-icons/fi";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
@@ -48,9 +48,7 @@ const Profile = () => {
         additional_notes: data.additional_notes || "",
       });
 
-      setInitialData({
-        ...data,
-      });
+      setInitialData({ ...data });
     } catch (error) {
       console.error(error);
       showWarningToast("Failed to load profile data.");
@@ -134,7 +132,7 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-green-50 py-10 px-4">
       <Toast />
       <div className="max-w-4xl mx-auto bg-white rounded shadow-md p-4 relative">
-        <h2 className="text-xl md:text-2xl font-bold text-center text-green-900 mb-4">
+        <h2 className="font-bold text-center text-green-900 mb-4">
           User Profile
         </h2>
 
@@ -143,26 +141,29 @@ const Profile = () => {
           {isEditing && (
             <button
               onClick={handleBack}
-              className="flex items-center text-green-700 hover:text-green-900"
+              className="flex items-center text-green-700 hover:text-green-900 transition-all"
               title="Back"
             >
-              <FiArrowLeft size={22} />
+              <FiArrowLeft size={18} />
             </button>
           )}
           {!isEditing && (
             <div className="ml-auto mr-12">
               <button
                 onClick={handleEditClick}
-                className="flex items-center text-green-900 hover:text-green-700"
+                className="flex items-center text-green-900 hover:text-green-700 transition-all"
                 title="Edit Profile"
               >
-                <FiEdit size={22} />
+                <FiEdit size={18} />
               </button>
             </div>
           )}
         </div>
 
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] mt-8" onSubmit={handleUpdate}>
+        <form
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] mt-8"
+          onSubmit={handleUpdate}
+        >
           {/* Column 1 */}
           <div className="flex flex-col gap-2">
             <label>{mandatoryLabel("Full Name")}</label>
@@ -303,15 +304,23 @@ const Profile = () => {
               </button>
               <button
                 type="submit"
-                className="p-2 bg-green-800 text-white rounded flex items-center"
+                className="p-2 bg-green-800 text-white rounded hover:bg-green-900 flex items-center"
                 title="Save"
               >
                 <FiSave size={18} />
               </button>
             </div>
           )}
-
         </form>
+
+        {/* Helpful Notes */}
+        <div className="text-center mt-6 pt-3 border-t border-gray-200">
+          <p className="text-[10px] text-gray-500 italic flex justify-center items-center gap-1">
+            <FiInfo className="text-green-700" />
+            Please ensure all details are accurate before saving. Fields marked with{" "}
+            <span className="text-red-600">*</span> are mandatory.
+          </p>
+        </div>
       </div>
     </div>
   );
