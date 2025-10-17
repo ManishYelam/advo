@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
 import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
-import { FiTrash2, FiEye, FiEdit, FiPrinter, FiMoreVertical } from "react-icons/fi";
+import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical } from "react-icons/fi";
 import EditCaseModal from "../components/EditCaseModal";
 
 const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   const [cases, setCases] = useState([]);
   const [filters, setFilters] = useState({
-    case_name: "",
-    client_name: "",
+    globalSearch: "",
+    searchField: "",
+    searchValue: "",
     status: "",
     priority: "",
+    verified: "", // ✅ Verified filter
   });
   const [selectedCaseIds, setSelectedCaseIds] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           page: pagination.page,
           limit: pagination.limit,
           searchFields: "case_name, client_name",
-          search: filters.case_name || filters.client_name,
+          search: filters.globalSearch || "",
           filters: {
             status: filters.status || undefined,
             priority: filters.priority || undefined,
@@ -60,27 +62,48 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   }, [filters, pagination]);
 
   const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFilters((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked.toString() : value,
+      page: 1,
+    }));
   };
 
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value, page: 1 }));
   };
 
   const handlePaginationChange = (newPage) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
-  const filteredCases = cases.filter((c) =>
-    Object.entries(filters).every(([key, filterValue]) => {
-      if (!filterValue) return true;
-      const caseValue = c[key];
-      if (!caseValue) return false;
-      return caseValue.toString().toLowerCase().includes(filterValue.toLowerCase());
-    })
-  );
+  const filteredCases = cases.filter((c) => {
+    // Global search
+    if (filters.globalSearch) {
+      const search = filters.globalSearch.toLowerCase();
+      return (
+        (c.case_name?.toLowerCase().includes(search) ||
+         c.client_name?.toLowerCase().includes(search) ||
+         c.status?.toLowerCase().includes(search) ||
+         c.priority?.toLowerCase().includes(search) ||
+         (c.verified ? "yes" : "no").includes(search))
+      );
+    }
+
+    // Field-specific search
+    if (filters.searchField && filters.searchValue) {
+      return c[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
+    }
+
+    // Verified checkbox filter
+    if (filters.verified) {
+      return c.verified === (filters.verified === "true");
+    }
+
+    return true;
+  });
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) setSelectedCaseIds(filteredCases.map((c) => c.id));
@@ -133,24 +156,71 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       {error && <div className="text-red-600">{error}</div>}
 
       {/* Filters */}
-      <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* Global Search */}
           <input
             type="text"
-            name="case_name"
-            value={filters.case_name}
+            name="globalSearch"
+            value={filters.globalSearch}
             onChange={handleSearchChange}
-            placeholder="Search Case"
-            className="px-2 py-1 border rounded text-[9px]"
+            placeholder="Global Search"
+            className="px-2 py-1 border rounded text-[9px] hover:border-green-500"
           />
-          <input
-            type="text"
-            name="client_name"
-            value={filters.client_name}
-            onChange={handleSearchChange}
-            placeholder="Search Client"
-            className="px-2 py-1 border rounded text-[9px]"
-          />
+
+          {/* Field Selector */}
+          <select
+            name="searchField"
+            value={filters.searchField}
+            onChange={handleFilterChange}
+            className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
+          >
+            <option value="">Select Field</option>
+            <option value="case_name">Case Name</option>
+            <option value="client_name">Client Name</option>
+            <option value="status">Status</option>
+            <option value="priority">Priority</option>
+          </select>
+
+          {/* Dynamic Input / Dropdown */}
+          {filters.searchField === "status" && (
+            <select
+              name="searchValue"
+              value={filters.searchValue || ""}
+              onChange={handleSearchChange}
+              className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
+            >
+              <option value="">Select Status</option>
+              <option value="Running">Running</option>
+              <option value="Closed">Closed</option>
+              <option value="Pending">Pending</option>
+            </select>
+          )}
+
+          {filters.searchField === "priority" && (
+            <select
+              name="searchValue"
+              value={filters.searchValue || ""}
+              onChange={handleSearchChange}
+              className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
+            >
+              <option value="">Select Priority</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          )}
+
+          {(filters.searchField === "case_name" || filters.searchField === "client_name") && (
+            <input
+              type="text"
+              name="searchValue"
+              value={filters.searchValue || ""}
+              onChange={handleSearchChange}
+              placeholder={`Search ${filters.searchField === "case_name" ? "Case" : "Client"}`}
+              className="px-2 py-1 border rounded text-[9px] hover:border-green-500"
+            />
+          )}
           <select
             name="status"
             value={filters.status}
@@ -173,6 +243,16 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
+          <label className="flex items-center gap-1 text-[9px]">
+            <input
+              type="checkbox"
+              name="verified"
+              checked={filters.verified === "true"}
+              onChange={handleFilterChange}
+              className="scale-75 cursor-pointer"
+            />
+            Verified
+          </label>
         </div>
 
         <div>
