@@ -85,10 +85,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       const search = filters.globalSearch.toLowerCase();
       return (
         (c.case_name?.toLowerCase().includes(search) ||
-         c.client_name?.toLowerCase().includes(search) ||
-         c.status?.toLowerCase().includes(search) ||
-         c.priority?.toLowerCase().includes(search) ||
-         (c.verified ? "yes" : "no").includes(search))
+          c.client_name?.toLowerCase().includes(search) ||
+          c.status?.toLowerCase().includes(search) ||
+          c.priority?.toLowerCase().includes(search) ||
+          (c.verified ? "yes" : "no").includes(search))
       );
     }
 
@@ -176,10 +176,20 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             className="px-2 py-1 border rounded text-[9px] bg-white hover:border-green-500"
           >
             <option value="">Select Field</option>
-            <option value="case_name">Case Name</option>
-            <option value="client_name">Client Name</option>
             <option value="status">Status</option>
             <option value="priority">Priority</option>
+            <option value="deposit_type">Deposit Type</option>
+            <option value="saving_account_start_date">Start Date</option>
+            <option value="deposit_duration_years">Duration</option>
+            <option value="fixed_deposit_total_amount">FD Total</option>
+            <option value="interest_rate_fd">FD Rate</option>
+            <option value="saving_account_total_amount">Savings Total</option>
+            <option value="interest_rate_saving">Savings Rate</option>
+            <option value="recurring_deposit_total_amount">Recurring Total</option>
+            <option value="interest_rate_recurring">Recurring Rate</option>
+            <option value="dnyanrudha_investment_total_amount">Dnyanrudha Total</option>
+            <option value="dynadhara_rate">Dynadhara Rate</option>
+            <option value="payment_status">Payment Status</option>
           </select>
 
           {/* Dynamic Input / Dropdown */}
@@ -397,7 +407,30 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           of <span className="font-medium">{totalRecords}</span> cases
         </div>
 
+
         <div className="flex items-center gap-1 flex-wrap">
+          {/* Items per page */}
+          <div className="flex items-center gap-1 ml-2">
+            <span>Show</span>
+            <select
+              value={pagination.limit}
+              onChange={(e) =>
+                setPagination((prev) => ({
+                  ...prev,
+                  limit: parseInt(e.target.value),
+                  page: 1,
+                }))
+              }
+              className="px-2 py-1 border rounded text-[9px]"
+            >
+              {[5, 10, 20, 50].map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
+            <span>per page</span>
+          </div>
           <button
             onClick={() => handlePaginationChange(1)}
             disabled={pagination.page === 1}
@@ -424,14 +457,15 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                 key={idx}
                 onClick={() => handlePaginationChange(p)}
                 className={`px-2 py-1 rounded ${pagination.page === p
-                    ? "bg-green-800 text-white"
-                    : "bg-white border border-gray-300 hover:bg-green-100"
+                  ? "bg-green-800 text-white"
+                  : "bg-white border border-gray-300 hover:bg-green-100"
                   }`}
               >
                 {p}
               </button>
             )
           )}
+
 
           <button
             onClick={() => handlePaginationChange(pagination.page + 1)}
@@ -448,28 +482,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             Last
           </button>
 
-          {/* Items per page */}
-          <div className="flex items-center gap-1 ml-2">
-            <span>Show</span>
-            <select
-              value={pagination.limit}
-              onChange={(e) =>
-                setPagination((prev) => ({
-                  ...prev,
-                  limit: parseInt(e.target.value),
-                  page: 1,
-                }))
-              }
-              className="px-2 py-1 border rounded text-[9px]"
-            >
-              {[5, 10, 20, 50].map((num) => (
-                <option key={num} value={num}>
-                  {num}
-                </option>
-              ))}
-            </select>
-            <span>per page</span>
-          </div>
+
         </div>
       </div>
 
