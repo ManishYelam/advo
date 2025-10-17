@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
 import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
-import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical } from "react-icons/fi";
+import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import EditCaseModal from "../components/EditCaseModal";
 
@@ -30,37 +30,44 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     return decodedToken.exp < currentTime;
   };
 
+  const fetchCases = async () => {
+    setLoading(true);
+    try {
+      const user = localStorage.getItem("user");
+      if (!user) throw new Error("User not logged in");
+      const parsedUser = JSON.parse(user);
+      const token = parsedUser?.token;
+      if (!token || isTokenExpired(token)) throw new Error("Token expired. Please login again.");
+
+      const payload = {
+        page: pagination.page,
+        limit: pagination.limit,
+        searchFields: "case_name, client_name",
+        search: filters.globalSearch || "",
+        filters: {
+          status: filters.status || undefined,
+          priority: filters.priority || undefined,
+          verified:
+            filters.verified === "true"
+              ? true
+              : filters.verified === "false"
+                ? false
+                : undefined,
+        },
+      };
+
+      const response = await getAllCases(payload);
+      setCases(response.data.data || []);
+      setTotalRecords(response.data.totalRecords || 0);
+    } catch (err) {
+      setError(`Failed to fetch cases: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Automatically fetch whenever filters or pagination changes
   useEffect(() => {
-    const fetchCases = async () => {
-      setLoading(true);
-      try {
-        const user = localStorage.getItem("user");
-        if (!user) throw new Error("User not logged in");
-        const parsedUser = JSON.parse(user);
-        const token = parsedUser?.token;
-        if (!token || isTokenExpired(token)) throw new Error("Token expired. Please login again.");
-
-        const payload = {
-          page: pagination.page,
-          limit: pagination.limit,
-          searchFields: "case_name, client_name",
-          search: filters.globalSearch || "",
-          filters: {
-            status: filters.status || undefined,
-            priority: filters.priority || undefined,
-            verified: filters.verified ? true : undefined,
-          },
-        };
-
-        const response = await getAllCases(payload);
-        setCases(response.data.data || []);
-        setTotalRecords(response.data.totalRecords || 0);
-      } catch (err) {
-        setError(`Failed to fetch cases: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCases();
   }, [filters, pagination]);
 
@@ -276,12 +283,34 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           </div>
         </div>
 
-        {/* Delete Button */}
-        <div>
+        {/* Reset & Delete Buttons */}
+        <div className="flex gap-2 ml-auto">
+          {/* Reset Filters */}
+          <button
+            onClick={() => {
+              setFilters({
+                globalSearch: "",
+                searchField: "",
+                searchValue: "",
+                status: "",
+                priority: "",
+                verified: "",
+              });
+              setPagination({ page: 1, limit: 10 });
+              fetchCases(); // refresh table data after reset
+            }}
+            className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center gap-1"
+            title="Reset Filters"
+          >
+            <FiRefreshCcw size={12} />
+          </button>
+
+          {/* Delete Selected */}
           <button
             onClick={() => onDelete && onDelete(selectedCaseIds)}
             disabled={selectedCaseIds.length === 0}
-            className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700"
+            className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700 flex items-center gap-1"
+            title="Delete Selected Cases"
           >
             <FiTrash2 size={12} />
           </button>
@@ -396,10 +425,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                   <td className="px-1 py-1 text-center">{c.status}</td>
                   <td className="px-1 py-1 text-center">{c.payment_status || "Pending"}</td>
                   <td className="px-1 py-1 text-center">
-                    {c.created_at ? new Date(c.created_at).toLocaleDateString() : "-"}
+                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "-"}
                   </td>
                   <td className="px-1 py-1 text-center">
-                    {c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "-"}
+                    {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}
                   </td>
                   <td className="px-1 py-1 text-center">
                     {c.documents && c.documents.length > 0
@@ -509,6 +538,17 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             Last
           </button>
         </div>
+      </div>
+
+      {/* ✅ Notes Section */}
+      <div className="mt-4 bg-green-50 border border-green-200 p-3 rounded text-[9px] text-gray-700">
+        <h3 className="font-semibold text-green-800 mb-1">Notes:</h3>
+        <ul className="list-disc list-inside space-y-1">
+          <li>You can use <span className="font-medium text-green-700">Global Search</span> for quick keyword search across all fields.</li>
+          <li>Use <span className="font-medium text-green-700">filters</span> above to narrow results by specific fields, status, or verification.</li>
+          <li><span className="font-medium text-green-700">Reset Filters</span> restores default view.</li>
+          <li>Verified and Unverified checkboxes are mutually exclusive.</li>
+        </ul>
       </div>
 
       {isModalOpen && (
