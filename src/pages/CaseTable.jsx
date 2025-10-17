@@ -349,7 +349,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
               <th className="px-1 py-1 w-[6%]">Created At</th>
               <th className="px-1 py-1 w-[6%]">Updated At</th>
               <th className="px-1 py-1 w-[4%] text-center">
-                <FaFilePdf className="mx-auto" />
+                <FaFilePdf className="mx-auto text-red-600" />
               </th>
             </tr>
           </thead>
@@ -431,20 +431,24 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                     {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}
                   </td>
                   <td className="px-1 py-1 text-center">
-                    {c.documents && c.documents.length > 0
-                      ? c.documents.map((doc, i) => (
+                    {c.documents && c.documents.length > 0 ? (
+                      c.documents.map((doc, i) => (
                         <a
                           key={i}
                           href={doc.url || doc.path}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline mx-0.5 text-[9px] truncate block max-w-[60px]"
+                          className="mx-0.5 text-red-600 hover:text-blue-800"
+                          title={doc.filename || doc.originalname} // ✅ tooltip on hover
                         >
-                          {doc.filename || doc.originalname}
+                          <FaFilePdf className="inline-block mr-1" size={12} />
                         </a>
                       ))
-                      : "N/A"}
+                    ) : (
+                      "N/A"
+                    )}
                   </td>
+
                 </tr>
               ))
             )}
