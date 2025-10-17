@@ -1,31 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaFolderOpen, FaPlus } from "react-icons/fa";
+import { FaFolderOpen, FaPlus, FaUser } from "react-icons/fa";
 import DashboardLayout from "../../layouts/DashboardLayout";
-import Card from "../../components/Card";
 import CaseTable from "../CaseTable";
 import AddCaseForm from "../AddCaseForm";
-import Application from "../Application";
+import Profile from "../Profile";
 
 const ClientDashboard = () => {
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState("dashboard"); // dashboard / cases / addCase / profile
   const [myCases, setMyCases] = useState([
     {
       id: 1,
       caseName: "Case A",
-      title: "Case A",
       caseNumber: "CR123",
       status: "Running",
       nextDate: "2025-10-10",
-      nextHearingDate: "2025-10-10",
-      filingDate: "2025-01-01",
-      courtName: "Supreme Court",
-      courtAddress: "Main St, City",
       advocate: "John Doe",
       caseType: "Criminal",
-      fees: 1000,
-      paymentStatus: "Paid",
-      caseOutcome: "Pending",
       documents: [
         { name: "FIR.pdf", url: "/documents/fir.pdf" },
         { name: "Evidence.docx", url: "/documents/evidence.docx" },
@@ -34,22 +25,11 @@ const ClientDashboard = () => {
     {
       id: 2,
       caseName: "Case B",
-      title: "Case B",
       caseNumber: "CV456",
       status: "Closed",
-      nextDate: "2025-09-15",
-      nextHearingDate: "2025-09-15",
-      filingDate: "2025-02-01",
-      courtName: "High Court",
-      courtAddress: "Court Rd, City",
       advocate: "Jane Smith",
       caseType: "Civil",
-      fees: 800,
-      paymentStatus: "Unpaid",
-      caseOutcome: "Resolved",
-      documents: [
-        { name: "Contract.pdf", url: "/documents/contract.pdf" }
-      ],
+      documents: [{ name: "Contract.pdf", url: "/documents/contract.pdf" }],
     },
   ]);
 
@@ -60,24 +40,17 @@ const ClientDashboard = () => {
     if (!user || user.role !== "client") {
       navigate("/login");
     }
-  }, [navigate, user]);
+  }, [user, navigate]);
 
   const addNewCase = (caseData) => {
-    const newCase = {
-      ...caseData,
-      id: myCases.length + 1,
-      title: caseData.caseName || "Untitled Case",
-    };
+    const newCase = { ...caseData, id: myCases.length + 1, title: caseData.caseName || "Untitled Case" };
     setMyCases((prev) => [...prev, newCase]);
     setView("dashboard");
   };
 
-  const handleDeleteCases = (idsToDelete) => {
-    if (
-      window.confirm(`Are you sure you want to delete ${idsToDelete.length} case(s)?`)
-    ) {
-      const updatedCases = myCases.filter((c) => !idsToDelete.includes(c.id));
-      setMyCases(updatedCases);
+  const handleDeleteCases = (ids) => {
+    if (window.confirm(`Are you sure you want to delete ${ids.length} case(s)?`)) {
+      setMyCases((prev) => prev.filter((c) => !ids.includes(c.id)));
     }
   };
 
@@ -95,23 +68,30 @@ const ClientDashboard = () => {
 
       {/* Quick Action Buttons */}
       <div className="flex justify-end gap-3 mb-6">
-        <button
-          onClick={() => setView("cases")}
-          title="View Cases"
-          className="flex items-center justify-center w-6 h-6 bg-green-600 text-white text-[10px] rounded-lg transition-all"
-        >
-          <FaFolderOpen />
-        </button>
+      <button
+        onClick={() => setView("profile")}
+        title="Profile"
+        className="flex items-center justify-center w-8 h-8 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+      >
+        <FaUser />
+      </button>
 
-        <button
-          onClick={() => setView("addCase")}
-          title="Add Case"
-          className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-[10px] rounded-lg transition-all"
-        >
-          <FaPlus />
-        </button>
-      </div>
+      <button
+        onClick={() => setView("cases")}
+        title="View Cases"
+        className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+      >
+        <FaFolderOpen />
+      </button>
 
+      <button
+        onClick={() => setView("addCase")}
+        title="Add Case"
+        className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+      >
+        <FaPlus />
+      </button>
+    </div>
       {/* Dashboard Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-5">
@@ -176,7 +156,8 @@ const ClientDashboard = () => {
             // onMore={handleMore} 
           />
         )}
-        {view === "addCase" && <Application  onAdd={addNewCase} />}
+        {view === "addCase" && <AddCaseForm onAdd={addNewCase} onBack={() => setView("dashboard")} />}
+        {view === "profile" && <Profile />}
       </DashboardLayout>
     </div>
   );
