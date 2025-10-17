@@ -303,11 +303,11 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
               </th>
               <th className="px-1 py-1 w-[3%]">ID</th>
               <th className="px-2 py-1 w-[8%] text-center">Actions</th>
-              <th className="px-1 py-1 w-[6%]">Deposit Type</th>
+              <th className="px-1 py-1 w-[5%]">Deposit Type</th>
               <th className="px-1 py-1 w-[6%]">Start Date</th>
               <th className="px-1 py-1 w-[5%]">Duration</th>
-              <th className="px-1 py-1 w-[5%]">FD Total</th>
-              <th className="px-1 py-1 w-[5%]">FD Rate</th>
+              <th className="px-1 py-1 w-[4%]">FD Total</th>
+              <th className="px-1 py-1 w-[4%]">FD Rate</th>
               <th className="px-1 py-1 w-[6%]">Savings Total</th>
               <th className="px-1 py-1 w-[6%]">Savings Rate</th>
               <th className="px-1 py-1 w-[6%]">Recurring Total</th>
