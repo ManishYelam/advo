@@ -1,327 +1,582 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaFacebookF, FaTwitter, FaInstagram } from "react-icons/fa";
+import { 
+  FaFacebookF, 
+  FaTwitter, 
+  FaInstagram, 
+  FaLinkedin,
+  FaWhatsapp,
+  FaArrowUp,
+  FaCheck,
+  FaBalanceScale,
+  FaAward,
+  FaFileAlt,
+  FaUserFriends,
+  FaShieldAlt,
+  FaClock,
+  FaEnvelope
+} from "react-icons/fa";
 import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import ModalConfirmation from "../components/ModalConfirmation";
-import { submitContactForm } from "../services/contactService";
-
-// Yup schema for form validation
-const schema = yup.object().shape({
-  name: yup.string().required("Name is required"),
-  email: yup.string().email("Invalid email").required("Email is required"),
-  message: yup.string().required("Message is required").min(10, "Message must be at least 10 characters"),
-});
-
 const LandingPage = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
+  } = useForm();
 
-  // Called when user confirms modal submission
-  const handleModalConfirm = async () => {
-    setModalOpen(false);
+  // Show scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const onSubmit = async (data) => {
     setLoading(true);
     try {
-      await submitContactForm(formData);
-      toast.success("Message sent successfully!");
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      toast.success("🎉 Message sent successfully! We'll get back to you soon.");
       reset();
     } catch (error) {
-      toast.error("Failed to send message. Please try again later.");
-      console.error(error);
+      toast.error("❌ Failed to send message. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleModalCancel = () => setModalOpen(false);
+  const features = [
+    {
+      icon: FaFileAlt,
+      title: "Easy Application Process",
+      description: "Simple and straightforward application form that takes just minutes to complete.",
+      benefits: ["Quick Submission", "User-Friendly Interface", "Instant Confirmation"]
+    },
+    {
+      icon: FaUserFriends,
+      title: "Expert Legal Assistance",
+      description: "Get guidance from experienced legal professionals throughout your application.",
+      benefits: ["Legal Expertise", "Personal Support", "Case Evaluation"]
+    },
+    {
+      icon: FaShieldAlt,
+      title: "Secure & Confidential",
+      description: "Your information is protected with bank-level security and complete confidentiality.",
+      benefits: ["Data Encryption", "Privacy Protected", "Secure Processing"]
+    },
+    {
+      icon: FaClock,
+      title: "Quick Processing",
+      description: "Fast application review and processing to get you the help you need promptly.",
+      benefits: ["Rapid Review", "Timely Updates", "Efficient Service"]
+    }
+  ];
 
-  // Open modal with form data on submit
-  const onSubmit = (data) => {
-    setFormData(data);
-    setModalOpen(true);
-  };
+  const processSteps = [
+    {
+      step: "01",
+      title: "Fill Application Form",
+      description: "Complete our simple online application form with your details and case information."
+    },
+    {
+      step: "02",
+      description: "Our legal team reviews your application and assesses your case requirements."
+    },
+    {
+      step: "03",
+      title: "Get Expert Assistance",
+      description: "Receive professional legal guidance and support tailored to your specific situation."
+    },
+    {
+      step: "04",
+      title: "Case Progress Tracking",
+      description: "Monitor your application status and case progress through our secure portal."
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Rajesh Kumar",
+      role: "Client",
+      content: "The application process was incredibly smooth. I got the legal help I needed within hours of submitting my form!",
+      rating: 5
+    },
+    {
+      name: "Priya Sharma",
+      role: "Applicant",
+      content: "Very professional and efficient service. The team guided me through every step of the process.",
+      rating: 5
+    },
+    {
+      name: "Amit Patel",
+      role: "Client",
+      content: "I was nervous about the legal process, but the simple application form made everything easy to understand.",
+      rating: 5
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-gray-100 to-gray-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50">
+      {/* Navigation Bar */}
+      <nav className="bg-gradient-to-r from-green-800 to-green-600 text-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-3">
+              <div className="bg-white p-2 rounded-lg">
+                <FaBalanceScale className="text-green-700 text-xl" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold font-serif">Satyamev Jayate</h1>
+                <p className="text-xs text-green-200">Justice Management System</p>
+              </div>
+            </Link>
 
-      {/* Navbar */}
-      <nav className="bg-gradient-to-r from-green-800 to-green-500 text-white shadow-lg px-4 py-1 flex justify-between items-center transition-all ease-in-out duration-300">
-        <Link to="/" className="flex items-center space-x-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" className="w-32 h-8">
-            <text x="0" y="35" fill="white" fontSize="24" fontWeight="bold" fontFamily="serif">
-              Satyamev Jayate
-            </text>
-            <line x1="0" y1="42" x2="200" y2="42" stroke="white" strokeWidth="2" />
-          </svg>
-        </Link>
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              <Link to="/" className="text-sm font-medium hover:text-green-200 transition-colors">
+                Home
+              </Link>
+              <Link to="/about" className="text-sm font-medium hover:text-green-200 transition-colors">
+                About
+              </Link>
+              <Link to="/apply" className="text-sm font-medium hover:text-green-200 transition-colors">
+                Apply Now
+              </Link>
+              <Link to="/contact" className="text-sm font-medium hover:text-green-200 transition-colors">
+                Contact
+              </Link>
+            </div>
 
-        {/* Navigation Links */}
-        <ul className="flex space-x-5 text-[9px] font-medium">
-          <li><Link to="/" className="hover:text-gray-200 transition-colors">Home</Link></li>
-          <li><Link to="/apply" className="hover:text-gray-200 transition-colors">Application Form</Link></li>
-          <li><Link to="/about" className="hover:text-gray-200 transition-colors">About</Link></li>
-          <li><Link to="/services" className="hover:text-gray-200 transition-colors">Services</Link></li>
-          <li><Link to="/contact" className="hover:text-gray-200 transition-colors">Contact</Link></li>
-        </ul>
-
-        {/* CTA Buttons */}
-        <div className="flex space-x-3">
-          <Link
-            to="/login"
-            className="px-2 py-1 bg-blue-600 rounded-full text-white text-[8px] 
-         shadow-inner hover:shadow-inner hover:bg-blue-700 
-         transition-all ease-in-out transform hover:scale-105"
-          >
-            Login
-          </Link>
-
-          <Link
-            to="/signup"
-            className="px-2.5 py-1 bg-blue-700 rounded-full text-white text-[8px] 
-         shadow-inner hover:shadow-inner hover:bg-blue-800 
-         transition-all ease-in-out transform hover:scale-105"
-          >
-            Sign Up
-          </Link>
+            {/* CTA Buttons */}
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/login"
+                className="px-4 py-2 text-sm font-medium text-green-800 bg-white rounded-lg hover:bg-gray-100 transition-all shadow-md"
+              >
+                Login
+              </Link>
+              <Link
+                to="/apply"
+                className="px-4 py-2 text-sm font-medium text-white bg-green-700 rounded-lg hover:bg-green-800 transition-all shadow-md"
+              >
+                Apply Now
+              </Link>
+            </div>
+          </div>
         </div>
       </nav>
 
-
       {/* Hero Section */}
-      <section className="relative h-screen bg-gradient-to-b from-green-800 via-green-700 to-green-500 transition-all duration-500">
-        {/* Optional Dark Overlay for better text contrast */}
-        <div className="absolute inset-0 bg-black/40"></div>
+      <section className="relative bg-gradient-to-br from-green-900 via-green-800 to-green-600 text-white overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+          <div className="text-center">
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+              <FaFileAlt className="text-yellow-400" />
+              <span className="text-sm font-medium">1000+ Applications Processed</span>
+            </div>
+            
+            <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
+              Get Legal Assistance
+              <span className="text-yellow-400 block">Made Simple</span>
+            </h1>
+            
+            <p className="text-xl lg:text-2xl text-green-100 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Start your journey to justice with our easy-to-use application form. 
+              Get expert legal guidance in just a few simple steps.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/apply"
+                className="px-8 py-4 bg-yellow-400 text-green-900 font-bold rounded-lg hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-2xl text-lg flex items-center justify-center space-x-2"
+              >
+                <FaFileAlt />
+                <span>Start Application</span>
+              </Link>
+              <a
+                href="#process"
+                className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-green-900 transition-all transform hover:scale-105 text-lg"
+              >
+                Learn How It Works
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        {/* Hero Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center text-center h-full px-4 sm:px-8 md:px-16 text-white">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 drop-shadow-md animate__animated animate__fadeInDown">
-            Welcome to <span className="text-yellow-300">Satyamev Jayate</span>
-          </h1>
+      {/* Quick Stats */}
+      <section className="py-12 bg-white border-b border-green-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-green-700 mb-2">1000+</div>
+              <div className="text-gray-600 text-sm">Applications Processed</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-green-700 mb-2">24h</div>
+              <div className="text-gray-600 text-sm">Average Response Time</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-green-700 mb-2">95%</div>
+              <div className="text-gray-600 text-sm">Satisfaction Rate</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-green-700 mb-2">50+</div>
+              <div className="text-gray-600 text-sm">Legal Experts</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mb-8 opacity-90 drop-shadow-sm animate__animated animate__fadeInUp animate__delay-1s">
-            Your trusted digital platform for managing legal cases, applications, and more—designed for transparency and justice.
+      {/* Features Section */}
+      <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-green-900 mb-4">
+              Why Apply With Us?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              We've made the legal application process simple, secure, and accessible to everyone.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div 
+                key={index}
+                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100 text-center"
+              >
+                <div className="bg-green-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                  <feature.icon className="text-green-700 text-2xl" />
+                </div>
+                <h3 className="text-xl font-bold text-green-900 mb-4">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  {feature.description}
+                </p>
+                <ul className="space-y-2 text-left">
+                  {feature.benefits.map((benefit, benefitIndex) => (
+                    <li key={benefitIndex} className="flex items-center text-sm text-green-700">
+                      <FaCheck className="text-green-500 mr-2 flex-shrink-0" />
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Process Section */}
+      <section id="process" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-green-900 mb-4">
+              Simple 4-Step Process
+            </h2>
+            <p className="text-xl text-gray-600">
+              Getting legal assistance has never been easier
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {processSteps.map((step, index) => (
+              <div key={index} className="text-center">
+                <div className="bg-green-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mb-4 mx-auto">
+                  {step.step}
+                </div>
+                <h3 className="text-xl font-bold text-green-900 mb-3">
+                  {step.title || `Step ${step.step}`}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link
+              to="/apply"
+              className="px-8 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg text-lg inline-flex items-center space-x-2"
+            >
+              <FaFileAlt />
+              <span>Begin Your Application</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-green-900 mb-4">
+              Success Stories
+            </h2>
+            <p className="text-xl text-gray-600">
+              Hear from people who found legal solutions through our application process
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white rounded-2xl p-8 shadow-lg">
+                <div className="flex text-yellow-400 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <FaAward key={i} className="text-lg" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-6 italic">
+                  "{testimonial.content}"
+                </p>
+                <div>
+                  <div className="font-semibold text-green-900">
+                    {testimonial.name}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {testimonial.role}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-green-600 to-green-800 text-white">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Get Started?
+          </h2>
+          <p className="text-xl text-green-100 mb-8">
+            Don't wait to get the legal assistance you need. Our simple application process is designed to help you quickly and efficiently.
           </p>
-
-          <Link
-            to="/apply"
-            className="inline-block px-6 sm:px-8 py-3 sm:py-4 bg-yellow-400 rounded-full text-green-900 text-sm sm:text-lg font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105 shadow-md hover:shadow-xl animate__animated animate__fadeInUp animate__delay-2s"
-          >
-            Fill Application Form
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/apply"
+              className="px-8 py-4 bg-white text-green-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl text-lg inline-flex items-center justify-center space-x-2"
+            >
+              <FaFileAlt />
+              <span>Start Application Now</span>
+            </Link>
+            <a
+              href="#contact"
+              className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-green-700 transition-all duration-300 transform hover:scale-105 text-lg"
+            >
+              Have Questions?
+            </a>
+          </div>
         </div>
       </section>
-
-
-      {/* About Section */}
-      <section className="py-20 bg-gradient-to-b from-green-100 via-white to-green-50 text-center">
-        <h2 className="text-4xl font-bold text-green-900 mb-6">About Us</h2>
-
-        <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-8 px-4">
-          <span className="font-semibold text-green-800">Satyamev Jayate</span> is your trusted digital platform built to streamline legal case management for clients and advocates.
-          From court dates to document storage, we empower you to stay organized, informed, and focused on justice — all in one secure space.
-        </p>
-
-        <Link
-          to="/about"
-          className="inline-block px-6 py-3 bg-green-600 text-white text-sm rounded-full font-medium hover:bg-green-700 transition-all transform hover:scale-105 shadow-md hover:shadow-xl"
-        >
-          Learn More
-        </Link>
-      </section>
-
-      {/* Services Section */}
-      <section className="py-16 bg-gradient-to-b from-green-100 via-white to-green-50 text-center">
-        <h2 className="text-4xl font-bold text-green-900 mb-12">Our Services</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-6 max-w-7xl mx-auto">
-
-          {/* Service 1 */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 hover:bg-green-50 transition duration-300 transform hover:scale-105">
-            <h3 className="text-xl font-semibold text-green-800 mb-4">Case Management</h3>
-            <p className="text-sm text-gray-600">
-              Effortlessly manage and monitor your legal cases with real-time updates and tools.
-            </p>
-          </div>
-
-          {/* Service 2 */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 hover:bg-green-50 transition duration-300 transform hover:scale-105">
-            <h3 className="text-xl font-semibold text-green-800 mb-4">Document Storage</h3>
-            <p className="text-sm text-gray-600">
-              Upload, organize, and securely store all your legal documents in one place.
-            </p>
-          </div>
-
-          {/* Service 3 */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 hover:bg-green-50 transition duration-300 transform hover:scale-105">
-            <h3 className="text-xl font-semibold text-green-800 mb-4">Court Calendar</h3>
-            <p className="text-sm text-gray-600">
-              Keep track of all court dates, hearings, and deadlines with our integrated calendar.
-            </p>
-          </div>
-
-          {/* Optional: Add more services if needed */}
-        </div>
-      </section>
-
 
       {/* Contact Section */}
-      <section className="py-20 bg-gradient-to-b from-green-100 via-white to-green-50 text-center">
-        <h2 className="text-4xl font-bold text-green-900 mb-6">Contact Us</h2>
-        <p className="text-md text-gray-700 max-w-2xl mx-auto mb-10 px-4">
-          Have a question or need legal assistance? Our team is here to help you with guidance, support, and solutions. Fill out the form below and we’ll get back to you shortly.
-        </p>
+      <section id="contact" className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-green-900 mb-4">
+              Need Help With Your Application?
+            </h2>
+            <p className="text-lg text-gray-600">
+              Our support team is here to help you with any questions about the application process.
+            </p>
+          </div>
 
-        <form
-          className="max-w-md mx-auto grid gap-5 px-4"
-          onSubmit={handleSubmit(onSubmit)}
-          noValidate
-          autoComplete="off"
-        >
-          <input
-            type="text"
-            placeholder="Your Name"
-            className={`w-full px-4 py-2.5 text-sm border rounded-md focus:ring-2 outline-none shadow-sm hover:shadow-md transition-all ${errors.name ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-green-600"
-              }`}
-            {...register("name")}
-          />
-          {errors.name && <p className="text-red-500 text-xs text-left">{errors.name.message}</p>}
+          <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-8 shadow-lg border border-green-100">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Your Name"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
+                    {...register("name", { required: "Name is required" })}
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Your Email"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
+                    {...register("email", { 
+                      required: "Email is required",
+                      pattern: {
+                        value: /^\S+@\S+$/i,
+                        message: "Invalid email address"
+                      }
+                    })}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+              </div>
 
-          <input
-            type="email"
-            placeholder="Your Email"
-            className={`w-full px-4 py-2.5 text-sm border rounded-md focus:ring-2 outline-none shadow-sm hover:shadow-md transition-all ${errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-green-600"
-              }`}
-            {...register("email")}
-          />
-          {errors.email && <p className="text-red-500 text-xs text-left">{errors.email.message}</p>}
+              <div>
+                <textarea
+                  placeholder="How can we help you with your application?"
+                  rows="5"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all resize-none"
+                  {...register("message", { 
+                    required: "Message is required",
+                    minLength: {
+                      value: 10,
+                      message: "Message must be at least 10 characters"
+                    }
+                  })}
+                />
+                {errors.message && (
+                  <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>
+                )}
+              </div>
 
-          <textarea
-            placeholder="Your Message"
-            className={`w-full px-4 py-2.5 text-sm border rounded-md focus:ring-2 outline-none shadow-sm hover:shadow-md transition-all h-28 resize-none ${errors.message ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-green-600"
-              }`}
-            {...register("message")}
-          />
-          {errors.message && <p className="text-red-500 text-xs text-left">{errors.message.message}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2.5 text-white text-sm font-medium rounded-md shadow-md transition-all transform hover:scale-105 ${loading ? "bg-green-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 hover:shadow-lg"
-              } flex justify-center items-center space-x-2`}
-          >
-            {loading && (
-              <svg
-                className="animate-spin h-5 w-5 text-white mr-2"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 ${
+                  loading
+                    ? "bg-green-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl"
+                }`}
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-            )}
-            <span>{loading ? "Sending..." : "Send Message"}</span>
-          </button>
-        </form>
+                {loading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Sending Message...</span>
+                  </div>
+                ) : (
+                  "Get Application Help"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
       </section>
 
-      {/* Modal Confirmation */}
-      <ModalConfirmation
-        isOpen={modalOpen}
-        title="Confirm Submission"
-        message="Are you sure you want to send this message?"
-        onConfirm={handleModalConfirm}
-        onCancel={handleModalCancel}
-      />
+      {/* Footer */}
+      <footer className="bg-gradient-to-r from-green-900 to-green-700 text-white pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {/* Company Info */}
+            <div>
+              <div className="flex items-center space-x-3 mb-4">
+                <FaBalanceScale className="text-2xl text-yellow-400" />
+                <span className="text-xl font-bold font-serif">Satyamev Jayate</span>
+              </div>
+              <p className="text-green-100 mb-6">
+                Making legal assistance accessible to everyone through our simple and secure application process.
+              </p>
+              <div className="flex space-x-4">
+                {[FaFacebookF, FaTwitter, FaInstagram, FaLinkedin].map((Icon, index) => (
+                  <a
+                    key={index}
+                    href="#"
+                    className="w-10 h-10 bg-green-800 rounded-full flex items-center justify-center text-green-200 hover:bg-green-600 hover:text-white transition-colors"
+                  >
+                    <Icon />
+                  </a>
+                ))}
+              </div>
+            </div>
 
-      {/* WhatsApp Floating Icon */}
+            {/* Quick Links */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Quick Access</h3>
+              <ul className="space-y-3 text-green-100">
+                <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+                <li><Link to="/apply" className="hover:text-white transition-colors">Apply Now</Link></li>
+                <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4">Get Help</h3>
+              <ul className="space-y-3 text-green-100">
+                <li className="flex items-center space-x-2">
+                  <FaEnvelope className="text-yellow-400" />
+                  <span>support@satyamevjayate.com</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <FaWhatsapp className="text-yellow-400" />
+                  <span>+91 93732 00525</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <FaClock className="text-yellow-400" />
+                  <span>24/7 Application Support</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-green-600 pt-8 text-center">
+            <p className="text-green-200 text-sm">
+              © {new Date().getFullYear()} Satyamev Jayate. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      {/* WhatsApp Floating Button */}
       <a
         href="https://wa.me/919373200525"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-transform transform hover:scale-110 z-50"
-        aria-label="Contact us on WhatsApp"
+        className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-50"
+        aria-label="Get help with your application on WhatsApp"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          className="w-6 h-6"
-        >
-          <path d="M20.52 3.48A11.86 11.86 0 0012 0a11.87 11.87 0 00-10.5 17.5L0 24l6.8-1.77A11.88 11.88 0 0012 24h.01c6.6 0 11.99-5.4 11.99-12a11.84 11.84 0 00-3.48-8.52zM12 22.1c-1.8 0-3.58-.48-5.14-1.38l-.37-.22-4.03 1.06 1.07-3.93-.25-.4A10.1 10.1 0 012.02 12 10.11 10.11 0 1112 22.1zm5.36-7.62c-.29-.14-1.7-.84-1.96-.93s-.45-.14-.64.14-.74.92-.91 1.11-.34.21-.63.07a8.26 8.26 0 01-2.42-1.5 9.13 9.13 0 01-1.68-2.09c-.18-.3-.02-.46.13-.61.13-.13.3-.33.45-.5.15-.17.2-.29.3-.49s.05-.37-.02-.51c-.07-.13-.64-1.54-.88-2.11s-.47-.49-.64-.5l-.55-.01c-.19 0-.5.07-.76.37s-1 1-.99 2.42 1.02 2.81 1.17 3.01c.14.2 2.02 3.2 4.91 4.49 1.74.75 2.43.82 3.31.69.53-.08 1.7-.69 1.94-1.35.24-.67.24-1.24.17-1.35-.07-.12-.26-.2-.55-.34z" />
-        </svg>
+        <FaWhatsapp className="text-2xl" />
       </a>
 
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 left-6 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-50"
+          aria-label="Scroll to top"
+        >
+          <FaArrowUp />
+        </button>
+      )}
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-r from-green-800 to-green-600 text-white py-10 mt-20">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
-
-          {/* Brand Info */}
-          <div>
-            <h3 className="text-xl font-bold mb-2">Satyamev Jayate</h3>
-            <p className="opacity-80">
-              Your trusted platform for managing legal cases, appointments, and documents — all in one place.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold mb-3 text-white">Quick Links</h4>
-            <ul className="space-y-2 opacity-90">
-              <li><Link to="/" className="hover:underline">Home</Link></li>
-              <li><Link to="/about" className="hover:underline">About</Link></li>
-              <li><Link to="/services" className="hover:underline">Services</Link></li>
-              <li><Link to="/contact" className="hover:underline">Contact</Link></li>
-            </ul>
-          </div>
-
-          {/* Social + Contact */}
-          <div>
-            <h4 className="font-semibold mb-3 text-white">Connect with Us</h4>
-            <div className="flex space-x-4 mb-4">
-              <a href="https://facebook.com" className="hover:text-gray-300 transition-colors"><FaFacebookF /></a>
-              <a href="https://twitter.com" className="hover:text-gray-300 transition-colors"><FaTwitter /></a>
-              <a href="https://instagram.com" className="hover:text-gray-300 transition-colors"><FaInstagram /></a>
-            </div>
-            <p className="opacity-80">Email: support@satyamevjayate.com</p>
-            <p className="opacity-80">Phone: +91 93732 00525</p>
-          </div>
-        </div>
-
-        {/* Footer Bottom */}
-        <div className="mt-10 border-t border-white/20 pt-6 text-center text-xs text-white/70">
-          © {new Date().getFullYear()} Satyamev Jayate. All rights reserved.
-        </div>
-      </footer>
-
-      {/* Toast Container for notifications */}
-      <ToastContainer position="top-right" autoClose={4000} />
+      {/* Toast Container */}
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 };

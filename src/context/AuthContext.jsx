@@ -8,6 +8,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     // Load user from localStorage if exists
     const savedUser = localStorage.getItem("user");
+    console.log(savedUser);
+    
     return savedUser ? JSON.parse(savedUser) : null;
   });
 

@@ -43,7 +43,7 @@ const filterConfigs = {
       .toLowerCase()
       .includes(filters.searchValue.toLowerCase());
   },
-  status: (caseItem, value) => 
+  status: (caseItem, value) =>
     !value || caseItem.status?.toLowerCase() === value.toLowerCase(),
   priority: (caseItem, value) =>
     !value || caseItem.priority?.toLowerCase() === value.toLowerCase(),
@@ -101,10 +101,11 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     try {
       const user = localStorage.getItem("user");
       if (!user) throw new Error("User not logged in");
-      
+
       const parsedUser = JSON.parse(user);
       const token = parsedUser?.token;
-      
+      console.log(token);
+
       if (!token || isTokenExpired(token)) {
         throw new Error("Token expired. Please login again.");
       }
@@ -117,8 +118,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         filters: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
-          verified: filters.verified === "true" ? true : 
-                   filters.verified === "false" ? false : undefined,
+          verified: filters.verified === "true" ? true :
+            filters.verified === "false" ? false : undefined,
         },
       };
 
@@ -191,16 +192,16 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     const delta = 2;
     const range = [];
     const { totalPages } = paginationInfo;
-    
+
     for (let i = Math.max(1, pagination.page - delta); i <= Math.min(totalPages, pagination.page + delta); i++) {
       range.push(i);
     }
-    
+
     if (range[0] > 2) range.unshift("...");
     if (range[0] !== 1) range.unshift(1);
     if (range[range.length - 1] < totalPages - 1) range.push("...");
     if (range[range.length - 1] !== totalPages) range.push(totalPages);
-    
+
     return range;
   };
 
@@ -224,7 +225,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     setExportLoading(true);
     try {
       const csvHeaders = [
-        'ID', 'Deposit Type', 'Status', 'Priority', 'Verified', 
+        'ID', 'Deposit Type', 'Status', 'Priority', 'Verified',
         'Payment Status', 'FD Total', 'Savings Total', 'Created At'
       ].join(',');
 
@@ -273,18 +274,6 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
 
   return (
     <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
-      {/* Back Button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-2"
-          aria-label="Go back"
-        >
-          <FaArrowLeft size={14} />
-          <h1 className="font-bold text-lg">Cases</h1>
-        </button>
-      )}
-
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-4" aria-live="polite">
@@ -506,8 +495,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                   <div className="text-gray-400 text-4xl mb-2">📊</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
                   <p className="text-gray-500 text-sm">
-                    {Object.values(filters).some(f => f) 
-                      ? "Try adjusting your filters to see more results." 
+                    {Object.values(filters).some(f => f)
+                      ? "Try adjusting your filters to see more results."
                       : "Get started by creating your first case."
                     }
                   </p>
@@ -535,8 +524,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                           title="Toggle Payments"
                           aria-label={`${expandedCaseIds.includes(c.id) ? 'Collapse' : 'Expand'} payments for case ${c.id}`}
                         >
-                          <FaPlus 
-                            size={12} 
+                          <FaPlus
+                            size={12}
                             className={expandedCaseIds.includes(c.id) ? 'transform rotate-45 transition-transform' : ''}
                           />
                         </button>
@@ -586,27 +575,25 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.dnyanrudha_investment_total_amount}</td>
                     <td className="px-1 py-1 text-center">{c.dynadhara_rate}</td>
                     <td className="px-1 py-1 text-center">
-                      {c.verified ? 
-                        <FaCheck className="text-green-600 mx-auto" size={10} aria-label="Verified" /> : 
+                      {c.verified ?
+                        <FaCheck className="text-green-600 mx-auto" size={10} aria-label="Verified" /> :
                         <FaTimes className="text-red-600 mx-auto" size={10} aria-label="Not verified" />
                       }
                     </td>
                     <td className="px-1 py-1 text-center">
-                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${
-                        c.status === 'Running' ? 'bg-green-500' :
-                        c.status === 'Closed' ? 'bg-red-500' :
-                        'bg-yellow-500'
-                      }`}>
+                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${c.status === 'Running' ? 'bg-green-500' :
+                          c.status === 'Closed' ? 'bg-red-500' :
+                            'bg-yellow-500'
+                        }`}>
                         {c.status}
                       </span>
                     </td>
                     <td className="px-1 py-1 text-center font-semibold">
-                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${
-                        getCasePaymentStatus(c) === 'Paid' ? 'bg-green-500' :
-                        getCasePaymentStatus(c) === 'Failed' ? 'bg-red-500' :
-                        getCasePaymentStatus(c) === 'Partial' ? 'bg-blue-500' :
-                        'bg-yellow-500'
-                      }`}>
+                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${getCasePaymentStatus(c) === 'Paid' ? 'bg-green-500' :
+                          getCasePaymentStatus(c) === 'Failed' ? 'bg-red-500' :
+                            getCasePaymentStatus(c) === 'Partial' ? 'bg-blue-500' :
+                              'bg-yellow-500'
+                        }`}>
                         {getCasePaymentStatus(c)}
                       </span>
                     </td>
@@ -614,12 +601,12 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">
                       {c.documents?.length > 0 ? c.documents.map((doc, i) => (
-                        <a 
-                          key={i} 
-                          href={doc.url || doc.path} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="mx-0.5 text-red-600 hover:text-blue-800" 
+                        <a
+                          key={i}
+                          href={doc.url || doc.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mx-0.5 text-red-600 hover:text-blue-800"
                           title={doc.filename || doc.originalname}
                           aria-label={`View document ${doc.filename || doc.originalname}`}
                         >
@@ -655,11 +642,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                                   <td className="border px-1 py-1">{p.amount}</td>
                                   <td className="border px-1 py-1">{p.currency}</td>
                                   <td className="border px-1 py-1">
-                                    <span className={`px-1 py-0.5 rounded text-white ${
-                                      p.status === 'paid' ? 'bg-green-500' :
-                                      p.status === 'failed' ? 'bg-red-500' :
-                                      'bg-yellow-500'
-                                    }`}>
+                                    <span className={`px-1 py-0.5 rounded text-white ${p.status === 'paid' ? 'bg-green-500' :
+                                        p.status === 'failed' ? 'bg-red-500' :
+                                          'bg-yellow-500'
+                                      }`}>
                                       {p.status}
                                     </span>
                                   </td>
@@ -743,11 +729,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                 <button
                   key={i}
                   onClick={() => setPagination({ ...pagination, page: p })}
-                  className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    pagination.page === p
+                  className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${pagination.page === p
                       ? "bg-green-800 text-white"
                       : "bg-white border border-gray-300 hover:bg-green-100"
-                  }`}
+                    }`}
                   aria-label={`Go to page ${p}`}
                   aria-current={pagination.page === p ? 'page' : undefined}
                 >
