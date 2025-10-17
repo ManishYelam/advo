@@ -2,23 +2,29 @@ import React from "react";
 import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { checkExistsEmail } from "../services/applicationService";
+import { getUserData, } from "../utils/getUserId";
 
 const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
-  const handleNextClick = async(e) => {
+  const user = getUserData();
+  const handleNextClick = async (e) => {
     e.preventDefault();
     const { email } = formData;
     //console.log(email);
-    
     if (!email) {
       showWarningToast("Please enter an email before proceeding.");
       return;
     }
     try {
-      // ✅ Check email existence
-// ✅ Check email existence before going next
+      // ✅ Skip check if user is editing their own email
+      if (user && user.email && user.email.toLowerCase() === email.toLowerCase()) {
+        showSuccessToast("Basic information filled successfully!");
+        onNext();
+        return;
+      }
+
+      // ✅ Check email existence only if email is different from user's current email
       const res = await checkExistsEmail(email);
-            console.log(res);
-      
+      // console.log(res);
       if (res.data.exists) {
         showWarningToast("This email is already registered. Please use another one.");
         return; // Stop the next step
