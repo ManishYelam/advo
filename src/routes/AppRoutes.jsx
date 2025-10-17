@@ -14,6 +14,7 @@ import { useAuth } from "../hooks/useAuth";
 import LandingPage from "../pages/LandingPage";
 import Application from "../pages/Application";
 import ApplicantUserForm from "../pages/ApplicantUserForm";
+import Profile from "../pages/Profile";
 
 const AppRoutes = () => {
   const { user } = useAuth(); // user context
@@ -36,6 +37,10 @@ const AppRoutes = () => {
         <Route
           path="/client"
           element={user?.role === "client" ? <ClientDashboard /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={user?.role === "client" ? <Profile /> : <Navigate to="/login" />}
         />
         <Route
           path="/cases"
