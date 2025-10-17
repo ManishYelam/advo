@@ -3,7 +3,7 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 import CaseTable from "../CaseTable";
 import Profile from "../Profile";
 import AddCaseForm from "../AddCaseForm";
-import { FaFolderOpen, FaPlus, FaUser, FaArrowLeft } from "react-icons/fa";
+import { FaFolderOpen, FaPlus, FaUser, FaArrowLeft, FaBell } from "react-icons/fa";
 
 // Charts
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend, LineChart, Line } from "recharts";
@@ -13,7 +13,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 const AdminDashboard = () => {
   const [view, setView] = useState("dashboard");
 
-  // Sample Data
+  // Sample Data (replace with API later)
   const cases = [
     { id: 1, caseName: "Case A", client: "John Doe", status: "Running", nextDate: "2025-10-10", advocate: "Jane Smith", caseType: "Criminal", documents: [{ name: "FIR.pdf", url: "/documents/fir.pdf" }] },
     { id: 2, caseName: "Case B", client: "Alice Johnson", status: "Closed", nextDate: "2025-10-12", advocate: "Mike Brown", caseType: "Civil", documents: [{ name: "Contract.pdf", url: "/documents/contract.pdf" }] },
@@ -21,18 +21,34 @@ const AdminDashboard = () => {
   ];
 
   const clients = [...new Set(cases.map(c => c.client))];
+  const advocates = [...new Set(cases.map(c => c.advocate))];
 
-  // Pie chart data for case status
-  const pieData = [
-    { name: "Running", value: cases.filter(c => c.status === "Running").length },
-    { name: "Closed", value: cases.filter(c => c.status === "Closed").length },
+  // Sample Financials
+  const payments = [
+    { month: "Jan", received: 1200, pending: 300 },
+    { month: "Feb", received: 1500, pending: 200 },
+    { month: "Mar", received: 1000, pending: 400 },
+    { month: "Apr", received: 1800, pending: 100 },
   ];
 
-  // Bar chart: Cases per type
-  const caseTypes = ["Criminal", "Civil", "Family"];
-  const barData = caseTypes.map(type => ({
-    type,
-    count: cases.filter(c => c.caseType === type).length
+  // Pie chart for Case Status
+  const caseStatusData = [
+    { name: "Running", value: cases.filter(c => c.status === "Running").length },
+    { name: "Closed", value: cases.filter(c => c.status === "Closed").length },
+    { name: "Pending", value: cases.filter(c => c.status === "Pending").length },
+  ];
+
+  // Pie chart for Case Type
+  const caseTypeData = [
+    { name: "Criminal", value: cases.filter(c => c.caseType === "Criminal").length },
+    { name: "Civil", value: cases.filter(c => c.caseType === "Civil").length },
+    { name: "Family", value: cases.filter(c => c.caseType === "Family").length },
+  ];
+
+  // Bar chart: Cases per advocate
+  const advocateWorkloadData = advocates.map(a => ({
+    advocate: a,
+    cases: cases.filter(c => c.advocate === a).length
   }));
 
   const renderBackButton = () => (
@@ -43,10 +59,23 @@ const AdminDashboard = () => {
 
   const renderDashboard = () => (
     <div className="px-6 py-10 w-full h-full">
-      {/* Welcome Card */}
-      <div className="bg-gradient-to-br from-green-700 to-green-400 text-white rounded-lg shadow-lg p-6 mb-8">
-        <h1 className="text-2xl font-bold mb-1">Welcome back, Admin!</h1>
-        <p className="text-sm">Manage cases, clients, advocates, payments, and court schedules efficiently.</p>
+      {/* Welcome + Notifications */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="bg-gradient-to-br from-green-700 to-green-400 text-white rounded-lg shadow-lg p-6 flex-1 mr-4">
+          <h1 className="text-2xl font-bold mb-1">Welcome back, Admin!</h1>
+          <p className="text-sm">Manage cases, clients, advocates, payments, and court schedules efficiently.</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4 flex items-center gap-3">
+          <FaBell size={20} />
+          <div>
+            <p className="font-semibold">Notifications</p>
+            <ul className="text-sm text-gray-600">
+              <li>New client registered: Alice Johnson</li>
+              <li>Upcoming court date: Case C (2025-10-18)</li>
+              <li>Pending payment: Case B ($200)</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Quick Action Buttons */}
@@ -63,27 +92,27 @@ const AdminDashboard = () => {
           <p className="text-2xl font-bold">{cases.length}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-5">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Closed Cases</h2>
-          <p className="text-2xl font-bold">{cases.filter(c => c.status === "Closed").length}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Running Cases</h2>
           <p className="text-2xl font-bold">{cases.filter(c => c.status === "Running").length}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-5">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Clients</h2>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Closed Cases</h2>
+          <p className="text-2xl font-bold">{cases.filter(c => c.status === "Closed").length}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Total Clients</h2>
           <p className="text-2xl font-bold">{clients.length}</p>
         </div>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-5 h-80">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Case Status</h2>
           <ResponsiveContainer width="100%" height="90%">
             <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                {pieData.map((entry, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
+              <Pie data={caseStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                {caseStatusData.map((entry, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
               </Pie>
               <Tooltip />
             </PieChart>
@@ -91,15 +120,43 @@ const AdminDashboard = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow p-5 h-80">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Cases by Type</h2>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Case Type Distribution</h2>
           <ResponsiveContainer width="100%" height="90%">
-            <BarChart data={barData}>
-              <XAxis dataKey="type" />
+            <PieChart>
+              <Pie data={caseTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                {caseTypeData.map((entry, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-5 h-80">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Advocate Workload</h2>
+          <ResponsiveContainer width="100%" height="90%">
+            <BarChart data={advocateWorkloadData}>
+              <XAxis dataKey="advocate" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="count" fill="#82ca9d" />
+              <Bar dataKey="cases" fill="#82ca9d" />
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-5 h-80">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Payments (Received vs Pending)</h2>
+          <ResponsiveContainer width="100%" height="90%">
+            <LineChart data={payments}>
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="received" stroke="#0088FE" />
+              <Line type="monotone" dataKey="pending" stroke="#FF8042" />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -139,13 +196,13 @@ const AdminDashboard = () => {
       {view === "cases" && (
         <div className="w-full h-full px-6 py-8">
           {renderBackButton()}
-          <CaseTable cases={cases} onDelete={(ids) => {}} />
+          <CaseTable cases={cases} onDelete={(ids) => { }} />
         </div>
       )}
       {view === "addCase" && (
         <div className="w-full h-full px-6 py-8">
           {renderBackButton()}
-          <AddCaseForm onAdd={(c) => {}} />
+          <AddCaseForm onAdd={(c) => { }} />
         </div>
       )}
       {view === "profile" && (
