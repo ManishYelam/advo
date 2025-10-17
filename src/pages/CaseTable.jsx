@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { getAllCases } from "../services/casesService";
-import { FiEdit, FiEye, FiPrinter, FiMoreVertical, FiTrash2, FiFileText, FiFile, FiSave } from "react-icons/fi";
+import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
+import { FiTrash2, FiEye, FiEdit, FiPrinter, FiMoreVertical } from "react-icons/fi";
 import EditCaseModal from "../components/EditCaseModal";
-import { FaPlus } from "react-icons/fa";
 
-const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
+const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   const [cases, setCases] = useState([]);
   const [filters, setFilters] = useState({
     case_name: "",
@@ -22,8 +22,8 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
 
   const isTokenExpired = (token) => {
     if (!token) return true;
-    const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode JWT
-    const currentTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    const decodedToken = JSON.parse(atob(token.split(".")[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
     return decodedToken.exp < currentTime;
   };
 
@@ -32,13 +32,10 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
       setLoading(true);
       try {
         const user = localStorage.getItem("user");
-        if (!user) throw new Error("User is not logged in.");
-
+        if (!user) throw new Error("User not logged in");
         const parsedUser = JSON.parse(user);
         const token = parsedUser?.token;
-        if (!token || isTokenExpired(token)) {
-          throw new Error("Token is expired or missing. Please log in again.");
-        }
+        if (!token || isTokenExpired(token)) throw new Error("Token expired. Please login again.");
 
         const payload = {
           page: pagination.page,
@@ -48,9 +45,8 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
           filters: {
             status: filters.status || undefined,
             priority: filters.priority || undefined,
-          }
+          },
         };
-
         const response = await getAllCases(payload);
         setCases(response.data.data || []);
         setTotalRecords(response.data.totalRecords || 0);
@@ -60,7 +56,6 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
         setLoading(false);
       }
     };
-
     fetchCases();
   }, [filters, pagination]);
 
@@ -69,30 +64,27 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePaginationChange = (newPage) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const filteredCases = cases.filter((c) => {
-    return Object.entries(filters).every(([key, filterValue]) => {
+  const handlePaginationChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const filteredCases = cases.filter((c) =>
+    Object.entries(filters).every(([key, filterValue]) => {
       if (!filterValue) return true;
       const caseValue = c[key];
       if (!caseValue) return false;
       return caseValue.toString().toLowerCase().includes(filterValue.toLowerCase());
-    });
-  });
+    })
+  );
 
   const toggleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedCaseIds(filteredCases.map((c) => c.id));
-    } else {
-      setSelectedCaseIds([]);
-    }
+    if (e.target.checked) setSelectedCaseIds(filteredCases.map((c) => c.id));
+    else setSelectedCaseIds([]);
   };
 
   const toggleSelectOne = (id) => {
@@ -101,54 +93,71 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
     );
   };
 
-  // Handle Edit Button click
   const handleEditClick = (caseData) => {
-    setCaseToEdit(caseData); // Store the case data to be edited
-    setIsModalOpen(true); // Open the modal
+    setCaseToEdit(caseData);
+    setIsModalOpen(true);
   };
 
-  // Handle Save Action
   const handleSaveEdit = (updatedCase) => {
-    // Perform the save action (could be API call)
-    onSave && onSave(updatedCase); // Pass the updated case to the parent
+    onSave && onSave(updatedCase);
+  };
+
+  // Generate page numbers for pagination with ellipsis
+  const totalPages = Math.ceil(totalRecords / pagination.limit);
+  const getPageNumbers = () => {
+    const delta = 2;
+    const range = [];
+    for (let i = Math.max(1, pagination.page - delta); i <= Math.min(totalPages, pagination.page + delta); i++) {
+      range.push(i);
+    }
+    if (range[0] > 2) range.unshift("...");
+    if (range[0] !== 1) range.unshift(1);
+    if (range[range.length - 1] < totalPages - 1) range.push("...");
+    if (range[range.length - 1] !== totalPages) range.push(totalPages);
+    return range;
   };
 
   return (
-    <div className="mx-6 mt-2">
-      {/* Loading/Error Handling */}
+    <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
+      {/* Back Button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-gray-700 hover:text-gray-900 mb-2"
+        >
+          <FaArrowLeft size={12} /> Back
+        </button>
+      )}
+
       {loading && <div>Loading cases...</div>}
-      {error && <div>{error}</div>}
+      {error && <div className="text-red-600">{error}</div>}
 
-      {/* Filters and Search */}
-      <div className="flex justify-between items-center">
-        <h4 className="text-lg font-semibold text-gray-800 mt-2">Cases</h4>
-
-        <div className="flex gap-4 items-center text-[8px]">
-          {/* Search Inputs */}
+      {/* Filters */}
+      <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
+        <div className="flex gap-2 flex-wrap">
           <input
             type="text"
             name="case_name"
             value={filters.case_name}
             onChange={handleSearchChange}
-            placeholder="Search Case Name"
-            className="px-3 py-1 border rounded"
+            placeholder="Search Case"
+            className="px-2 py-1 border rounded text-[9px]"
           />
           <input
             type="text"
             name="client_name"
             value={filters.client_name}
             onChange={handleSearchChange}
-            placeholder="Search Client Name"
-            className="px-3 py-1 border rounded"
+            placeholder="Search Client"
+            className="px-2 py-1 border rounded text-[9px]"
           />
-          {/* Filter Inputs */}
           <select
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="px-3 py-1 border rounded"
+            className="px-2 py-1 border rounded text-[9px]"
           >
-            <option value="">Select Status</option>
+            <option value="">Status</option>
             <option value="Running">Running</option>
             <option value="Closed">Closed</option>
             <option value="Pending">Pending</option>
@@ -157,65 +166,72 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
             name="priority"
             value={filters.priority}
             onChange={handleFilterChange}
-            className="px-3 py-1 border rounded"
+            className="px-2 py-1 border rounded text-[9px]"
           >
-            <option value="">Select Priority</option>
+            <option value="">Priority</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
           </select>
+        </div>
+
+        <div>
           <button
             onClick={() => onDelete && onDelete(selectedCaseIds)}
             disabled={selectedCaseIds.length === 0}
-            className="flex items-center justify-center w-6 h-6 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700"
           >
-            <FiTrash2 size={10} />
+            <FiTrash2 size={12} />
           </button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="border border-gray-200 rounded-lg shadow-md overflow-x-auto">
-        <table className="min-w-full w-full border-collapse text-[8px] table-fixed" style={{ tableLayout: "fixed" }}>
+      <div className="overflow-x-auto border border-gray-200 rounded shadow">
+        <table className="min-w-full table-fixed border-collapse text-[9px]">
           <thead>
-            <tr className="bg-gradient-to-r from-green-700 to-green-500 text-white sticky top-0 z-10" style={{ fontSize: "8px" }}>
-              <th className="px-2 py-2 w-[2%]">
+            <tr className="bg-green-700 text-white sticky top-0">
+              <th className="px-1 py-1 w-[2%]">
                 <input
                   type="checkbox"
+                  checked={selectedCaseIds.length === filteredCases.length && filteredCases.length > 0}
                   onChange={toggleSelectAll}
-                  checked={selectedCaseIds.length === filteredCases.length}
-                  aria-label="Select All Cases"
                   className="scale-75 cursor-pointer"
                 />
               </th>
-              <th className="px-2 py-2 w-[4%] text-center">ID</th>
-              <th className="px-2 py-2 w-[6%] text-center">Actions</th>
-              <th className="px-2 py-2 w-[8%] text-center">Case Number</th>
-              <th className="px-2 py-2 w-[15%] text-center">Case Name</th>
-              <th className="px-2 py-2 w-[10%] text-center">Case Type</th>
-              <th className="px-2 py-2 w-[7%] text-center">Status</th>
-              <th className="px-2 py-2 w-[12%] text-center">Court</th>
-              <th className="px-2 py-2 w-[8%] text-center">Next Hearing</th>
-              <th className="px-2 py-2 w-[8%] text-center">Filing Date</th>
-              <th className="px-2 py-2 w-[5%] text-center">Fees</th>
-              <th className="px-2 py-2 w-[8%] text-center">Payment Status</th>
-              <th className="px-2 py-2 w-[8%] text-center">Outcome</th>
-              <th className="px-2 py-2 w-[12%] text-center">Court Address</th>
-              <th className="px-2 py-2 w-[6%] text-center">Documents</th>
-              <th className="px-2 py-2 w-[6%] text-center">Shared Docs</th>
+              <th className="px-1 py-1 w-[3%]">ID</th>
+              <th className="px-2 py-1 w-[8%] text-center">Actions</th>
+              <th className="px-1 py-1 w-[6%]">Deposit Type</th>
+              <th className="px-1 py-1 w-[6%]">Start Date</th>
+              <th className="px-1 py-1 w-[5%]">Duration</th>
+              <th className="px-1 py-1 w-[5%]">FD Total</th>
+              <th className="px-1 py-1 w-[5%]">FD Rate</th>
+              <th className="px-1 py-1 w-[6%]">Savings Total</th>
+              <th className="px-1 py-1 w-[6%]">Savings Rate</th>
+              <th className="px-1 py-1 w-[6%]">Recurring Total</th>
+              <th className="px-1 py-1 w-[6%]">Recurring Rate</th>
+              <th className="px-1 py-1 w-[6%]">Dnyanrudha Total</th>
+              <th className="px-1 py-1 w-[6%]">Dynadhara Rate</th>
+              <th className="px-1 py-1 w-[3%]">Verified</th>
+              <th className="px-1 py-1 w-[6%]">Payment Status</th>
+              <th className="px-1 py-1 w-[6%]">Created At</th>
+              <th className="px-1 py-1 w-[6%]">Updated At</th>
+              <th className="px-1 py-1 w-[4%] text-center">
+                <FaFilePdf className="mx-auto" />
+              </th>
             </tr>
           </thead>
-          <tbody className="bg-white text-gray-700" style={{ fontSize: "8px" }}>
+          <tbody className="bg-white">
             {filteredCases.length === 0 ? (
               <tr>
-                <td colSpan="16" className="text-center py-6 text-gray-500">
+                <td colSpan="18" className="text-center py-2 text-gray-500">
                   No cases found.
                 </td>
               </tr>
             ) : (
               filteredCases.map((c, idx) => (
-                <tr key={c.id ?? idx} className="hover:bg-gray-50 transition" style={{ height: "20px" }}>
-                  <td className="w-[2%] px-2 py-1 text-center">
+                <tr key={c.id ?? idx} className="hover:bg-gray-50">
+                  <td className="px-1 py-1 text-center">
                     <input
                       type="checkbox"
                       checked={selectedCaseIds.includes(c.id)}
@@ -223,78 +239,69 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
                       className="scale-75 cursor-pointer"
                     />
                   </td>
-                  <td className="px-2 py-1 text-center">{c.id}</td>
+                  <td className="px-1 py-1 text-center">{c.id}</td>
                   <td className="px-2 py-1 text-center">
                     <div className="flex gap-2 justify-center items-center">
-                      <button className="text-green-600 hover:text-green-700" onClick={() => onView && onView(c)} title="View">
-                        <FiEye size={10} />
+                      <button
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => onView && onView(c)}
+                        title="View"
+                      >
+                        <FiEye size={12} />
                       </button>
-                      <button className="text-blue-600 hover:text-blue-700" onClick={() => handleEditClick(c)} title="Edit">
-                        <FiEdit size={10} />
+                      <button
+                        className="text-blue-600 hover:text-blue-700"
+                        onClick={() => handleEditClick(c)}
+                        title="Edit"
+                      >
+                        <FiEdit size={12} />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-700" onClick={() => onPrint && onPrint(c)} title="Print">
-                        <FiPrinter size={10} />
+                      <button
+                        className="text-gray-600 hover:text-gray-700"
+                        onClick={() => onPrint && onPrint(c)}
+                        title="Print"
+                      >
+                        <FiPrinter size={12} />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-700" onClick={() => onMore && onMore(c)} title="More Options">
-                        <FiMoreVertical size={10} />
+                      <button
+                        className="text-gray-600 hover:text-gray-700"
+                        onClick={() => onMore && onMore(c)}
+                        title="More Options"
+                      >
+                        <FiMoreVertical size={12} />
                       </button>
                     </div>
                   </td>
-                  <td className="w-[8%] px-2 py-1 text-center">{c.case_number}</td>
-                  <td className="w-[15%] px-2 py-1 text-center">{c.case_name}</td>
-                  <td className="w-[10%] px-2 py-1 text-center">{c.case_type}</td>
-                  <td className="w-[7%] px-2 py-1 text-center">{c.status}</td>
-                  <td className="w-[12%] px-2 py-1 text-center">{c.court}</td>
-                  <td className="w-[8%] px-2 py-1 text-center">{c.next_hearing}</td>
-                  <td className="w-[8%] px-2 py-1 text-center">{c.filing_date}</td>
-                  <td className="w-[5%] px-2 py-1 text-center">{c.fees}</td>
-                  <td className="w-[8%] px-2 py-1 text-center">{c.payment_status}</td>
-                  <td className="w-[8%] px-2 py-1 text-center">{c.outcome}</td>
-                  <td className="w-[12%] px-2 py-1 text-center">{c.court_address}</td>
-                  <td className="w-[6%] px-2 py-1 text-center">
-                    {c.documents && c.documents.length > 0 ? (
-                      c.documents.map((doc, index) => (
-                        <span key={index} className="relative group inline-block mx-1">
-                          <a
-                            href={doc.url || doc.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={doc.originalname || doc.filename || "View Document"}
-                          >
-                            <FiFile size={10} className="text-red-700 hover:text-blue-600 cursor-pointer" />
-                          </a>
-                          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            {doc.originalname || doc.filename}
-                          </span>
-                        </span>
+                  <td className="px-1 py-1 text-center">{c.deposit_type}</td>
+                  <td className="px-1 py-1 text-center">{c.saving_account_start_date}</td>
+                  <td className="px-1 py-1 text-center">{c.deposit_duration_years}</td>
+                  <td className="px-1 py-1 text-center">{c.fixed_deposit_total_amount}</td>
+                  <td className="px-1 py-1 text-center">{c.interest_rate_fd}</td>
+                  <td className="px-1 py-1 text-center">{c.saving_account_total_amount}</td>
+                  <td className="px-1 py-1 text-center">{c.interest_rate_saving}</td>
+                  <td className="px-1 py-1 text-center">{c.recurring_deposit_total_amount}</td>
+                  <td className="px-1 py-1 text-center">{c.interest_rate_recurring}</td>
+                  <td className="px-1 py-1 text-center">{c.dnyanrudha_investment_total_amount}</td>
+                  <td className="px-1 py-1 text-center">{c.dynadhara_rate}</td>
+                  <td className="px-1 py-1 text-center">{c.verified ? "Yes" : "No"}</td>
+                  <td className="px-1 py-1 text-center">{c.payment_status || "Pending"}</td>
+                  <td className="px-1 py-1 text-center">{c.created_at ? new Date(c.created_at).toLocaleDateString() : "-"}</td>
+                  <td className="px-1 py-1 text-center">{c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "-"}</td>
+                  <td className="px-1 py-1 text-center">
+                    {c.documents && c.documents.length > 0
+                      ? c.documents.map((doc, i) => (
+                        <a
+                          key={i}
+                          href={doc.url || doc.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline mx-0.5 text-[9px] truncate block max-w-[60px]"
+                        >
+                          {doc.filename || doc.originalname}
+                        </a>
                       ))
-                    ) : (
-                      "N/A"
-                    )}
+                      : "N/A"}
                   </td>
-
-                  <td className="w-[6%] px-2 py-1 text-center">
-                    {c.shared_documents && c.shared_documents.length > 0 ? (
-                      c.shared_documents.map((doc, index) => (
-                        <span key={index} className="relative group inline-block mx-1">
-                          <a
-                            href={doc.url || doc.path}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={doc.originalname || doc.filename || "View Shared Document"}
-                          >
-                            <FiFileText size={10} className="text-gray-700 hover:text-blue-600 cursor-pointer" />
-                          </a>
-                          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            {doc.originalname || doc.filename}
-                          </span>
-                        </span>
-                      ))
-                    ) : (
-                      "N/A"
-                    )}
-                  </td>
-
                 </tr>
               ))
             )}
@@ -302,60 +309,90 @@ const CaseTable = ({ onDelete, onEdit, onView, onPrint, onSave, onMore }) => {
         </table>
       </div>
 
-      {/* Pagination and Total/Selected Records */}
-      <div className="flex justify-between items-center mt-2">
-        <div className="flex items-center gap-3">
-          {/* Total Records Button */}
-          <button className="px-2 py-1 text-white text-[8px] bg-green-600 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-            Total Records: {totalRecords} &nbsp; | &nbsp; Selected: {selectedCaseIds.length}
-          </button>
+      {/* Pagination */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2 text-[9px]">
+        <div>
+          Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>
+          to <span className="font-medium">{Math.min(pagination.page * pagination.limit, totalRecords)}</span>
+          of <span className="font-medium">{totalRecords}</span> cases
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* First Button */}
+        <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={() => handlePaginationChange(1)}
             disabled={pagination.page === 1}
-            className="px-2 py-1 text-white text-[8px] bg-green-600 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             First
           </button>
-
-          {/* Prev Button */}
           <button
             onClick={() => handlePaginationChange(pagination.page - 1)}
             disabled={pagination.page === 1}
-            className="px-2 py-1 text-white text-[8px] bg-green-600 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Prev
           </button>
 
-          {/* Page Info */}
-          <span className="text-[8px] text-gray-700">
-            Page {pagination.page} of {Math.ceil(totalRecords / pagination.limit)}
-          </span>
+          {/* Page Numbers */}
+          {getPageNumbers().map((p, idx) =>
+            p === "..." ? (
+              <span key={idx} className="px-2 py-1 text-gray-500">
+                ...
+              </span>
+            ) : (
+              <button
+                key={idx}
+                onClick={() => handlePaginationChange(p)}
+                className={`px-2 py-1 rounded ${pagination.page === p
+                    ? "bg-green-800 text-white"
+                    : "bg-white border border-gray-300 hover:bg-green-100"
+                  }`}
+              >
+                {p}
+              </button>
+            )
+          )}
 
-          {/* Next Button */}
           <button
             onClick={() => handlePaginationChange(pagination.page + 1)}
-            disabled={pagination.page === Math.ceil(totalRecords / pagination.limit)}
-            className="px-2 py-1 text-white text-[8px] bg-green-600 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={pagination.page === totalPages}
+            className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Next
           </button>
-
-          {/* Last Button */}
           <button
-            onClick={() => handlePaginationChange(Math.ceil(totalRecords / pagination.limit))}
-            disabled={pagination.page === Math.ceil(totalRecords / pagination.limit)}
-            className="px-2 py-1 text-white text-[8px] bg-green-600 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => handlePaginationChange(totalPages)}
+            disabled={pagination.page === totalPages}
+            className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
           >
             Last
           </button>
+
+          {/* Items per page */}
+          <div className="flex items-center gap-1 ml-2">
+            <span>Show</span>
+            <select
+              value={pagination.limit}
+              onChange={(e) =>
+                setPagination((prev) => ({
+                  ...prev,
+                  limit: parseInt(e.target.value),
+                  page: 1,
+                }))
+              }
+              className="px-2 py-1 border rounded text-[9px]"
+            >
+              {[5, 10, 20, 50].map((num) => (
+                <option key={num} value={num}>
+                  {num}
+                </option>
+              ))}
+            </select>
+            <span>per page</span>
+          </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
       {isModalOpen && (
         <EditCaseModal
           caseData={caseToEdit}
