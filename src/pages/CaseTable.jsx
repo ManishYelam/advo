@@ -240,17 +240,40 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             <option value="Low">Low</option>
           </select>
 
-          {/* Verified Checkbox */}
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="checkbox"
-              name="verified"
-              checked={filters.verified}
-              onChange={handleFilterChange}
-              className="scale-75 cursor-pointer"
-            />
-            <span>Verified</span>
-          </label>
+          {/* Verified / Unverified checkboxes */}
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                name="verified"
+                checked={filters.verified === "true"}
+                onChange={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    verified: prev.verified === "true" ? "" : "true", // toggle verified
+                  }))
+                }
+                className="scale-75 cursor-pointer"
+              />
+              Verified
+            </label>
+
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                name="unverified"
+                checked={filters.verified === "false"}
+                onChange={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    verified: prev.verified === "false" ? "" : "false", // toggle unverified
+                  }))
+                }
+                className="scale-75 cursor-pointer"
+              />
+              Unverified
+            </label>
+          </div>
         </div>
 
         {/* Delete Button */}
@@ -462,8 +485,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                 key={i}
                 onClick={() => setPagination({ ...pagination, page: p })}
                 className={`px-2 py-1 rounded ${pagination.page === p
-                    ? "bg-green-800 text-white"
-                    : "bg-white border border-gray-300 hover:bg-green-100"
+                  ? "bg-green-800 text-white"
+                  : "bg-white border border-gray-300 hover:bg-green-100"
                   }`}
               >
                 {p}
