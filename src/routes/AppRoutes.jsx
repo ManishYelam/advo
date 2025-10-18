@@ -15,6 +15,10 @@ import LandingPage from "../pages/LandingPage";
 import Application from "../pages/Application";
 import ApplicantUserForm from "../pages/ApplicantUserForm";
 import Profile from "../pages/Profile";
+import Settings from "../pages/Settings";
+import TermsOfService from "../pages/TermsOfService";
+import PrivacyPolicy from "../pages/PrivacyPolicy";
+import NotificationsPage from "../pages/Notifications";
 
 const AppRoutes = () => {
   const { user } = useAuth(); // user context
@@ -27,6 +31,8 @@ const AppRoutes = () => {
         <Route path="/apply" element={<Application />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/applicant/:userId" element={<ApplicantUserForm />} />
 
         {/* Protected Routes */}
@@ -41,6 +47,14 @@ const AppRoutes = () => {
         <Route
           path="/profile"
           element={user?.role === "client" ? <Profile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/settings"
+          element={user ? <Settings /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/notifications"
+          element={user?.role === "client" ? <NotificationsPage /> : <Navigate to="/login" />}
         />
         <Route
           path="/cases"

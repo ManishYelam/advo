@@ -10,6 +10,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
     e.preventDefault();
     const { email } = formData;
     //console.log(email);
+    if (user) formData.isLogin = true;
     if (!email) {
       showWarningToast("Please enter an email before proceeding.");
       return;

@@ -1,13 +1,24 @@
-import React, { useState } from "react";
-import CaseDocumentUploader from "../components/CaseDocumentUploader"; // Step 4
-import CaseFormBasic from "../components/CaseFormBasic"; // Step 1
-import CaseFormDetails from "../components/CaseFormDetails"; // Step 2
-import CaseReview from "../components/CaseReview"; // Step 3
-import Payment from "../components/Payment"; // Step 5
+import React, { useState, useEffect } from "react";
+import CaseDocumentUploader from "../components/CaseDocumentUploader";
+import CaseFormBasic from "../components/CaseFormBasic";
+import CaseFormDetails from "../components/CaseFormDetails";
+import CaseReview from "../components/CaseReview";
+import Payment from "../components/Payment";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
-import { generateCourtApplicationPDF } from "../utils/generateCourtApplicationPDF";
 import { saveApplicationData } from "../services/applicationService";
+import {
+  FaFileUpload,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaArrowLeft,
+  FaArrowRight,
+  FaClipboardCheck,
+  FaMoneyBillWave,
+  FaUser,
+  FaFileAlt,
+  FaSearch
+} from "react-icons/fa";
 
 const Application = () => {
   const [formData, setFormData] = useState({
@@ -41,12 +52,42 @@ const Application = () => {
     },
   });
 
-
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedExhibit, setSelectedExhibit] = useState("Exhibit A");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
-  const steps = ["Basic Info", "Case Details", "Review Case", "Documents", "Payment"];
-  const exhibits = ["Exhibit A", "Exhibit B", "Exhibit C", "Exhibit D"];
+  const steps = [
+    { number: 1, title: "Basic Info", icon: FaUser },
+    { number: 2, title: "Case Details", icon: FaFileAlt },
+    { number: 3, title: "Review Case", icon: FaClipboardCheck },
+    { number: 4, title: "Documents", icon: FaFileUpload },
+    { number: 5, title: "Payment", icon: FaMoneyBillWave }
+  ];
+
+  const exhibits = [
+    {
+      value: "Exhibit A",
+      label: "Exhibit A - Account Opening Documents",
+      description: "Bank passbook copies and account opening slip"
+    },
+    {
+      value: "Exhibit B",
+      label: "Exhibit B - Deposit Details",
+      description: "FD, Savings, and RD amount details with statements"
+    },
+    {
+      value: "Exhibit C",
+      label: "Exhibit C - Deposit Proof",
+      description: "Copies of deposit transactions to the bank"
+    },
+    {
+      value: "Exhibit D",
+      label: "Exhibit D - Police Statement",
+      description: "Statement copy submitted to Shrirampur Police Station"
+    }
+  ];
+
   const requiredDocuments = {
     "Exhibit A": [
       "Dnyanradha Multistate Society Bank Passbook Copy",
@@ -62,10 +103,50 @@ const Application = () => {
     "Exhibit D": ["Statement Copy submitted to Shrirampur Police Station"],
   };
 
+  // Validate current step before proceeding
+  const validateStep = (step) => {
+    const errors = {};
+
+    if (step === 1) {
+      if (!formData.full_name?.trim()) errors.full_name = "Full name is required";
+      if (!formData.date_of_birth) errors.date_of_birth = "Date of birth is required";
+      if (!formData.phone_number?.trim()) errors.phone_number = "Phone number is required";
+      if (!formData.email?.trim()) errors.email = "Email is required";
+      if (!formData.adhar_number?.trim()) errors.adhar_number = "Aadhar number is required";
+    }
+
+    if (step === 2) {
+      if (!formData.deposit_type) errors.deposit_type = "Deposit type is required";
+      if (!formData.saving_account_start_date) errors.saving_account_start_date = "Start date is required";
+    }
+
+    if (step === 4) {
+      const missingExhibits = exhibits.filter(
+        exhibit => !formData.documents[exhibit.value] || formData.documents[exhibit.value].length === 0
+      );
+      if (missingExhibits.length > 0) {
+        errors.documents = `Please upload documents for: ${missingExhibits.map(e => e.value).join(", ")}`;
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const handleDocumentsChange = (updatedFiles) => {
@@ -76,237 +157,429 @@ const Application = () => {
         [selectedExhibit]: updatedFiles,
       },
     }));
+
+    // Clear documents validation error
+    if (validationErrors.documents) {
+      setValidationErrors(prev => ({
+        ...prev,
+        documents: ""
+      }));
+    }
   };
 
   const goToNextStep = () => {
-    if (currentStep === 4) {
-      // ✅ Validate all exhibits have at least one file
-      const missingExhibits = exhibits.filter(
-        (exhibit) => !formData.documents[exhibit] || formData.documents[exhibit].length === 0
-      );
-      if (missingExhibits.length > 0) {
-        showWarningToast(
-          `Please upload documents for all exhibits: ${missingExhibits.join(", ")}`
-        );
-        return; // do not proceed
-      }
+    if (!validateStep(currentStep)) {
+      showWarningToast("Please fix the validation errors before proceeding.");
+      return;
     }
 
-    // ✅ Normal step progression
-    if (currentStep === 1) setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }), setCurrentStep(2));
-    else if (currentStep === 2) setFormData((prev) => ({ ...prev, status: "Case Details Completed" }), setCurrentStep(3));
-    else if (currentStep === 3) setFormData((prev) => ({ ...prev, status: "Case Reviewed" }), setCurrentStep(4));
-    else if (currentStep === 4) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(5));
+    const statusUpdates = {
+      1: "Basic Info Completed",
+      2: "Case Details Completed",
+      3: "Case Reviewed",
+      4: "Documents Uploaded"
+    };
+
+    if (statusUpdates[currentStep]) {
+      setFormData(prev => ({
+        ...prev,
+        status: statusUpdates[currentStep]
+      }));
+    }
+
+    setCurrentStep(prev => prev + 1);
   };
 
   const goToPrevStep = () => {
-    if (currentStep === 2) setFormData((prev) => ({ ...prev, status: "Not Started" }), setCurrentStep(1));
-    else if (currentStep === 3) setFormData((prev) => ({ ...prev, status: "Basic Info Completed" }), setCurrentStep(2));
-    else if (currentStep === 4) setFormData((prev) => ({ ...prev, status: "Case Details Completed" }), setCurrentStep(3));
-    else if (currentStep === 5) setFormData((prev) => ({ ...prev, status: "Documents Uploaded" }), setCurrentStep(4));
+    const statusUpdates = {
+      2: "Not Started",
+      3: "Basic Info Completed",
+      4: "Case Details Completed",
+      5: "Documents Uploaded"
+    };
+
+    if (statusUpdates[currentStep]) {
+      setFormData(prev => ({
+        ...prev,
+        status: statusUpdates[currentStep]
+      }));
+    }
+
+    setCurrentStep(prev => prev - 1);
   };
 
   const handlePaymentSuccess = async (paymentResponse) => {
+    setIsSubmitting(true);
     try {
       // Merge payment response into form data
-      const updatedFormData = { ...formData, ...paymentResponse, status: "Paid" };
+      const updatedFormData = {
+        ...formData,
+        ...paymentResponse,
+        status: "Paid",
+        submitted_at: new Date().toISOString()
+      };
+
+      // console.log('🔄 Saving application data...');
       setFormData(updatedFormData);
-      console.log("Before saving, updatedFormData:", updatedFormData);
+      // console.log("Final form data:", updatedFormData);
 
-      // 1️⃣ Save data to backend
-      const res = await saveApplicationData(updatedFormData);
-      console.log("After save response:", res);
+      const response = await saveApplicationData(updatedFormData);
+      // console.log('Response from backend:', response.data.data);
 
-      if (!res.data?.success) {
-        showErrorToast("❌ Failed to save application data!");
-        return;
+      if (!response.data.data?.success) {
+        throw new Error("Failed to save application data");
       }
 
-      // 2️⃣ Extract saved objects from backend response
-      const { user, case: savedCase, payment: savedPayment } = res.data;
+      const { user, case: savedCase, payment: savedPayment } = response.data.data;
+      // console.log('User:', user);
+      // console.log('Case:', savedCase);
+      // console.log('Payment:', savedPayment); // Fixed typo: was 'payment'
 
-      // 3️⃣ Show detailed success toast
+      // Show detailed success toast
       showSuccessToast(
-        `✅ Application saved for ${user.full_name}.\n` +
-        `Payment: ${savedPayment.status} (${savedPayment.method})\n` +
-        `Case ID: ${savedCase.id}`
+        `✅ Application submitted successfully!\n` +
+        `Name: ${user.full_name}\n` +
+        `Case ID: ${savedCase.id}\n` +
+        `Payment: ${savedPayment.amount} (${savedPayment.status})`
       );
 
-      console.log("Payment success handled for user:", user.id);
+      resetForm();
 
     } catch (error) {
       console.error("Payment success handling error:", error);
-      showErrorToast("❌ Something went wrong after payment!");
+      showErrorToast("❌ Failed to process application. Please contact support.");
     } finally {
-      // 5️⃣ Reset form for next entry
-      setFormData({
-        status: "Not Started",
-        full_name: "",
-        date_of_birth: "",
-        age: "",
-        phone_number: "",
-        email: "",
-        gender: "",
-        occupation: "",
-        adhar_number: "",
-        address: "",
-        additional_notes: "",
-        saving_account_start_date: "",
-        deposit_type: "",
-        deposit_duration_years: "",
-        fixed_deposit_total_amount: "",
-        interest_rate_fd: "",
-        saving_account_total_amount: "",
-        interest_rate_saving: "",
-        recurring_deposit_total_amount: "",
-        interest_rate_recurring: "",
-        dnyanrudha_investment_total_amount: "",
-        dynadhara_rate: "",
-        documents: {
-          "Exhibit A": [],
-          "Exhibit B": [],
-          "Exhibit C": [],
-          "Exhibit D": [],
-        },
-      });
-      setSelectedExhibit("Exhibit A");
-      setCurrentStep(1); 
+      setIsSubmitting(false);
     }
   };
 
-  const renderSteps = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-10">
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const isActive = stepNumber === currentStep;
-        const isCompleted = stepNumber < currentStep;
+  const resetForm = () => {
+    setFormData({
+      status: "Not Started",
+      full_name: "",
+      date_of_birth: "",
+      age: "",
+      phone_number: "",
+      email: "",
+      gender: "",
+      occupation: "",
+      adhar_number: "",
+      address: "",
+      additional_notes: "",
+      saving_account_start_date: "",
+      deposit_type: "",
+      deposit_duration_years: "",
+      fixed_deposit_total_amount: "",
+      interest_rate_fd: "",
+      saving_account_total_amount: "",
+      interest_rate_saving: "",
+      recurring_deposit_total_amount: "",
+      interest_rate_recurring: "",
+      dnyanrudha_investment_total_amount: "",
+      dynadhara_rate: "",
+      documents: {
+        "Exhibit A": [],
+        "Exhibit B": [],
+        "Exhibit C": [],
+        "Exhibit D": [],
+      },
+    });
+    setSelectedExhibit("Exhibit A");
+    setCurrentStep(1);
+    setValidationErrors({});
+  };
 
-        return (
+  const renderStepProgress = () => (
+    <div className="mt-8 mb-10">
+      {/* Desktop Step Progress */}
+      <div className="hidden md:flex justify-between items-center relative">
+        {steps.map((step, index) => {
+          const StepIcon = step.icon;
+          const isActive = step.number === currentStep;
+          const isCompleted = step.number < currentStep;
+          const isUpcoming = step.number > currentStep;
+
+          return (
+            <div key={step.number} className="flex flex-col items-center flex-1 relative">
+              {/* Connection Line */}
+              {index < steps.length - 1 && (
+                <div className={`absolute top-4 left-1/2 w-full h-0.5 z-0 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
+              )}
+
+              {/* Step Circle */}
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 ${isActive
+                  ? "bg-green-600 text-white shadow-lg scale-110"
+                  : isCompleted
+                    ? "bg-green-500 text-white shadow-md"
+                    : "bg-gray-200 text-gray-500"
+                  }`}
+              >
+                {isCompleted ? (
+                  <FaCheckCircle className="text-sm" />
+                ) : (
+                  <StepIcon className="text-sm" />
+                )}
+              </div>
+
+              {/* Step Label */}
+              <div className="mt-2 text-center">
+                <div className={`text-xs font-medium ${isActive ? "text-green-700" :
+                  isCompleted ? "text-green-600" : "text-gray-500"
+                  }`}>
+                  Step {step.number}
+                </div>
+                <div className={`text-[10px] ${isActive ? "text-green-800 font-semibold" : "text-gray-600"
+                  }`}>
+                  {step.title}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Mobile Step Progress */}
+      <div className="md:hidden bg-gray-100 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs font-medium text-gray-700">
+            Step {currentStep} of {steps.length}
+          </span>
+          <span className="text-xs text-green-600 font-semibold">
+            {steps[currentStep - 1]?.title}
+          </span>
+        </div>
+        <div className="w-full bg-gray-300 rounded-full h-2">
           <div
-            key={step}
-            className={`text-center py-2 rounded-full text-[10px] font-medium cursor-pointer transition-all duration-300
-              ${isActive
-                ? "bg-green-700 text-white shadow-lg"
-                : isCompleted
-                  ? "bg-green-300 text-green-800 hover:bg-green-400"
-                  : "bg-gray-200 text-gray-600"
+            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / steps.length) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderExhibitSelector = () => (
+    <div className="mb-6">
+      <label className="block mb-3 text-sm font-semibold text-green-800 flex items-center">
+        <FaSearch className="mr-2" />
+        Select Exhibit to Upload Documents
+      </label>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {exhibits.map((exhibit) => (
+          <div
+            key={exhibit.value}
+            className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${selectedExhibit === exhibit.value
+              ? "border-green-500 bg-green-50 shadow-md"
+              : "border-gray-300 bg-white hover:border-green-300 hover:bg-green-25"
               }`}
-            onClick={() => {
-              if (stepNumber < currentStep) setCurrentStep(stepNumber);
-            }}
+            onClick={() => setSelectedExhibit(exhibit.value)}
           >
-            {step}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 text-sm mb-1">
+                  {exhibit.value}
+                </h3>
+                <p className="text-gray-600 text-xs mb-2">
+                  {exhibit.description}
+                </p>
+                <div className="flex items-center text-xs text-gray-500">
+                  <FaFileUpload className="mr-1" size={10} />
+                  <span>
+                    {formData.documents[exhibit.value]?.length || 0} files uploaded
+                  </span>
+                </div>
+              </div>
+
+              {selectedExhibit === exhibit.value && (
+                <FaCheckCircle className="text-green-500 ml-2 flex-shrink-0" />
+              )}
+            </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
+
+      {/* Required Documents List */}
+      {selectedExhibit && (
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-semibold text-blue-800 text-sm mb-2 flex items-center">
+            <FaExclamationTriangle className="mr-2" />
+            Required Documents for {selectedExhibit}
+          </h4>
+          <ul className="text-xs text-blue-700 space-y-1">
+            {requiredDocuments[selectedExhibit]?.map((doc, index) => (
+              <li key={index} className="flex items-center">
+                <FaCheckCircle className="text-green-500 mr-2" size={10} />
+                {doc}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderDocumentsSummary = () => (
+    <div className="mt-6 border-t pt-6">
+      <h3 className="font-semibold text-green-800 text-sm mb-3 flex items-center">
+        <FaClipboardCheck className="mr-2" />
+        Uploaded Documents Summary
+      </h3>
+
+      {Object.values(formData.documents).every(files => files.length === 0) ? (
+        <div className="text-center py-4 text-gray-500 text-sm">
+          <FaFileUpload className="mx-auto text-2xl mb-2 text-gray-400" />
+          No documents uploaded yet
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {exhibits.map((exhibit) => {
+            const files = formData.documents[exhibit.value] || [];
+            if (files.length === 0) return null;
+
+            return (
+              <div key={exhibit.value} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-medium text-green-800 text-xs">
+                    {exhibit.value}
+                  </span>
+                  <span className="bg-green-500 text-white text-[10px] px-2 py-1 rounded-full">
+                    {files.length} file{files.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <ul className="text-[10px] text-green-700 space-y-1">
+                  {files.map((file, index) => (
+                    <li key={index} className="truncate">
+                      📄 {file.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-100 via-white to-green-50 py-10 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 sm:p-10">
-        <h2 className="font-bold text-green-800 mb-8">Application Form</h2>
-        {renderSteps()}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-green-800 mb-2">
+            Legal Case Application
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Complete your application in 5 simple steps. Ensure all information is accurate and documents are properly uploaded.
+          </p>
+        </div>
 
-        {currentStep === 1 && (
-          <CaseFormBasic
-            formData={formData}
-            handleInputChange={handleInputChange}
-            onNext={goToNextStep}
-          />
-        )}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* Progress Bar */}
+          {renderStepProgress()}
 
-        {currentStep === 2 && (
-          <CaseFormDetails
-            formData={formData}
-            handleInputChange={handleInputChange}
-            onNext={goToNextStep}
-            onBack={goToPrevStep}
-          />
-        )}
-
-        {currentStep === 3 && (
-          <CaseReview
-            formData={formData}
-            setFormData={setFormData}
-            onNext={goToNextStep}
-            onBack={goToPrevStep}
-          />
-        )}
-
-        {currentStep === 4 && (
-          <div>
-            <div>
-              <label className="block mb-1 text-[10px] font-medium">Select Exhibit</label>
-              <select
-                value={selectedExhibit}
-                onChange={(e) => setSelectedExhibit(e.target.value)}
-                className="border p-1 text-[8px] rounded w-full"
-              >
-                <option value="Exhibit A">
-                  Exhibit A - Copy of the slip of Account Started on date mentioned: 1. Dnyanradha Multistate Society Bank Passbook Copy, 2. Other Bank Passbook Copy for Payment
-                </option>
-                <option value="Exhibit B">
-                  Exhibit B - Fixed Deposit (FD Amount Details), Saving Bank Account Total Amount Details & Recurring Deposits (RD) Total Amount in Excel Sheet Chart & Copy of the Statement by Applicant to The Liquidator, Dnyanradha Multistate Cooperative Credit Society
-                </option>
-                <option value="Exhibit C">
-                  Exhibit C - Copy of the Deposits amount by Applicant to the "said bank"
-                </option>
-                <option value="Exhibit D">
-                  Exhibit D - Copy of the Statement by Applicant to Shrirampur Police Station
-                </option>
-              </select>
-            </div>
-
-            <CaseDocumentUploader
-              documents={formData.documents[selectedExhibit] || []}
-              onDocumentsChange={handleDocumentsChange}
-              onNext={goToNextStep}
-              onBack={goToPrevStep}
-              requiredDocs={requiredDocuments[selectedExhibit]} // ✅ New prop
-            />
-
-            {/* ✅ Summary Section */}
-            <div className="mt-6 border-t pt-3">
-              <h3 className="font-semibold text-[9px] text-green-800 mb-2">Uploaded Documents Summary</h3>
-              {Object.keys(formData.documents).length === 0 ? (
-                <p className="text-[8px] text-gray-500">No documents uploaded yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {Object.entries(formData.documents).map(([exhibit, files]) => (
-                    <div key={exhibit} className="bg-gray-50 p-2 rounded border">
-                      <p className="font-medium text-[8px] text-green-700 mb-1">
-                        {exhibit} — {files.length} document{files.length !== 1 ? "s" : ""}
-                      </p>
-                      <ul className="list-disc pl-4 text-[8px] text-gray-600">
-                        {files.map((file, i) => (
-                          <li key={i}>{file.name}</li>
-                        ))}
-                      </ul>
-                    </div>
+          {/* Main Content */}
+          <div className="px-6 pb-8">
+            {/* Validation Errors */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="font-semibold text-red-800 text-sm mb-2 flex items-center">
+                  <FaExclamationTriangle className="mr-2" />
+                  Please fix the following errors:
+                </h3>
+                <ul className="text-red-700 text-sm space-y-1">
+                  {Object.entries(validationErrors).map(([field, error]) => (
+                    error && <li key={field}>• {error}</li>
                   ))}
-                </div>
+                </ul>
+              </div>
+            )}
+
+            {/* Step Content */}
+            {currentStep === 1 && (
+              <CaseFormBasic
+                formData={formData}
+                handleInputChange={handleInputChange}
+                onNext={goToNextStep}
+                errors={validationErrors}
+              />
+            )}
+
+            {currentStep === 2 && (
+              <CaseFormDetails
+                formData={formData}
+                handleInputChange={handleInputChange}
+                onNext={goToNextStep}
+                onBack={goToPrevStep}
+                errors={validationErrors}
+              />
+            )}
+
+            {currentStep === 3 && (
+              <CaseReview
+                formData={formData}
+                setFormData={setFormData}
+                onNext={goToNextStep}
+                onBack={goToPrevStep}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <div>
+                {renderExhibitSelector()}
+
+                <CaseDocumentUploader
+                  documents={formData.documents[selectedExhibit] || []}
+                  onDocumentsChange={handleDocumentsChange}
+                  onNext={goToNextStep}
+                  onBack={goToPrevStep}
+                  requiredDocs={requiredDocuments[selectedExhibit]}
+                  exhibit={selectedExhibit}
+                />
+
+                {renderDocumentsSummary()}
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <Payment
+                amount={500}
+                onPaymentSuccess={handlePaymentSuccess}
+                onBack={goToPrevStep}
+                isSubmitting={isSubmitting}
+              />
+            )}
+          </div>
+
+          {/* Status Footer */}
+          <div className="bg-gray-50 border-t px-6 py-4">
+            <div className="flex justify-between items-center text-sm">
+              <div className="text-gray-600">
+                <span className="font-medium">Current Status:</span>{" "}
+                <span className={`font-semibold ${formData.status === "Paid" ? "text-green-600" :
+                  formData.status === "Not Started" ? "text-red-600" :
+                    "text-blue-600"
+                  }`}>
+                  {formData.status}
+                </span>
+              </div>
+
+              {currentStep > 1 && currentStep < 5 && (
+                <button
+                  onClick={resetForm}
+                  className="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                  Start Over
+                </button>
               )}
             </div>
-
-            <p className="text-[9px] text-red-600 mt-2">
-              *Please upload all relevant documents for the selected exhibit. Only PDF files are accepted.
-            </p>
           </div>
-        )}
-
-        {currentStep === 5 && (
-          <Payment
-            amount={500}
-            onPaymentSuccess={handlePaymentSuccess}
-            onBack={goToPrevStep}
-          />
-        )}
-
-        <p className="mt-8 text-[10px] text-gray-600 text-center">
-          Current Status: <span className="font-medium">{formData.status}</span>
-        </p>
+        </div>
       </div>
+
       <Toast />
     </div>
   );

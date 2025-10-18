@@ -43,7 +43,7 @@ const filterConfigs = {
       .toLowerCase()
       .includes(filters.searchValue.toLowerCase());
   },
-  status: (caseItem, value) => 
+  status: (caseItem, value) =>
     !value || caseItem.status?.toLowerCase() === value.toLowerCase(),
   priority: (caseItem, value) =>
     !value || caseItem.priority?.toLowerCase() === value.toLowerCase(),
@@ -72,9 +72,26 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [totalRecords, setTotalRecords] = useState(0);
   const [exportLoading, setExportLoading] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [userId, setUserId] = useState(null);
 
   // Refs for debouncing
   const debouncedSearchRef = useRef();
+
+  // Initialize user data from localStorage
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const parsedUser = JSON.parse(user);
+        setUserRole(parsedUser?.role || 'client');
+        setUserId(parsedUser?.id);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        setUserRole('client');
+      }
+    }
+  }, []);
 
   // Initialize debounced functions
   useEffect(() => {
@@ -94,21 +111,24 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     return "Partial";
   }, []);
 
-  // ✅ Fetch cases from API
+  // ✅ Enhanced Fetch Cases with Role-Based Access
   const fetchCases = async (retryCount = 0) => {
     setLoading(true);
     setError(null);
     try {
       const user = localStorage.getItem("user");
       if (!user) throw new Error("User not logged in");
-      
+
       const parsedUser = JSON.parse(user);
       const token = parsedUser?.token;
-      
+      const currentUserRole = parsedUser?.role || 'client';
+      const currentUserId = parsedUser?.id;
+
       if (!token || isTokenExpired(token)) {
         throw new Error("Token expired. Please login again.");
       }
 
+      // Prepare payload based on user role
       const payload = {
         page: pagination.page,
         limit: pagination.limit,
@@ -117,14 +137,41 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         filters: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
-          verified: filters.verified === "true" ? true : 
-                   filters.verified === "false" ? false : undefined,
+          verified: filters.verified === "true" ? true :
+            filters.verified === "false" ? false : undefined,
+          // Add client_id filter for non-admin users
+          ...(currentUserRole !== 'admin' && currentUserId && { client_id: currentUserId })
         },
       };
 
+      // console.log(`Fetching cases for ${currentUserRole} user ${currentUserId}`);
       const response = await getAllCases(payload);
-      setCases(response.data.data || []);
+
+      // Transform the response data to ensure consistent structure
+      const transformedCases = (response.data.data || []).map(caseItem => {
+        // Ensure payments is always an array
+        let payments = [];
+
+        if (Array.isArray(caseItem.payments)) {
+          payments = caseItem.payments;
+        } else if (caseItem.payment) {
+          payments = [caseItem.payment];
+        }
+
+        return {
+          ...caseItem,
+          payments: payments
+        };
+      });
+
+      setCases(transformedCases);
       setTotalRecords(response.data.totalRecords || 0);
+
+      // Update user role and ID if not already set
+      if (!userRole) {
+        setUserRole(currentUserRole);
+        setUserId(currentUserId);
+      }
     } catch (err) {
       if (err.message.includes('Token expired') && retryCount < 2) {
         setTimeout(() => fetchCases(retryCount + 1), 1000);
@@ -152,6 +199,99 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       });
     });
   }, [cases, filters]);
+
+  // ✅ Enhanced Payment Details Component
+  const PaymentDetailsRow = ({ caseItem }) => {
+    const payments = caseItem.payments || [];
+
+    if (payments.length === 0) {
+      return (
+        <tr className="bg-gray-50 text-[8px]">
+          <td colSpan="20" className="p-2">
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-center">
+              <span className="text-yellow-700">No payment records found for this case</span>
+            </div>
+          </td>
+        </tr>
+      );
+    }
+
+    return (
+      <tr className="bg-gray-50 text-[8px]">
+        <td colSpan="20" className="p-2">
+          <div className="bg-white border border-gray-300 rounded p-2">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-semibold text-gray-700">
+                Payment Details ({payments.length} payment{payments.length !== 1 ? 's' : ''})
+              </h4>
+              <span className={`px-2 py-1 rounded text-white text-[7px] ${getCasePaymentStatus(caseItem) === 'Paid' ? 'bg-green-500' :
+                  getCasePaymentStatus(caseItem) === 'Failed' ? 'bg-red-500' :
+                    getCasePaymentStatus(caseItem) === 'Partial' ? 'bg-blue-500' : 'bg-yellow-500'
+                }`}>
+                Overall: {getCasePaymentStatus(caseItem)}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto border border-gray-300 text-center text-[8px]">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th className="border px-1 py-1">#</th>
+                    <th className="border px-1 py-1">Payment ID</th>
+                    <th className="border px-1 py-1">Amount</th>
+                    <th className="border px-1 py-1">Amount Paid</th>
+                    <th className="border px-1 py-1">Amount Due</th>
+                    <th className="border px-1 py-1">Currency</th>
+                    <th className="border px-1 py-1">Status</th>
+                    <th className="border px-1 py-1">Method</th>
+                    <th className="border px-1 py-1">Receipt</th>
+                    <th className="border px-1 py-1">Created At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment, index) => (
+                    <tr key={payment.id || index} className="hover:bg-gray-50">
+                      <td className="border px-1 py-1 font-medium">{index + 1}</td>
+                      <td className="border px-1 py-1 font-mono text-[7px]">
+                        {payment.payment_id || payment.id || 'N/A'}
+                      </td>
+                      <td className="border px-1 py-1">
+                        {payment.amount ? `₹${payment.amount}` : 'N/A'}
+                      </td>
+                      <td className="border px-1 py-1">
+                        {payment.amount_paid ? `₹${payment.amount_paid}` : '₹0'}
+                      </td>
+                      <td className="border px-1 py-1">
+                        {payment.amount_due ? `₹${payment.amount_due}` : 'N/A'}
+                      </td>
+                      <td className="border px-1 py-1">{payment.currency || 'INR'}</td>
+                      <td className="border px-1 py-1">
+                        <span className={`px-1 py-0.5 rounded text-white ${payment.status === 'paid' || payment.status === 'Paid' ? 'bg-green-500' :
+                            payment.status === 'failed' || payment.status === 'Failed' ? 'bg-red-500' :
+                              'bg-yellow-500'
+                          }`}>
+                          {payment.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td className="border px-1 py-1 capitalize">
+                        {payment.method || 'N/A'}
+                      </td>
+                      <td className="border px-1 py-1">
+                        {payment.receipt || 'N/A'}
+                      </td>
+                      <td className="border px-1 py-1">
+                        {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   // ✅ Handle filters dynamically
   const handleFilterChange = (e) => {
@@ -191,16 +331,16 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     const delta = 2;
     const range = [];
     const { totalPages } = paginationInfo;
-    
+
     for (let i = Math.max(1, pagination.page - delta); i <= Math.min(totalPages, pagination.page + delta); i++) {
       range.push(i);
     }
-    
+
     if (range[0] > 2) range.unshift("...");
     if (range[0] !== 1) range.unshift(1);
     if (range[range.length - 1] < totalPages - 1) range.push("...");
     if (range[range.length - 1] !== totalPages) range.push(totalPages);
-    
+
     return range;
   };
 
@@ -224,7 +364,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     setExportLoading(true);
     try {
       const csvHeaders = [
-        'ID', 'Deposit Type', 'Status', 'Priority', 'Verified', 
+        'ID', 'Deposit Type', 'Status', 'Priority', 'Verified',
         'Payment Status', 'FD Total', 'Savings Total', 'Created At'
       ].join(',');
 
@@ -273,17 +413,15 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
 
   return (
     <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
-      {/* Back Button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-2"
-          aria-label="Go back"
-        >
-          <FaArrowLeft size={14} />
-          <h1 className="font-bold text-lg">Cases</h1>
-        </button>
-      )}
+      {/* User Role Indicator */}
+      <div className="mb-3 flex justify-between items-center">
+        <div className="text-xs font-semibold text-gray-700">
+          Viewing cases for: <span className="capitalize text-green-700">{userRole}</span>
+          {userRole !== 'admin' && (
+            <span className="text-gray-600 ml-2">(Your cases only)</span>
+          )}
+        </div>
+      </div>
 
       {/* Loading State */}
       {loading && (
@@ -448,17 +586,19 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             <FiRefreshCcw size={12} />
           </button>
 
-          {/* Delete Selected */}
-          <button
-            onClick={() => onDelete && onDelete(selectedCaseIds)}
-            disabled={selectedCaseIds.length === 0}
-            className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700 flex items-center gap-1"
-            title="Delete Selected Cases"
-            aria-label={`Delete ${selectedCaseIds.length} selected cases`}
-          >
-            <FiTrash2 size={12} />
-            {selectedCaseIds.length > 0 && `(${selectedCaseIds.length})`}
-          </button>
+          {/* Delete Selected - Only show for admin */}
+          {userRole === 'admin' && (
+            <button
+              onClick={() => onDelete && onDelete(selectedCaseIds)}
+              disabled={selectedCaseIds.length === 0}
+              className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700 flex items-center gap-1"
+              title="Delete Selected Cases"
+              aria-label={`Delete ${selectedCaseIds.length} selected cases`}
+            >
+              <FiTrash2 size={12} />
+              {selectedCaseIds.length > 0 && `(${selectedCaseIds.length})`}
+            </button>
+          )}
         </div>
       </div>
 
@@ -467,15 +607,18 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         <table className="min-w-full table-fixed border-collapse text-[9px]" aria-label="Cases table">
           <thead>
             <tr className="bg-green-700 text-white sticky top-0">
-              <th className="px-1 py-1 w-[2%]">
-                <input
-                  type="checkbox"
-                  aria-label="Select all cases"
-                  checked={selectedCaseIds.length === cases.length && cases.length > 0}
-                  onChange={toggleSelectAll}
-                  className="scale-75 cursor-pointer"
-                />
-              </th>
+              {/* Hide select all checkbox for non-admin users */}
+              {userRole === 'admin' && (
+                <th className="px-1 py-1 w-[2%]">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all cases"
+                    checked={selectedCaseIds.length === cases.length && cases.length > 0}
+                    onChange={toggleSelectAll}
+                    className="scale-75 cursor-pointer"
+                  />
+                </th>
+              )}
               <th className="px-1 py-1 w-[3%]">ID</th>
               <th className="px-2 py-1 w-[8%] text-center">Actions</th>
               <th className="px-1 py-1 w-[5%]">Deposit Type</th>
@@ -502,13 +645,15 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           <tbody className="bg-white">
             {filteredCases.length === 0 && !loading ? (
               <tr>
-                <td colSpan="20" className="text-center py-8">
+                <td colSpan={userRole === 'admin' ? "20" : "19"} className="text-center py-8">
                   <div className="text-gray-400 text-4xl mb-2">📊</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
                   <p className="text-gray-500 text-sm">
-                    {Object.values(filters).some(f => f) 
-                      ? "Try adjusting your filters to see more results." 
-                      : "Get started by creating your first case."
+                    {Object.values(filters).some(f => f)
+                      ? "Try adjusting your filters to see more results."
+                      : userRole !== 'admin'
+                        ? "You don't have any cases yet."
+                        : "Get started by creating your first case."
                     }
                   </p>
                 </td>
@@ -517,26 +662,34 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
               filteredCases.map((c, idx) => (
                 <React.Fragment key={c.id ?? idx}>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-1 py-1 text-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select case ${c.id}`}
-                        checked={selectedCaseIds.includes(c.id)}
-                        onChange={() => toggleSelectOne(c.id)}
-                        className="scale-75 cursor-pointer"
-                      />
-                    </td>
+                    {/* Hide select checkbox for non-admin users */}
+                    {userRole === 'admin' && (
+                      <td className="px-1 py-1 text-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select case ${c.id}`}
+                          checked={selectedCaseIds.includes(c.id)}
+                          onChange={() => toggleSelectOne(c.id)}
+                          className="scale-75 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-1 py-1 text-center">{c.id}</td>
                     <td className="px-2 py-1 text-center">
                       <div className="flex gap-2 justify-center items-center">
                         <button
-                          className="text-green-600 hover:text-green-700"
-                          onClick={() => toggleExpandCase(c.id)}
-                          title="Toggle Payments"
-                          aria-label={`${expandedCaseIds.includes(c.id) ? 'Collapse' : 'Expand'} payments for case ${c.id}`}
+                          className={`text-green-600 hover:text-green-700 ${(c.payments && c.payments.length > 0) ? '' : 'opacity-30 cursor-not-allowed'
+                            }`}
+                          onClick={() => (c.payments && c.payments.length > 0) && toggleExpandCase(c.id)}
+                          disabled={!c.payments || c.payments.length === 0}
+                          title={
+                            (c.payments && c.payments.length > 0)
+                              ? `Toggle ${expandedCaseIds.includes(c.id) ? 'Collapse' : 'Expand'} Payments`
+                              : 'No payments available'
+                          }
                         >
-                          <FaPlus 
-                            size={12} 
+                          <FaPlus
+                            size={12}
                             className={expandedCaseIds.includes(c.id) ? 'transform rotate-45 transition-transform' : ''}
                           />
                         </button>
@@ -548,14 +701,17 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         >
                           <FiEye size={12} />
                         </button>
-                        <button
-                          className="text-blue-600 hover:text-blue-700"
-                          onClick={() => onView && onView(c, 'edit')}
-                          title="Edit"
-                          aria-label={`Edit case ${c.id}`}
-                        >
-                          <FiEdit size={12} />
-                        </button>
+                        {/* Hide edit button for non-admin users */}
+                        {userRole === 'admin' && (
+                          <button
+                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => onView && onView(c, 'edit')}
+                            title="Edit"
+                            aria-label={`Edit case ${c.id}`}
+                          >
+                            <FiEdit size={12} />
+                          </button>
+                        )}
                         <button
                           className="text-gray-600 hover:text-gray-700"
                           onClick={() => onPrint && onPrint(c)}
@@ -586,27 +742,25 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.dnyanrudha_investment_total_amount}</td>
                     <td className="px-1 py-1 text-center">{c.dynadhara_rate}</td>
                     <td className="px-1 py-1 text-center">
-                      {c.verified ? 
-                        <FaCheck className="text-green-600 mx-auto" size={10} aria-label="Verified" /> : 
+                      {c.verified ?
+                        <FaCheck className="text-green-600 mx-auto" size={10} aria-label="Verified" /> :
                         <FaTimes className="text-red-600 mx-auto" size={10} aria-label="Not verified" />
                       }
                     </td>
                     <td className="px-1 py-1 text-center">
-                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${
-                        c.status === 'Running' ? 'bg-green-500' :
+                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${c.status === 'Running' ? 'bg-green-500' :
                         c.status === 'Closed' ? 'bg-red-500' :
-                        'bg-yellow-500'
-                      }`}>
+                          'bg-yellow-500'
+                        }`}>
                         {c.status}
                       </span>
                     </td>
                     <td className="px-1 py-1 text-center font-semibold">
-                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${
-                        getCasePaymentStatus(c) === 'Paid' ? 'bg-green-500' :
+                      <span className={`px-1 py-0.5 rounded text-white text-[8px] ${getCasePaymentStatus(c) === 'Paid' ? 'bg-green-500' :
                         getCasePaymentStatus(c) === 'Failed' ? 'bg-red-500' :
-                        getCasePaymentStatus(c) === 'Partial' ? 'bg-blue-500' :
-                        'bg-yellow-500'
-                      }`}>
+                          getCasePaymentStatus(c) === 'Partial' ? 'bg-blue-500' :
+                            'bg-yellow-500'
+                        }`}>
                         {getCasePaymentStatus(c)}
                       </span>
                     </td>
@@ -614,12 +768,12 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">
                       {c.documents?.length > 0 ? c.documents.map((doc, i) => (
-                        <a 
-                          key={i} 
-                          href={doc.url || doc.path} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="mx-0.5 text-red-600 hover:text-blue-800" 
+                        <a
+                          key={i}
+                          href={doc.url || doc.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mx-0.5 text-red-600 hover:text-blue-800"
                           title={doc.filename || doc.originalname}
                           aria-label={`View document ${doc.filename || doc.originalname}`}
                         >
@@ -630,50 +784,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                   </tr>
 
                   {/* Hierarchical payment row */}
-                  {expandedCaseIds.includes(c.id) && c.payments?.length > 0 && (
-                    <tr className="bg-gray-100 text-[8px]">
-                      <td colSpan="20" className="p-2">
-                        <div className="bg-white border border-gray-300 rounded p-2">
-                          <h4 className="font-semibold mb-2 text-gray-700">Payment Details</h4>
-                          <table className="w-full table-auto border border-gray-300 text-center text-[8px]">
-                            <thead className="bg-gray-200">
-                              <tr>
-                                <th className="border px-1 py-1">Payment ID</th>
-                                <th className="border px-1 py-1">Amount</th>
-                                <th className="border px-1 py-1">Currency</th>
-                                <th className="border px-1 py-1">Status</th>
-                                <th className="border px-1 py-1">Method</th>
-                                <th className="border px-1 py-1">Receipt</th>
-                                <th className="border px-1 py-1">Created At</th>
-                                <th className="border px-1 py-1">Updated At</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {c.payments.map((p) => (
-                                <tr key={p.id} className="hover:bg-gray-50">
-                                  <td className="border px-1 py-1">{p.payment_id}</td>
-                                  <td className="border px-1 py-1">{p.amount}</td>
-                                  <td className="border px-1 py-1">{p.currency}</td>
-                                  <td className="border px-1 py-1">
-                                    <span className={`px-1 py-0.5 rounded text-white ${
-                                      p.status === 'paid' ? 'bg-green-500' :
-                                      p.status === 'failed' ? 'bg-red-500' :
-                                      'bg-yellow-500'
-                                    }`}>
-                                      {p.status}
-                                    </span>
-                                  </td>
-                                  <td className="border px-1 py-1">{p.method}</td>
-                                  <td className="border px-1 py-1">{p.receipt}</td>
-                                  <td className="border px-1 py-1">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "-"}</td>
-                                  <td className="border px-1 py-1">{p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "-"}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </td>
-                    </tr>
+                  {expandedCaseIds.includes(c.id) && (
+                    <PaymentDetailsRow caseItem={c} />
                   )}
                 </React.Fragment>
               ))
@@ -691,6 +803,9 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             to{" "}
             <span className="font-medium">{paginationInfo.endIndex}</span>{" "}
             of <span className="font-medium">{totalRecords}</span> cases
+            {userRole !== 'admin' && (
+              <span className="text-gray-600 ml-2">(Your cases)</span>
+            )}
           </div>
 
           <div className="flex items-center gap-1 flex-wrap">
@@ -743,11 +858,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                 <button
                   key={i}
                   onClick={() => setPagination({ ...pagination, page: p })}
-                  className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    pagination.page === p
-                      ? "bg-green-800 text-white"
-                      : "bg-white border border-gray-300 hover:bg-green-100"
-                  }`}
+                  className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${pagination.page === p
+                    ? "bg-green-800 text-white"
+                    : "bg-white border border-gray-300 hover:bg-green-100"
+                    }`}
                   aria-label={`Go to page ${p}`}
                   aria-current={pagination.page === p ? 'page' : undefined}
                 >
@@ -780,11 +894,17 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       <div className="mt-4 bg-green-50 border border-green-200 p-3 rounded text-[9px] text-gray-700">
         <h3 className="font-semibold text-green-800 mb-1">Notes:</h3>
         <ul className="list-disc list-inside space-y-1">
+          <li>
+            You are viewing cases as: <span className="font-medium text-green-700 capitalize">{userRole}</span>
+            {userRole !== 'admin' && ' (only your cases)'}
+          </li>
           <li>Use <span className="font-medium text-green-700">Global Search</span> for quick keyword search across all fields.</li>
           <li>Apply specific filters using the dropdowns and checkboxes above.</li>
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
           <li>Use the <span className="font-medium text-green-700">Export button</span> to download cases as CSV.</li>
-          <li>Select multiple cases using checkboxes for bulk actions.</li>
+          {userRole === 'admin' && (
+            <li>Select multiple cases using checkboxes for bulk actions.</li>
+          )}
         </ul>
       </div>
     </div>

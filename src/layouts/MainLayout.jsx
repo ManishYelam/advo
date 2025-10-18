@@ -7,6 +7,7 @@ const MainLayout = ({ children }) => {
     <div className="flex flex-col min-h-screen">
       {/* Navbar */}
       <Navbar />
+      
 
       {/* Global Toast Notifications */}
       <Toast />
