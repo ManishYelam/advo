@@ -7,10 +7,10 @@ import Payment from "../components/Payment";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { saveApplicationData } from "../services/applicationService";
-import { 
-  FaFileUpload, 
-  FaCheckCircle, 
-  FaExclamationTriangle, 
+import {
+  FaFileUpload,
+  FaCheckCircle,
+  FaExclamationTriangle,
   FaArrowLeft,
   FaArrowRight,
   FaClipboardCheck,
@@ -66,23 +66,23 @@ const Application = () => {
   ];
 
   const exhibits = [
-    { 
-      value: "Exhibit A", 
+    {
+      value: "Exhibit A",
       label: "Exhibit A - Account Opening Documents",
       description: "Bank passbook copies and account opening slip"
     },
-    { 
-      value: "Exhibit B", 
+    {
+      value: "Exhibit B",
       label: "Exhibit B - Deposit Details",
       description: "FD, Savings, and RD amount details with statements"
     },
-    { 
-      value: "Exhibit C", 
+    {
+      value: "Exhibit C",
       label: "Exhibit C - Deposit Proof",
       description: "Copies of deposit transactions to the bank"
     },
-    { 
-      value: "Exhibit D", 
+    {
+      value: "Exhibit D",
       label: "Exhibit D - Police Statement",
       description: "Statement copy submitted to Shrirampur Police Station"
     }
@@ -135,11 +135,11 @@ const Application = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ 
-      ...prev, 
-      [name]: value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
     }));
-    
+
     // Clear validation error when user starts typing
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
@@ -181,9 +181,9 @@ const Application = () => {
     };
 
     if (statusUpdates[currentStep]) {
-      setFormData(prev => ({ 
-        ...prev, 
-        status: statusUpdates[currentStep] 
+      setFormData(prev => ({
+        ...prev,
+        status: statusUpdates[currentStep]
       }));
     }
 
@@ -199,9 +199,9 @@ const Application = () => {
     };
 
     if (statusUpdates[currentStep]) {
-      setFormData(prev => ({ 
-        ...prev, 
-        status: statusUpdates[currentStep] 
+      setFormData(prev => ({
+        ...prev,
+        status: statusUpdates[currentStep]
       }));
     }
 
@@ -212,22 +212,28 @@ const Application = () => {
     setIsSubmitting(true);
     try {
       // Merge payment response into form data
-      const updatedFormData = { 
-        ...formData, 
-        ...paymentResponse, 
+      const updatedFormData = {
+        ...formData,
+        ...paymentResponse,
         status: "Paid",
         submitted_at: new Date().toISOString()
       };
+
+      // console.log('🔄 Saving application data...');
       setFormData(updatedFormData);
+      // console.log("Final form data:", updatedFormData);
 
-      // Save data to backend
-      const res = await saveApplicationData(updatedFormData);
+      const response = await saveApplicationData(updatedFormData);
+      // console.log('Response from backend:', response.data.data);
 
-      if (!res.data?.success) {
+      if (!response.data.data?.success) {
         throw new Error("Failed to save application data");
       }
 
-      const { user, case: savedCase, payment: savedPayment } = res.data;
+      const { user, case: savedCase, payment: savedPayment } = response.data.data;
+      // console.log('User:', user);
+      // console.log('Case:', savedCase);
+      // console.log('Payment:', savedPayment); // Fixed typo: was 'payment'
 
       // Show detailed success toast
       showSuccessToast(
@@ -237,7 +243,6 @@ const Application = () => {
         `Payment: ${savedPayment.amount} (${savedPayment.status})`
       );
 
-      // Reset form for next entry
       resetForm();
 
     } catch (error) {
@@ -298,20 +303,18 @@ const Application = () => {
             <div key={step.number} className="flex flex-col items-center flex-1 relative">
               {/* Connection Line */}
               {index < steps.length - 1 && (
-                <div className={`absolute top-4 left-1/2 w-full h-0.5 z-0 ${
-                  isCompleted ? 'bg-green-500' : 'bg-gray-300'
-                }`}></div>
+                <div className={`absolute top-4 left-1/2 w-full h-0.5 z-0 ${isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                  }`}></div>
               )}
 
               {/* Step Circle */}
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 ${
-                  isActive
-                    ? "bg-green-600 text-white shadow-lg scale-110"
-                    : isCompleted
+                className={`w-10 h-10 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 ${isActive
+                  ? "bg-green-600 text-white shadow-lg scale-110"
+                  : isCompleted
                     ? "bg-green-500 text-white shadow-md"
                     : "bg-gray-200 text-gray-500"
-                }`}
+                  }`}
               >
                 {isCompleted ? (
                   <FaCheckCircle className="text-sm" />
@@ -322,15 +325,13 @@ const Application = () => {
 
               {/* Step Label */}
               <div className="mt-2 text-center">
-                <div className={`text-xs font-medium ${
-                  isActive ? "text-green-700" : 
+                <div className={`text-xs font-medium ${isActive ? "text-green-700" :
                   isCompleted ? "text-green-600" : "text-gray-500"
-                }`}>
+                  }`}>
                   Step {step.number}
                 </div>
-                <div className={`text-[10px] ${
-                  isActive ? "text-green-800 font-semibold" : "text-gray-600"
-                }`}>
+                <div className={`text-[10px] ${isActive ? "text-green-800 font-semibold" : "text-gray-600"
+                  }`}>
                   {step.title}
                 </div>
               </div>
@@ -350,7 +351,7 @@ const Application = () => {
           </span>
         </div>
         <div className="w-full bg-gray-300 rounded-full h-2">
-          <div 
+          <div
             className="bg-green-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${(currentStep / steps.length) * 100}%` }}
           ></div>
@@ -365,16 +366,15 @@ const Application = () => {
         <FaSearch className="mr-2" />
         Select Exhibit to Upload Documents
       </label>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {exhibits.map((exhibit) => (
           <div
             key={exhibit.value}
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-              selectedExhibit === exhibit.value
-                ? "border-green-500 bg-green-50 shadow-md"
-                : "border-gray-300 bg-white hover:border-green-300 hover:bg-green-25"
-            }`}
+            className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${selectedExhibit === exhibit.value
+              ? "border-green-500 bg-green-50 shadow-md"
+              : "border-gray-300 bg-white hover:border-green-300 hover:bg-green-25"
+              }`}
             onClick={() => setSelectedExhibit(exhibit.value)}
           >
             <div className="flex items-start justify-between">
@@ -392,7 +392,7 @@ const Application = () => {
                   </span>
                 </div>
               </div>
-              
+
               {selectedExhibit === exhibit.value && (
                 <FaCheckCircle className="text-green-500 ml-2 flex-shrink-0" />
               )}
@@ -427,7 +427,7 @@ const Application = () => {
         <FaClipboardCheck className="mr-2" />
         Uploaded Documents Summary
       </h3>
-      
+
       {Object.values(formData.documents).every(files => files.length === 0) ? (
         <div className="text-center py-4 text-gray-500 text-sm">
           <FaFileUpload className="mx-auto text-2xl mb-2 text-gray-400" />
@@ -559,15 +559,14 @@ const Application = () => {
             <div className="flex justify-between items-center text-sm">
               <div className="text-gray-600">
                 <span className="font-medium">Current Status:</span>{" "}
-                <span className={`font-semibold ${
-                  formData.status === "Paid" ? "text-green-600" : 
-                  formData.status === "Not Started" ? "text-red-600" : 
-                  "text-blue-600"
-                }`}>
+                <span className={`font-semibold ${formData.status === "Paid" ? "text-green-600" :
+                  formData.status === "Not Started" ? "text-red-600" :
+                    "text-blue-600"
+                  }`}>
                   {formData.status}
                 </span>
               </div>
-              
+
               {currentStep > 1 && currentStep < 5 && (
                 <button
                   onClick={resetForm}
@@ -580,7 +579,7 @@ const Application = () => {
           </div>
         </div>
       </div>
-      
+
       <Toast />
     </div>
   );
