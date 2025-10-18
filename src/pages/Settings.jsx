@@ -1,11 +1,21 @@
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import Button from "../components/Button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLoading, setIsLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
+  const [passwordChangeMethod, setPasswordChangeMethod] = useState("current"); // "current" or "otp"
+  const [otpData, setOtpData] = useState({
+    otp: "",
+    sent: false,
+    verified: false,
+    countdown: 0,
+    attempts: 0
+  });
 
   // User data from localStorage
   const user = JSON.parse(localStorage.getItem("user")) || {};
@@ -38,6 +48,107 @@ const Settings = () => {
     twoFactorAuth: false
   });
 
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let interval;
+    if (otpData.countdown > 0) {
+      interval = setInterval(() => {
+        setOtpData(prev => ({
+          ...prev,
+          countdown: prev.countdown - 1
+        }));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpData.countdown]);
+
+  // Send OTP function
+  const handleSendOtp = async () => {
+    if (otpData.countdown > 0) {
+      alert(`Please wait ${otpData.countdown} seconds before requesting a new OTP`);
+      return;
+    }
+
+    if (otpData.attempts >= 5) {
+      alert("Too many OTP attempts. Please try again after 30 minutes.");
+      return;
+    }
+
+    setOtpLoading(true);
+    
+    // Simulate API call to send OTP
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // In real app, you would call an API like:
+      // await sendOtpToEmail(user.email);
+      // or
+      // await sendOtpToPhone(user.phone_number);
+      
+      setOtpData(prev => ({
+        ...prev,
+        sent: true,
+        countdown: 60, // 60 seconds countdown
+        attempts: prev.attempts + 1,
+        verified: false,
+        otp: "" // Clear previous OTP
+      }));
+      
+      alert(`OTP sent successfully to your registered email/phone!`);
+    } catch (error) {
+      alert("Failed to send OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP function
+  const handleVerifyOtp = async () => {
+    if (!otpData.otp || otpData.otp.length !== 6) {
+      alert("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setVerifyOtpLoading(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In real app, you would verify OTP with backend:
+      // const isValid = await verifyOtp(user.email, otpData.otp);
+      const isValid = otpData.otp === "123456"; // Demo OTP for testing
+      
+      if (isValid) {
+        setOtpData(prev => ({
+          ...prev,
+          verified: true
+        }));
+        alert("OTP verified successfully! You can now set your new password.");
+      } else {
+        alert("Invalid OTP. Please try again.");
+        setOtpData(prev => ({
+          ...prev,
+          otp: ""
+        }));
+      }
+    } catch (error) {
+      alert("Failed to verify OTP. Please try again.");
+    } finally {
+      setVerifyOtpLoading(false);
+    }
+  };
+
+  // Reset OTP state
+  const resetOtpState = () => {
+    setOtpData({
+      otp: "",
+      sent: false,
+      verified: false,
+      countdown: 0,
+      attempts: 0
+    });
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -56,23 +167,59 @@ const Settings = () => {
   const handleSecurityUpdate = async (e) => {
     e.preventDefault();
     
+    if (passwordChangeMethod === "current") {
+      // Current password method validation
+      if (!securityData.currentPassword) {
+        alert("Please enter your current password!");
+        return;
+      }
+    } else {
+      // OTP method validation
+      if (!otpData.verified) {
+        alert("Please verify OTP first!");
+        return;
+      }
+    }
+
     if (securityData.newPassword !== securityData.confirmPassword) {
       alert("New passwords don't match!");
       return;
     }
 
+    // Password strength validation
+    if (securityData.newPassword.length < 8) {
+      alert("Password must be at least 8 characters long!");
+      return;
+    }
+
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Reset form
-    setSecurityData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
-    
-    setIsLoading(false);
-    alert("Password updated successfully!");
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // In real app, you would call:
+      // if (passwordChangeMethod === "current") {
+      //   await changePasswordWithCurrent(securityData.currentPassword, securityData.newPassword);
+      // } else {
+      //   await changePasswordWithOtp(securityData.newPassword, otpData.otp);
+      // }
+      
+      // Reset all forms
+      setSecurityData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      resetOtpState();
+      setPasswordChangeMethod("current");
+      
+      setIsLoading(false);
+      alert("Password updated successfully!");
+    } catch (error) {
+      setIsLoading(false);
+      alert("Failed to update password. Please try again.");
+    }
   };
 
   const handlePreferenceChange = (key, value) => {
@@ -231,21 +378,138 @@ const Settings = () => {
             {activeTab === "security" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Security Settings</h2>
-                <form onSubmit={handleSecurityUpdate} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Password
-                    </label>
-                    <input
-                      type="password"
-                      value={securityData.currentPassword}
-                      onChange={(e) => setSecurityData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      placeholder="Enter current password"
-                      required
-                    />
+                
+                {/* Password Change Method Toggle */}
+                <div className="mb-6">
+                  <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setPasswordChangeMethod("current");
+                        resetOtpState();
+                      }}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                        passwordChangeMethod === "current"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Use Current Password
+                    </button>
+                    <button
+                      onClick={() => setPasswordChangeMethod("otp")}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                        passwordChangeMethod === "otp"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Use OTP Verification
+                    </button>
                   </div>
+                </div>
 
+                <form onSubmit={handleSecurityUpdate} className="space-y-6">
+                  {/* Current Password Method */}
+                  {passwordChangeMethod === "current" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={securityData.currentPassword}
+                        onChange={(e) => setSecurityData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        placeholder="Enter current password"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* OTP Method */}
+                  {passwordChangeMethod === "otp" && (
+                    <div className="space-y-4">
+                      {/* OTP Send Section */}
+                      {!otpData.sent && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-blue-800">
+                                Verify your identity with OTP
+                              </p>
+                              <p className="text-sm text-blue-600 mt-1">
+                                We'll send a 6-digit code to your registered email/phone
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              onClick={handleSendOtp}
+                              disabled={otpLoading || otpData.countdown > 0}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              {otpLoading ? "Sending..." : otpData.countdown > 0 ? `Resend in ${otpData.countdown}s` : "Send OTP"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* OTP Input Section */}
+                      {otpData.sent && !otpData.verified && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <label className="block text-sm font-medium text-yellow-800 mb-2">
+                            Enter OTP
+                          </label>
+                          <div className="flex gap-3">
+                            <input
+                              type="text"
+                              maxLength={6}
+                              value={otpData.otp}
+                              onChange={(e) => setOtpData(prev => ({ ...prev, otp: e.target.value.replace(/\D/g, '') }))}
+                              className="flex-1 px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-center text-lg font-mono"
+                              placeholder="123456"
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleVerifyOtp}
+                              disabled={verifyOtpLoading || otpData.otp.length !== 6}
+                              className="bg-yellow-600 hover:bg-yellow-700"
+                            >
+                              {verifyOtpLoading ? "Verifying..." : "Verify OTP"}
+                            </Button>
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                            <p className="text-xs text-yellow-700">
+                              OTP sent to your registered contact
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleSendOtp}
+                              disabled={otpData.countdown > 0}
+                              className="text-xs text-yellow-700 hover:text-yellow-800 underline disabled:opacity-50"
+                            >
+                              {otpData.countdown > 0 ? `Resend in ${otpData.countdown}s` : "Resend OTP"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* OTP Verified Section */}
+                      {otpData.verified && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-sm font-medium text-green-800">
+                              OTP verified successfully
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* New Password Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -286,8 +550,20 @@ const Settings = () => {
                     </ul>
                   </div>
 
+                  {/* Demo Note for OTP */}
+                  {passwordChangeMethod === "otp" && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <p className="text-sm text-purple-700">
+                        <strong>Demo Note:</strong> Use "123456" as OTP for testing purposes.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex justify-end">
-                    <Button type="submit" disabled={isLoading}>
+                    <Button 
+                      type="submit" 
+                      disabled={isLoading || (passwordChangeMethod === "otp" && !otpData.verified)}
+                    >
                       {isLoading ? "Updating..." : "Update Password"}
                     </Button>
                   </div>

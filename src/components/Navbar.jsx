@@ -71,15 +71,15 @@ const Navbar = () => {
   };
 
   const markNotificationAsRead = (id) => {
-    setNotifications(prev => 
-      prev.map(notif => 
+    setNotifications(prev =>
+      prev.map(notif =>
         notif.id === id ? { ...notif, read: true } : notif
       )
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(notif => ({ ...notif, read: true }))
     );
   };
@@ -158,11 +158,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
                       ? "bg-green-600 text-white shadow-inner"
                       : "text-green-100 hover:bg-green-600 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <Icon size={14} />
                   <span>{item.label}</span>
@@ -204,9 +203,8 @@ const Navbar = () => {
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notification.read ? "bg-blue-50" : ""
-                        }`}
+                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : ""
+                          }`}
                         onClick={() => markNotificationAsRead(notification.id)}
                       >
                         <p className="text-sm text-gray-800">{notification.message}</p>
@@ -248,11 +246,10 @@ const Navbar = () => {
                 <p className="text-sm font-medium text-white">{userFullName}</p>
                 <p className="text-xs text-green-200">{userRole}</p>
               </div>
-              <FaChevronDown 
-                size={12} 
-                className={`text-green-200 transition-transform ${
-                  openProfile ? "rotate-180" : ""
-                }`} 
+              <FaChevronDown
+                size={12}
+                className={`text-green-200 transition-transform ${openProfile ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -278,14 +275,6 @@ const Navbar = () => {
 
                 {/* Profile Links */}
                 <div className="p-2">
-                  <Link
-                    to="/profile"
-                    className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
-                    onClick={() => setOpenProfile(false)}
-                  >
-                    <FaUserCircle className="text-gray-500" size={16} />
-                    <span>My Profile</span>
-                  </Link>
                   <Link
                     to="/settings"
                     className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 rounded-lg transition-colors"
@@ -328,11 +317,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${isActive
                       ? "bg-green-100 text-green-700 border-l-4 border-green-600"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setOpenMobileMenu(false)}
                 >
                   <Icon size={16} className={isActive ? "text-green-600" : "text-gray-500"} />
@@ -340,7 +328,7 @@ const Navbar = () => {
                 </Link>
               );
             })}
-            
+
             {/* Mobile Profile Links */}
             <div className="border-t border-gray-200 pt-2 mt-2">
               <Link
@@ -373,7 +361,7 @@ const Navbar = () => {
 
       {/* Overlay for mobile menu */}
       {openMobileMenu && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setOpenMobileMenu(false)}
         />
