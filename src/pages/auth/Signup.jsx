@@ -329,7 +329,7 @@ const Signup = () => {
                 disabled={loading}
               >
                 <option value="client">Client</option>
-                <option value="admin">Administrator</option>
+                {/* <option value="admin">Administrator</option> */}
                 <option value="advocate">Legal Advocate</option>
               </select>
             </div>

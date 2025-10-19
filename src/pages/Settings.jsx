@@ -1,8 +1,28 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import Button from "../components/Button";
-import { useState, useEffect } from "react";
 import { changePasswordWithOtp, oldChangePasswordService } from "../services/authService";
+// import ViewAllCases from "./ViewAllCases";
+import Application from "./Application";
+import AdminFeedbackManagement from "../components/AdminFeedbackManagement";
+import FeedbackHistory from "../components/FeedbackHistory";
+import {
+  FaFolderOpen,
+  FaPlus,
+  FaUser,
+  FaComments,
+  FaHistory,
+  FaChartBar,
+  FaUsers,
+  FaCog,
+  FaShieldAlt,
+  FaBell,
+  FaPalette,
+  FaSave,
+  FaTimes,
+  FaArrowLeft
+} from "react-icons/fa";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -10,7 +30,7 @@ const Settings = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
   const [resendVerificationLoading, setResendVerificationLoading] = useState(false);
-  const [passwordChangeMethod, setPasswordChangeMethod] = useState("current"); // "current" or "otp"
+  const [passwordChangeMethod, setPasswordChangeMethod] = useState("current");
   const [otpData, setOtpData] = useState({
     otp: "",
     sent: false,
@@ -70,6 +90,31 @@ const Settings = () => {
     autoSave: true,
     twoFactorAuth: false
   });
+
+  // Check if user is admin
+  const isAdmin = user.role === 'admin' || user.role === 'Admin';
+
+  // Tabs configuration
+  const userTabs = [
+    { id: "profile", label: "Profile", icon: FaUser },
+    { id: "security", label: "Security", icon: FaShieldAlt },
+    { id: "preferences", label: "Preferences", icon: FaPalette },
+    { id: "notifications", label: "Notifications", icon: FaBell },
+    { id: "feedback-history", label: "My Feedback", icon: FaHistory },
+  ];
+
+  const adminTabs = [
+    { id: "profile", label: "Profile", icon: FaUser },
+    { id: "security", label: "Security", icon: FaShieldAlt },
+    { id: "preferences", label: "Preferences", icon: FaPalette },
+    { id: "notifications", label: "Notifications", icon: FaBell },
+    { id: "feedback-history", label: "My Feedback", icon: FaHistory },
+    { id: "cases", label: "Case Management", icon: FaFolderOpen },
+    { id: "add-case", label: "Add New Case", icon: FaPlus },
+    { id: "feedback-management", label: "Feedback Management", icon: FaComments },
+  ];
+
+  const tabs = isAdmin ? adminTabs : userTabs;
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -310,13 +355,11 @@ const Settings = () => {
 
       // In real app, you would call:
       if (passwordChangeMethod === "current") {
-        // Fixed: Use actual variable names from securityData state
         await oldChangePasswordService(
           securityData.currentPassword, 
           securityData.newPassword
         );
       } else {
-        // Fixed: Use actual variable names
         await changePasswordWithOtp({ 
           otp: otpData.otp, 
           new_password: securityData.newPassword 
@@ -352,45 +395,85 @@ const Settings = () => {
     }));
   };
 
-  const tabs = [
-    { id: "profile", label: "Profile", icon: "👤" },
-    { id: "security", label: "Security", icon: "🔒" },
-    { id: "preferences", label: "Preferences", icon: "⚙️" },
-    { id: "notifications", label: "Notifications", icon: "🔔" },
-  ];
-
   // Get password requirements status
   const passwordValidation = securityData.newPassword ? validatePassword(securityData.newPassword) : null;
+
+  // Render back button for nested views
+  const renderBackButton = () => (
+    <button 
+      onClick={() => setActiveTab("profile")} 
+      className="mb-4 flex items-center gap-2 text-gray-800 hover:text-gray-600 transition px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md"
+    >
+      <FaArrowLeft size={16} /> Back to Settings
+    </button>
+  );
 
   return (
     <DashboardLayout>
       <div className="m-3">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
-          <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
-        </div>
-
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Navigation */}
           <div className="lg:w-64">
             <Card className="p-4">
+              {/* Compact Header in Sidebar */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-lg font-bold text-gray-800">Settings</h1>
+                  {isAdmin && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs flex items-center gap-1">
+                      <FaCog size={10} />
+                      Admin
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-600 text-xs">
+                  {isAdmin 
+                    ? "Account & system administration" 
+                    : "Manage your account preferences"
+                  }
+                </p>
+              </div>
+
               <nav className="space-y-1">
-                {tabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-green-100 text-green-700 border border-green-200"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <span className="text-lg">{tab.icon}</span>
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                ))}
+                {tabs.map(tab => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                        activeTab === tab.id
+                          ? "bg-green-100 text-green-700 border border-green-200"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Icon size={16} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  );
+                })}
               </nav>
+
+              {/* Admin Quick Stats */}
+              {isAdmin && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Admin Quick Stats</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Total Cases</span>
+                      <span className="font-medium text-blue-600">24</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Pending Feedback</span>
+                      <span className="font-medium text-yellow-600">5</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Active Users</span>
+                      <span className="font-medium text-green-600">142</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </Card>
           </div>
 
@@ -903,6 +986,53 @@ const Settings = () => {
                       <label htmlFor="system-alerts" className="text-sm text-gray-700">System alerts and maintenance</label>
                     </div>
                   </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Feedback History */}
+            {activeTab === "feedback-history" && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  <FeedbackHistory />
+                </div>
+              </Card>
+            )}
+
+            {/* Case Management (Admin Only) */}
+            {activeTab === "cases" && isAdmin && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  {/* <ViewAllCases 
+                    onDelete={(caseIds) => console.log('Delete cases:', caseIds)}
+                    onSave={(updatedCase) => console.log('Save case:', updatedCase)}
+                    onBack={() => setActiveTab("profile")}
+                    onView={(caseData) => console.log('View case:', caseData)}
+                    onPrint={(caseData) => console.log('Print case:', caseData)}
+                    onMore={(caseData) => console.log('More options:', caseData)}
+                  /> */}
+                </div>
+              </Card>
+            )}
+
+            {/* Add New Case (Admin Only) */}
+            {activeTab === "add-case" && isAdmin && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  <Application onAdd={(newCase) => console.log('Add case:', newCase)} />
+                </div>
+              </Card>
+            )}
+
+            {/* Feedback Management (Admin Only) */}
+            {activeTab === "feedback-management" && isAdmin && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  <AdminFeedbackManagement />
                 </div>
               </Card>
             )}

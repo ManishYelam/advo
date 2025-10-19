@@ -1,47 +1,147 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
-import Button from "../components/Button";
-import { FaPlus, FaCheck, FaTimes, FaArrowLeft } from "react-icons/fa";
-import { FiTrash2, FiEdit, FiRefreshCcw, FiEye, FiPrinter, FiMoreVertical } from "react-icons/fi";
-import { useNavigate } from "react-router-dom"; // optional if using react-router
+import { FaPlus, FaCheck, FaTimes, FaArrowLeft, FaDownload, FaSearch } from "react-icons/fa";
+import { FiTrash2, FiEdit, FiRefreshCcw, FiEye, FiPrinter, FiMoreVertical, FiUserPlus } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
-const Clients = ({ fetchClientsApi, onDeleteClient, onEditClient, onView, onPrint, onMore }) => {
+// Debounce utility for search
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+const Clients = ({ 
+  fetchClientsApi, 
+  onDeleteClient, 
+  onEditClient, 
+  onView, 
+  onPrint, 
+  onMore, 
+  onAddClient,
+  userRole = "admin"
+}) => {
   const [clients, setClients] = useState([]);
-  const [filters, setFilters] = useState({ globalSearch: "", status: "", verified: "" });
+  const [filters, setFilters] = useState({ 
+    globalSearch: "", 
+    status: "", 
+    verified: "",
+    searchField: "",
+    searchValue: ""
+  });
   const [selectedClientIds, setSelectedClientIds] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [totalRecords, setTotalRecords] = useState(0);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [bulkAction, setBulkAction] = useState("");
 
-  const navigate = useNavigate(); // optional: for back navigation
+  const navigate = useNavigate();
+  const debouncedSearchRef = React.useRef();
 
-  const fetchClients = async () => {
+  useEffect(() => {
+    debouncedSearchRef.current = debounce((value) => {
+      setFilters(prev => ({ ...prev, globalSearch: value }));
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 300);
+  }, []);
+
+  const fetchClients = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = fetchClientsApi ? await fetchClientsApi({ filters, pagination }) : null;
-      const data = response?.data || [
-        { id: 1, name: "John Doe", email: "john@example.com", phone: "1234567890", address: "123 Street", company: "ABC Corp", createdAt: "2025-10-17", status: "Active", verified: true },
-        { id: 2, name: "Jane Smith", email: "jane@example.com", phone: "0987654321", address: "456 Avenue", company: "XYZ Ltd", createdAt: "2025-10-15", status: "Inactive", verified: false },
-      ];
+      let data;
+      if (fetchClientsApi) {
+        const response = await fetchClientsApi({ filters, pagination });
+        data = response?.data || [];
+        setTotalRecords(response?.totalRecords || data.length);
+      } else {
+        data = [
+          { 
+            id: 1, 
+            name: "John Doe", 
+            email: "john@example.com", 
+            phone: "+1 (555) 123-4567", 
+            address: "123 Main Street, New York, NY 10001", 
+            company: "ABC Corp", 
+            createdAt: "2025-01-15T10:30:00Z", 
+            status: "Active", 
+            verified: true,
+            clientSince: "2024-01-15",
+            lastActive: "2025-01-10",
+            totalCases: 5,
+            activeCases: 2
+          },
+          { 
+            id: 2, 
+            name: "Jane Smith", 
+            email: "jane@example.com", 
+            phone: "+1 (555) 987-6543", 
+            address: "456 Oak Avenue, Los Angeles, CA 90210", 
+            company: "XYZ Ltd", 
+            createdAt: "2025-01-10T14:20:00Z", 
+            status: "Inactive", 
+            verified: false,
+            clientSince: "2024-03-20",
+            lastActive: "2024-12-15",
+            totalCases: 3,
+            activeCases: 0
+          }
+        ];
+        setTotalRecords(data.length);
+      }
       setClients(data);
-      setTotalRecords(response?.totalRecords || data.length);
     } catch (err) {
-      console.error("Failed to fetch clients:", err);
+      setError(`Failed to fetch clients: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination, fetchClientsApi]);
 
-  useEffect(() => { fetchClients(); }, [filters, pagination]);
+  useEffect(() => { 
+    fetchClients(); 
+  }, [fetchClients]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
+    if (name === "globalSearch") {
+      debouncedSearchRef.current(value);
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
   };
 
+  const filteredClients = useMemo(() => {
+    return clients.filter(client => {
+      const matchesGlobalSearch = !filters.globalSearch || 
+        Object.values(client).some(val => 
+          val?.toString().toLowerCase().includes(filters.globalSearch.toLowerCase())
+        );
+      const matchesStatus = !filters.status || client.status === filters.status;
+      const matchesVerified = filters.verified === "" || 
+        (filters.verified === "true" && client.verified) || 
+        (filters.verified === "false" && !client.verified);
+      const matchesFieldSearch = !filters.searchField || !filters.searchValue ||
+        client[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
+
+      return matchesGlobalSearch && matchesStatus && matchesVerified && matchesFieldSearch;
+    });
+  }, [clients, filters]);
+
   const toggleSelectAll = (e) => {
-    e.target.checked ? setSelectedClientIds(clients.map(c => c.id)) : setSelectedClientIds([]);
+    if (e.target.checked) {
+      setSelectedClientIds(filteredClients.map(c => c.id));
+    } else {
+      setSelectedClientIds([]);
+    }
   };
 
   const toggleSelectOne = (id) => {
@@ -50,163 +150,512 @@ const Clients = ({ fetchClientsApi, onDeleteClient, onEditClient, onView, onPrin
     );
   };
 
-  const filteredClients = clients.filter(c => {
-    const matchesSearch = !filters.globalSearch || c.name.toLowerCase().includes(filters.globalSearch.toLowerCase());
-    const matchesStatus = !filters.status || c.status === filters.status;
-    const matchesVerified = filters.verified === "" || (filters.verified === "true" && c.verified) || (filters.verified === "false" && !c.verified);
-    return matchesSearch && matchesStatus && matchesVerified;
-  });
+  const handleBulkAction = () => {
+    if (bulkAction && selectedClientIds.length > 0) {
+      switch (bulkAction) {
+        case "delete":
+          if (window.confirm(`Delete ${selectedClientIds.length} client(s)?`)) {
+            onDeleteClient?.(selectedClientIds);
+            setSelectedClientIds([]);
+          }
+          break;
+        case "export":
+          handleExport();
+          break;
+        default:
+          break;
+      }
+      setBulkAction("");
+    }
+  };
 
-  const totalPages = Math.ceil(totalRecords / pagination.limit);
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const csvHeaders = ['ID', 'Name', 'Email', 'Phone', 'Company', 'Status', 'Verified', 'Client Since', 'Total Cases', 'Active Cases'].join(',');
+      const csvRows = filteredClients.map(client => [
+        client.id,
+        `"${client.name}"`,
+        client.email,
+        client.phone,
+        `"${client.company}"`,
+        client.status,
+        client.verified ? 'Yes' : 'No',
+        client.clientSince ? new Date(client.clientSince).toLocaleDateString() : '-',
+        client.totalCases || 0,
+        client.activeCases || 0
+      ].join(','));
+      const csvContent = [csvHeaders, ...csvRows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `clients-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      setError(`Export failed: ${err.message}`);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ globalSearch: "", status: "", verified: "", searchField: "", searchValue: "" });
+    setPagination({ page: 1, limit: 10 });
+    setSelectedClientIds([]);
+  };
+
+  const paginationInfo = useMemo(() => ({
+    totalPages: Math.ceil(totalRecords / pagination.limit),
+    startIndex: (pagination.page - 1) * pagination.limit + 1,
+    endIndex: Math.min(pagination.page * pagination.limit, totalRecords)
+  }), [pagination, totalRecords]);
+
+  const getPageNumbers = () => {
+    const delta = 2;
+    const range = [];
+    const { totalPages } = paginationInfo;
+
+    for (let i = Math.max(1, pagination.page - delta); i <= Math.min(totalPages, pagination.page + delta); i++) {
+      range.push(i);
+    }
+
+    if (range[0] > 2) range.unshift("...");
+    if (range[0] !== 1) range.unshift(1);
+    if (range[range.length - 1] < totalPages - 1) range.push("...");
+    if (range[range.length - 1] !== totalPages) range.push(totalPages);
+
+    return range;
+  };
+
+  const canEditDelete = userRole === "admin";
+  const canAddClients = userRole === "admin" || userRole === "advocate";
 
   return (
     <DashboardLayout>
-      <div className="m-[10px]">
-        {/* Header with Back button */}
-        <div className="flex justify-between items-center mb-4">
+      <div className="m-3 min-h-screen bg-gray-50 rounded-lg p-3">
+        {/* Header - Compact */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate(-1)} // go back in history
-              className="px-2 py-1 rounded hover:bg-gray-300 flex items-center gap-1"
+              onClick={() => navigate(-1)}
+              className="p-1.5 rounded hover:bg-gray-200 transition-colors duration-200 text-gray-600"
+              title="Go back"
             >
-              <FaArrowLeft size={12} />
+              <FaArrowLeft size={14} />
             </button>
-            <h1 className="font-bold">Clients</h1>
+            <div>
+              <h1 className="text-lg font-bold text-gray-800">Clients</h1>
+              <p className="text-gray-600 text-xs">
+                Manage client relationships
+              </p>
+            </div>
+          </div>
+          
+          {canAddClients && (
+            <button
+              onClick={onAddClient}
+              className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors duration-200 flex items-center gap-1 font-medium"
+            >
+              <FiUserPlus size={12} />
+              Add Client
+            </button>
+          )}
+        </div>
+
+        {/* Stats Overview - Compact */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+          <div className="bg-white p-2 rounded shadow-sm border text-center">
+            <div className="text-lg font-bold text-gray-800">{totalRecords}</div>
+            <div className="text-gray-600 text-xs">Total</div>
+          </div>
+          <div className="bg-white p-2 rounded shadow-sm border text-center">
+            <div className="text-lg font-bold text-green-600">
+              {clients.filter(c => c.status === "Active").length}
+            </div>
+            <div className="text-gray-600 text-xs">Active</div>
+          </div>
+          <div className="bg-white p-2 rounded shadow-sm border text-center">
+            <div className="text-lg font-bold text-blue-600">
+              {clients.filter(c => c.verified).length}
+            </div>
+            <div className="text-gray-600 text-xs">Verified</div>
+          </div>
+          <div className="bg-white p-2 rounded shadow-sm border text-center">
+            <div className="text-lg font-bold text-orange-600">
+              {clients.reduce((sum, client) => sum + (client.activeCases || 0), 0)}
+            </div>
+            <div className="text-gray-600 text-xs">Active Cases</div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap justify-between items-center mb-3 gap-2">
-          <div className="flex flex-wrap gap-2">
-            <input type="text" name="globalSearch" value={filters.globalSearch} onChange={handleFilterChange} placeholder="Global Search..." className="px-2 py-1 border rounded text-sm" />
-            <select name="status" value={filters.status} onChange={handleFilterChange} className="px-2 py-1 border rounded text-sm">
-              <option value="">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <select name="verified" value={filters.verified} onChange={handleFilterChange} className="px-2 py-1 border rounded text-sm">
-              <option value="">All</option>
-              <option value="true">Verified</option>
-              <option value="false">Unverified</option>
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button onClick={() => { setFilters({ globalSearch: "", status: "", verified: "" }); setPagination({ page: 1, limit: 10 }); }} className="px-3 py-1 bg-yellow-500 text-white rounded flex items-center gap-1">
-              <FiRefreshCcw size={14} />
-            </button>
-            <button className="px-3 py-1 bg-blue-500 text-white rounded flex items-center gap-1"><FaPlus size={14} /></button>
-            <button onClick={() => onDeleteClient && onDeleteClient(selectedClientIds)} disabled={selectedClientIds.length === 0} className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 flex items-center gap-1">
-              <FiTrash2 size={14} />
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-xs mb-3 flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+              <FaTimes size={12} />
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 rounded shadow">
-          <table className="min-w-full text-[12px]">
-            <thead className="bg-green-700 text-white">
-              <tr>
-                <th className="px-2 py-1 text-center w-4">
-                  <input type="checkbox" checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0} onChange={toggleSelectAll} className="scale-75" />
-                </th>
-                <th className="px-2 py-1 text-center w-[10%]">Actions</th>
-                <th className="px-2 py-1 text-center">Name</th>
-                <th className="px-2 py-1 text-center">Email</th>
-                <th className="px-2 py-1 text-center">Phone</th>
-                <th className="px-2 py-1 text-center">Address</th>
-                <th className="px-2 py-1 text-center">Company</th>
-                <th className="px-2 py-1 text-center">Created At</th>
-                <th className="px-2 py-1 text-center">Verified</th>
-                <th className="px-2 py-1 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white text-center">
-              {loading ? (
-                <tr><td colSpan="10" className="py-4">Loading...</td></tr>
-              ) : filteredClients.length === 0 ? (
-                <tr><td colSpan="10" className="py-4 text-gray-500">No clients found.</td></tr>
-              ) : (
-                filteredClients.map(c => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-2 py-1"><input type="checkbox" checked={selectedClientIds.includes(c.id)} onChange={() => toggleSelectOne(c.id)} className="scale-75" /></td>
-                    <td className="px-2 py-1">
-                      <div className="flex gap-2 justify-center items-center">
-                        <button className="text-green-600 hover:text-green-700" onClick={() => onView && onView(c)} title="View"><FiEye size={14} /></button>
-                        <button className="text-blue-600 hover:text-blue-700" onClick={() => onEditClient && onEditClient(c)} title="Edit"><FiEdit size={14} /></button>
-                        <button className="text-gray-600 hover:text-gray-700" onClick={() => onPrint && onPrint(c)} title="Print"><FiPrinter size={14} /></button>
-                        <button className="text-gray-600 hover:text-gray-700" onClick={() => onMore && onMore(c)} title="More Options"><FiMoreVertical size={14} /></button>
-                      </div>
-                    </td>
-                    <td className="px-2 py-1">{c.name}</td>
-                    <td className="px-2 py-1">{c.email}</td>
-                    <td className="px-2 py-1">{c.phone}</td>
-                    <td className="px-2 py-1">{c.address || "-"}</td>
-                    <td className="px-2 py-1">{c.company || "-"}</td>
-                    <td className="px-2 py-1">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "-"}</td>
-                    <td className="px-2 py-1">{c.verified ? <FaCheck className="text-green-600 mx-auto" /> : <FaTimes className="text-red-600 mx-auto" />}</td>
-                    <td className="px-2 py-1">{c.status}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Filters and Actions - Left & Right Aligned */}
+        <div className="bg-white p-3 rounded shadow-sm border mb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            {/* Filters - Left Side */}
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              {/* Global Search */}
+              <div className="relative">
+                <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={12} />
+                <input
+                  type="text"
+                  name="globalSearch"
+                  value={filters.globalSearch}
+                  onChange={handleFilterChange}
+                  placeholder="Search clients..."
+                  className="pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-48"
+                />
+              </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2 text-[10px]">
-          <div>
-            Showing{" "}
-            <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>{" "}
-            to <span className="font-medium">{Math.min(pagination.page * pagination.limit, totalRecords)}</span>{" "}
-            of <span className="font-medium">{totalRecords}</span> clients
-          </div>
-
-          <div className="flex items-center gap-1 flex-wrap">
-            <div className="flex items-center gap-1 ml-2">
-              <span>Show</span>
+              {/* Field Search */}
               <select
-                value={pagination.limit}
-                onChange={(e) =>
-                  setPagination((prev) => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))
-                }
-                className="px-2 py-1 border rounded text-[10px]"
+                name="searchField"
+                value={filters.searchField}
+                onChange={handleFilterChange}
+                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
               >
-                {[5, 10, 20, 50].map((num) => <option key={num} value={num}>{num}</option>)}
+                <option value="">Search Field</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="company">Company</option>
+                <option value="phone">Phone</option>
               </select>
-              <span>per page</span>
+
+              <input
+                type="text"
+                name="searchValue"
+                value={filters.searchValue}
+                onChange={handleFilterChange}
+                placeholder="Search value..."
+                disabled={!filters.searchField}
+                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32 disabled:bg-gray-100"
+              />
+
+              {/* Status & Verified */}
+              <select
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
+                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28"
+              >
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              <select
+                name="verified"
+                value={filters.verified}
+                onChange={handleFilterChange}
+                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
+              >
+                <option value="">All Clients</option>
+                <option value="true">Verified Only</option>
+                <option value="false">Unverified Only</option>
+              </select>
+
+              {/* Bulk Actions */}
+              {canEditDelete && selectedClientIds.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <select
+                    value={bulkAction}
+                    onChange={(e) => setBulkAction(e.target.value)}
+                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28"
+                  >
+                    <option value="">Bulk Actions</option>
+                    <option value="delete">Delete</option>
+                    <option value="export">Export</option>
+                  </select>
+                  <button
+                    onClick={handleBulkAction}
+                    disabled={!bulkAction}
+                    className="px-2 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    Apply
+                  </button>
+                  <span className="text-xs text-gray-600 ml-1">
+                    ({selectedClientIds.length})
+                  </span>
+                </div>
+              )}
             </div>
 
-            <button onClick={() => setPagination({ ...pagination, page: 1 })} disabled={pagination.page === 1} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">First</button>
-            <button onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })} disabled={pagination.page === 1} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">Prev</button>
+            {/* Actions - Right Side */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-1.5 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors duration-200 flex items-center gap-1"
+              >
+                <FiRefreshCcw size={12} />
+                Reset
+              </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-              if (p === 1 || p === totalPages || Math.abs(p - pagination.page) <= 1) {
-                return (
-                  <button key={p} onClick={() => setPagination({ ...pagination, page: p })} className={`px-2 py-1 rounded ${pagination.page === p ? "bg-green-800 text-white" : "bg-white border border-gray-300 hover:bg-green-100"}`}>
-                    {p}
-                  </button>
-                );
-              } else if ((p === 2 && pagination.page > 3) || (p === totalPages - 1 && pagination.page < totalPages - 2)) {
-                return <span key={p} className="px-2 py-1 text-gray-500">...</span>;
-              } else {
-                return null;
-              }
-            })}
-
-            <button onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })} disabled={pagination.page === totalPages} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">Next</button>
-            <button onClick={() => setPagination({ ...pagination, page: totalPages })} disabled={pagination.page === totalPages} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700">Last</button>
+              <button
+                onClick={handleExport}
+                disabled={exportLoading || filteredClients.length === 0}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1"
+              >
+                {exportLoading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                ) : (
+                  <FaDownload size={12} />
+                )}
+                Export
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Notes */}
-        <div className="mt-4 bg-green-50 border border-green-200 p-3 rounded text-sm text-gray-700">
-          <h3 className="font-semibold text-green-800 mb-1">Notes:</h3>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Use Global Search to quickly find clients.</li>
-            <li>Filters allow narrowing by Status or Verified.</li>
-            <li>Reset clears filters and pagination.</li>
-            <li>Verified and Unverified selections are mutually exclusive.</li>
+        {/* Table - Compact */}
+        <div className="bg-white rounded shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead className="bg-green-700 text-white">
+                <tr>
+                  {canEditDelete && (
+                    <th className="px-2 py-2 text-left w-8">
+                      <input
+                        type="checkbox"
+                        checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
+                      />
+                    </th>
+                  )}
+                  <th className="px-2 py-2 text-left">Client</th>
+                  <th className="px-2 py-2 text-left">Contact</th>
+                  <th className="px-2 py-2 text-center">Cases</th>
+                  <th className="px-2 py-2 text-center">Status</th>
+                  <th className="px-2 py-2 text-center">Verified</th>
+                  <th className="px-2 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={canEditDelete ? 7 : 6} className="px-2 py-4 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        <span className="text-gray-600 text-xs">Loading clients...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredClients.length === 0 ? (
+                  <tr>
+                    <td colSpan={canEditDelete ? 7 : 6} className="px-2 py-6 text-center">
+                      <div className="text-gray-400 text-2xl mb-1">👥</div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">No clients found</h3>
+                      <p className="text-gray-500 text-xs">
+                        {Object.values(filters).some(f => f) 
+                          ? "Adjust filters to see results" 
+                          : "Add your first client"}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-gray-50">
+                      {canEditDelete && (
+                        <td className="px-2 py-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedClientIds.includes(client.id)}
+                            onChange={() => toggleSelectOne(client.id)}
+                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
+                          />
+                        </td>
+                      )}
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-green-800 font-semibold text-xs">
+                              {client.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-gray-900 text-xs truncate">{client.name}</div>
+                            <div className="text-gray-500 text-xs truncate">{client.company}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="space-y-0.5">
+                          <div className="text-gray-900 text-xs truncate">{client.email}</div>
+                          <div className="text-gray-600 text-xs">{client.phone}</div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">{client.totalCases || 0}</div>
+                          <div className="text-xs">
+                            <span className={`px-1.5 py-0.5 rounded-full ${
+                              (client.activeCases || 0) > 0 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {client.activeCases || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          client.status === 'Active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {client.status}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {client.verified ? (
+                          <FaCheck className="text-green-600 mx-auto" size={12} />
+                        ) : (
+                          <FaTimes className="text-red-600 mx-auto" size={12} />
+                        )}
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="flex justify-center gap-1">
+                          <button
+                            onClick={() => onView?.(client)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                            title="View"
+                          >
+                            <FiEye size={12} />
+                          </button>
+                          {canEditDelete && (
+                            <button
+                              onClick={() => onEditClient?.(client)}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors duration-200"
+                              title="Edit"
+                            >
+                              <FiEdit size={12} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onPrint?.(client)}
+                            className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
+                            title="Print"
+                          >
+                            <FiPrinter size={12} />
+                          </button>
+                          <button
+                            onClick={() => onMore?.(client)}
+                            className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
+                            title="More"
+                          >
+                            <FiMoreVertical size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Compact Pagination */}
+        {filteredClients.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2">
+            <div className="text-xs text-gray-600">
+              Showing <span className="font-semibold">{paginationInfo.startIndex}</span> to{" "}
+              <span className="font-semibold">{paginationInfo.endIndex}</span> of{" "}
+              <span className="font-semibold">{totalRecords}</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 text-xs">
+                <span>Show</span>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) =>
+                    setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))
+                  }
+                  className="px-1 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                >
+                  {[5, 10, 20, 50].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
+                  disabled={pagination.page === 1}
+                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={pagination.page === 1}
+                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
+                >
+                  Prev
+                </button>
+
+                {getPageNumbers().map((page, index) =>
+                  page === "..." ? (
+                    <span key={`ellipsis-${index}`} className="px-1 py-1 text-gray-500 text-xs">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setPagination(prev => ({ ...prev, page }))}
+                      className={`px-2 py-1 border rounded text-xs ${
+                        pagination.page === page
+                          ? "bg-green-600 text-white border-green-600"
+                          : "border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                  disabled={pagination.page === paginationInfo.totalPages}
+                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: paginationInfo.totalPages }))}
+                  disabled={pagination.page === paginationInfo.totalPages}
+                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
+                >
+                  Last
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Compact Help Section */}
+        <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+          <h3 className="font-semibold text-blue-800 mb-1">💡 Quick Tips</h3>
+          <ul className="text-blue-700 space-y-0.5 list-disc list-inside">
+            <li>Use search and filters to find clients</li>
+            <li>Select multiple clients for bulk actions</li>
+            {canAddClients && <li>Add new clients with the Add Client button</li>}
           </ul>
         </div>
       </div>

@@ -139,8 +139,9 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           priority: filters.priority || undefined,
           verified: filters.verified === "true" ? true :
             filters.verified === "false" ? false : undefined,
-          // Add client_id filter for non-admin users
-          ...(currentUserRole !== 'admin' && currentUserId && { client_id: currentUserId })
+          // Add role-based filters
+          ...(currentUserRole === 'client' && currentUserId && { client_id: currentUserId }),
+          ...(currentUserRole === 'advocate' && currentUserId && { advocate_id: currentUserId })
         },
       };
 

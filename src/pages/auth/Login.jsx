@@ -35,6 +35,13 @@ const Login = () => {
     { role: "Client", email: "client@example.com", password: "Client@123" }
   ];
 
+  // Role-based redirect paths (faster than switch)
+  const roleRedirects = {
+    admin: "/admin",
+    advocate: "/advocate", 
+    client: "/client"
+  };
+
   // Load remembered email if exists
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("rememberedEmail");
@@ -85,7 +92,8 @@ const Login = () => {
       login(res.data.user, res.data.token);
       
       // Redirect based on role
-      const redirectPath = res.data.user.role === "admin" ? "/admin" : "/client";
+      const userRole = res.data.user.role;
+      const redirectPath = roleRedirects[userRole] || "/client";
       navigate(redirectPath, { 
         replace: true,
         state: { message: `Welcome back, ${res.data.user.full_name || res.data.user.email}!` }
@@ -153,12 +161,12 @@ const Login = () => {
             />
             
             <div className="mt-8 text-left bg-white bg-opacity-10 p-4 rounded-xl backdrop-blur-sm">
-              <h3 className="font-semibold mb-2">Why choose our platform?</h3>
+              <h3 className="font-semibold mb-2">Platform Access</h3>
               <ul className="text-sm space-y-1 opacity-90">
-                <li>• Secure case management</li>
-                <li>• Real-time collaboration</li>
-                <li>• Document tracking</li>
-                <li>• Client portal access</li>
+                <li>• Admin: Full system control</li>
+                <li>• Advocate: Case management</li>
+                <li>• Client: Case tracking & documents</li>
+                <li>• Secure role-based access</li>
               </ul>
             </div>
           </div>
@@ -205,6 +213,9 @@ const Login = () => {
                     </button>
                   ))}
                 </div>
+                <p className="text-xs text-yellow-600 mt-2">
+                  Each role has different permissions and dashboard access.
+                </p>
               </div>
             )}
           </div>
