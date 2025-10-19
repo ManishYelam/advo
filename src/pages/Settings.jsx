@@ -2,6 +2,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { useState, useEffect } from "react";
+import { changePasswordWithOtp, oldChangePasswordService } from "../services/authService";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -17,17 +18,38 @@ const Settings = () => {
     attempts: 0
   });
 
-  // User data from localStorage
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  // User data from localStorage with safe parsing
+  const [user, setUser] = useState({});
   
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setProfileData({
+          full_name: parsedUser.full_name || "",
+          email: parsedUser.email || "",
+          phone: parsedUser.phone_number || "",
+          address: parsedUser.address || "",
+          occupation: parsedUser.occupation || "",
+          bio: parsedUser.bio || ""
+        });
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      setUser({});
+    }
+  }, []);
+
   // Form states
   const [profileData, setProfileData] = useState({
-    full_name: user.full_name || "",
-    email: user.email || "",
-    phone: user.phone_number || "",
-    address: user.address || "",
-    occupation: user.occupation || "",
-    bio: user.bio || ""
+    full_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    occupation: "",
+    bio: ""
   });
 
   const [securityData, setSecurityData] = useState({
@@ -62,6 +84,26 @@ const Settings = () => {
     return () => clearInterval(interval);
   }, [otpData.countdown]);
 
+  // Password strength validation function
+  const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+    
+    return {
+      isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
+      requirements: {
+        minLength: password.length >= minLength,
+        hasUpperCase,
+        hasLowerCase,
+        hasNumbers,
+        hasSpecialChar
+      }
+    };
+  };
+
   // Send OTP function
   const handleSendOtp = async () => {
     if (otpData.countdown > 0) {
@@ -75,16 +117,11 @@ const Settings = () => {
     }
 
     setOtpLoading(true);
-    
-    // Simulate API call to send OTP
+
     try {
+      // Simulate API call to send OTP
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // In real app, you would call an API like:
-      // await sendOtpToEmail(user.email);
-      // or
-      // await sendOtpToPhone(user.phone_number);
-      
+
       setOtpData(prev => ({
         ...prev,
         sent: true,
@@ -93,7 +130,7 @@ const Settings = () => {
         verified: false,
         otp: "" // Clear previous OTP
       }));
-      
+
       alert(`OTP sent successfully to your registered email/phone!`);
     } catch (error) {
       alert("Failed to send OTP. Please try again.");
@@ -110,14 +147,13 @@ const Settings = () => {
     }
 
     setVerifyOtpLoading(true);
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In real app, you would verify OTP with backend:
-      // const isValid = await verifyOtp(user.email, otpData.otp);
-      const isValid = otpData.otp === "123456"; // Demo OTP for testing
-      
+
+      // Demo OTP for testing - in real app, verify with backend
+      const isValid = otpData.otp === "123456";
+
       if (isValid) {
         setOtpData(prev => ({
           ...prev,
@@ -149,76 +185,107 @@ const Settings = () => {
     });
   };
 
+  // Reset security form
+  const resetSecurityForm = () => {
+    setSecurityData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!profileData.full_name.trim()) {
+      alert("Full name is required!");
+      return;
+    }
+
+    if (!profileData.email.trim()) {
+      alert("Email is required!");
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update localStorage
-    const updatedUser = { ...user, ...profileData };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    
-    setIsLoading(false);
-    alert("Profile updated successfully!");
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update localStorage
+      const updatedUser = { ...user, ...profileData };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
+      alert("Profile updated successfully!");
+    } catch (error) {
+      alert("Failed to update profile. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSecurityUpdate = async (e) => {
     e.preventDefault();
-    
+
+    // Method-specific validation
     if (passwordChangeMethod === "current") {
-      // Current password method validation
       if (!securityData.currentPassword) {
         alert("Please enter your current password!");
         return;
       }
     } else {
-      // OTP method validation
       if (!otpData.verified) {
         alert("Please verify OTP first!");
         return;
       }
     }
 
+    // Password confirmation validation
     if (securityData.newPassword !== securityData.confirmPassword) {
       alert("New passwords don't match!");
       return;
     }
 
     // Password strength validation
-    if (securityData.newPassword.length < 8) {
-      alert("Password must be at least 8 characters long!");
+    const passwordValidation = validatePassword(securityData.newPassword);
+    if (!passwordValidation.isValid) {
+      alert("Password does not meet the strength requirements!");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // In real app, you would call:
-      // if (passwordChangeMethod === "current") {
-      //   await changePasswordWithCurrent(securityData.currentPassword, securityData.newPassword);
-      // } else {
-      //   await changePasswordWithOtp(securityData.newPassword, otpData.otp);
-      // }
-      
+      if (passwordChangeMethod === "current") {
+        // Fixed: Use actual variable names from securityData state
+        await oldChangePasswordService(
+          securityData.currentPassword, 
+          securityData.newPassword
+        );
+      } else {
+        // Fixed: Use actual variable names
+        await changePasswordWithOtp({ 
+          otp: otpData.otp, 
+          new_password: securityData.newPassword 
+        });
+      }
+
       // Reset all forms
-      setSecurityData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
+      resetSecurityForm();
       resetOtpState();
-      setPasswordChangeMethod("current");
       
-      setIsLoading(false);
       alert("Password updated successfully!");
     } catch (error) {
+      alert(error.message || "Failed to update password. Please try again.");
+    } finally {
       setIsLoading(false);
-      alert("Failed to update password. Please try again.");
     }
   };
 
@@ -245,6 +312,9 @@ const Settings = () => {
     { id: "preferences", label: "Preferences", icon: "⚙️" },
     { id: "notifications", label: "Notifications", icon: "🔔" },
   ];
+
+  // Get password requirements status
+  const passwordValidation = securityData.newPassword ? validatePassword(securityData.newPassword) : null;
 
   return (
     <DashboardLayout>
@@ -288,7 +358,7 @@ const Settings = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name
+                        Full Name *
                       </label>
                       <input
                         type="text"
@@ -296,12 +366,13 @@ const Settings = () => {
                         onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         placeholder="Enter your full name"
+                        required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address
+                        Email Address *
                       </label>
                       <input
                         type="email"
@@ -309,6 +380,7 @@ const Settings = () => {
                         onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         placeholder="Enter your email"
+                        required
                       />
                     </div>
 
@@ -378,7 +450,7 @@ const Settings = () => {
             {activeTab === "security" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Security Settings</h2>
-                
+
                 {/* Password Change Method Toggle */}
                 <div className="mb-6">
                   <div className="flex border border-gray-300 rounded-lg overflow-hidden">
@@ -386,6 +458,7 @@ const Settings = () => {
                       onClick={() => {
                         setPasswordChangeMethod("current");
                         resetOtpState();
+                        resetSecurityForm();
                       }}
                       className={`flex-1 py-2 text-sm font-medium transition-colors ${
                         passwordChangeMethod === "current"
@@ -396,7 +469,10 @@ const Settings = () => {
                       Use Current Password
                     </button>
                     <button
-                      onClick={() => setPasswordChangeMethod("otp")}
+                      onClick={() => {
+                        setPasswordChangeMethod("otp");
+                        resetSecurityForm();
+                      }}
                       className={`flex-1 py-2 text-sm font-medium transition-colors ${
                         passwordChangeMethod === "otp"
                           ? "bg-green-600 text-white"
@@ -540,13 +616,30 @@ const Settings = () => {
                     </div>
                   </div>
 
+                  {/* Password Requirements */}
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h3 className="text-sm font-medium text-yellow-800 mb-2">Password Requirements</h3>
                     <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• Minimum 8 characters</li>
-                      <li>• At least one uppercase letter</li>
-                      <li>• At least one number</li>
-                      <li>• At least one special character</li>
+                      <li className={`flex items-center gap-2 ${passwordValidation?.requirements.minLength ? 'text-green-600' : ''}`}>
+                        <span>{passwordValidation?.requirements.minLength ? '✓' : '•'}</span>
+                        Minimum 8 characters
+                      </li>
+                      <li className={`flex items-center gap-2 ${passwordValidation?.requirements.hasUpperCase ? 'text-green-600' : ''}`}>
+                        <span>{passwordValidation?.requirements.hasUpperCase ? '✓' : '•'}</span>
+                        At least one uppercase letter
+                      </li>
+                      <li className={`flex items-center gap-2 ${passwordValidation?.requirements.hasLowerCase ? 'text-green-600' : ''}`}>
+                        <span>{passwordValidation?.requirements.hasLowerCase ? '✓' : '•'}</span>
+                        At least one lowercase letter
+                      </li>
+                      <li className={`flex items-center gap-2 ${passwordValidation?.requirements.hasNumbers ? 'text-green-600' : ''}`}>
+                        <span>{passwordValidation?.requirements.hasNumbers ? '✓' : '•'}</span>
+                        At least one number
+                      </li>
+                      <li className={`flex items-center gap-2 ${passwordValidation?.requirements.hasSpecialChar ? 'text-green-600' : ''}`}>
+                        <span>{passwordValidation?.requirements.hasSpecialChar ? '✓' : '•'}</span>
+                        At least one special character
+                      </li>
                     </ul>
                   </div>
 
@@ -560,8 +653,8 @@ const Settings = () => {
                   )}
 
                   <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isLoading || (passwordChangeMethod === "otp" && !otpData.verified)}
                     >
                       {isLoading ? "Updating..." : "Update Password"}
@@ -596,7 +689,7 @@ const Settings = () => {
             {activeTab === "preferences" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Application Preferences</h2>
-                
+
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -654,7 +747,7 @@ const Settings = () => {
             {activeTab === "notifications" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Notification Preferences</h2>
-                
+
                 <div className="space-y-6">
                   <div className="flex items-center justify-between py-3">
                     <div>
