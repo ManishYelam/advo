@@ -536,7 +536,7 @@ const Navbar = () => {
                     <span>Give Feedback</span>
                   </button>
                   <button
-                    onClick={() => navigate('/help')}
+                    onClick={() => navigate('/support')}
                     className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-1"
                   >
                     <FaQuestionCircle size={16} />
@@ -672,7 +672,7 @@ const Navbar = () => {
               </button>
               
               <button
-                onClick={() => navigate('/help')}
+                onClick={() => navigate('/support')}
                 className="flex items-center space-x-3 w-full px-3 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
               >
                 <FaQuestionCircle size={16} />
