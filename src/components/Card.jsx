@@ -1,7 +1,12 @@
-const Card = ({ title, children, className = "" }) => {
+// src/components/Card.jsx
+import React from 'react';
+
+const Card = ({ children, className = "", ...props }) => {
   return (
-    <div className={`bg-white shadow-md rounded p-4 ${className}`}>
-      {title && <h3 className="font-semibold text-lg mb-2">{title}</h3>}
+    <div 
+      className={`bg-white rounded-lg shadow-md border border-gray-200 ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );

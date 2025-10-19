@@ -4,6 +4,10 @@ export const loginService = (data) => axiosInstance.post(`/login`, data);
 
 export const signupService = (data) => axiosInstance.post(`/users`, data);
 
+export const verifyEmailService = (userId, otp) => axiosInstance.post(`/users/verify?userId=${userId}&otp=${otp}`);
+
+export const resendVerification = (userId) => axiosInstance.post(`/users/resend-verification?userId=${userId}`);
+
 export const forgetPasswordService = (email) => axiosInstance.post(`/forget-password/${email}`);
 
 export const oldChangePasswordService = (data) => axiosInstance.post(`/change-password`, data);
@@ -12,4 +16,4 @@ export const changePasswordWithOtp = (data) => axiosInstance.post(`/change-passw
 
 export const otpChangePasswordService = (email) => axiosInstance.post(`/reset-password/${email}`);
 
-export const logoutService =  () =>  axiosInstance.post(`/logout`);
+export const logoutService = () => axiosInstance.post(`/logout`);

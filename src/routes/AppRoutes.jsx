@@ -22,6 +22,8 @@ import NotificationsPage from "../pages/Notifications";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import ResetPassword from "../pages/auth/ResetPassword";
 import VerifyOTP from "../pages/auth/VerifyOTP";
+import VerifyEmail from "../pages/auth/verifyEmail";
+import Support from "../pages/Support";
 
 const AppRoutes = () => {
   const { user } = useAuth(); // user context
@@ -34,6 +36,8 @@ const AppRoutes = () => {
         <Route path="/apply" element={<Application />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/verify-email/:userId/:otp" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />

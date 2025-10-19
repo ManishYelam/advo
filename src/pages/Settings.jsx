@@ -9,6 +9,7 @@ const Settings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
+  const [resendVerificationLoading, setResendVerificationLoading] = useState(false);
   const [passwordChangeMethod, setPasswordChangeMethod] = useState("current"); // "current" or "otp"
   const [otpData, setOtpData] = useState({
     otp: "",
@@ -194,6 +195,37 @@ const Settings = () => {
     });
   };
 
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    if (!user.id) {
+      alert("User not found. Please log in again.");
+      return;
+    }
+
+    setResendVerificationLoading(true);
+    try {
+      const response = await fetch('https://mbvdvt7z-5000.inc1.devtunnels.ms/api/users/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert('Verification email sent successfully! Please check your inbox.');
+      } else {
+        alert(data.message || 'Failed to send verification email');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setResendVerificationLoading(false);
+    }
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     
@@ -206,6 +238,20 @@ const Settings = () => {
     if (!profileData.email.trim()) {
       alert("Email is required!");
       return;
+    }
+
+    // Check if email was changed
+    const emailChanged = profileData.email !== user.email;
+    if (emailChanged) {
+      // Reset verification status if email changed
+      const updatedUser = { 
+        ...user, 
+        ...profileData, 
+        email_verified: false 
+      };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      alert("Profile updated! Please verify your new email address.");
     }
 
     setIsLoading(true);
@@ -354,6 +400,39 @@ const Settings = () => {
             {activeTab === "profile" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Profile Settings</h2>
+                
+                {/* Email Verification Status */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        Email Verification Status
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        {user.email_verified ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Your email is verified
+                          </span>
+                        ) : (
+                          'Your email is not verified. Please check your inbox for verification link.'
+                        )}
+                      </p>
+                    </div>
+                    {!user.email_verified && (
+                      <Button
+                        onClick={handleResendVerification}
+                        disabled={resendVerificationLoading}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {resendVerificationLoading ? 'Sending...' : 'Resend Verification'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 <form onSubmit={handleProfileUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -382,6 +461,11 @@ const Settings = () => {
                         placeholder="Enter your email"
                         required
                       />
+                      {profileData.email !== user.email && (
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Email changed. You will need to verify your new email address.
+                        </p>
+                      )}
                     </div>
 
                     <div>
