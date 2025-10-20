@@ -3,17 +3,21 @@ import { getAllCases, deleteCase } from "../services/casesService";
 import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 
-// Debounce utility function
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
+// Custom hook for debounce
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
     };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
+  }, [value, delay]);
+
+  return debouncedValue;
 };
 
 // Token validation utility
@@ -104,14 +108,14 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [userId, setUserId] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  
+
   // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [casesToDelete, setCasesToDelete] = useState([]);
   const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
-  // Refs for debouncing
-  const debouncedSearchRef = useRef();
+  // Use debounce for global search
+  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500); // 500ms delay
 
   // Initialize user data from localStorage
   useEffect(() => {
@@ -126,14 +130,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         setUserRole('client');
       }
     }
-  }, []);
-
-  // Initialize debounced functions
-  useEffect(() => {
-    debouncedSearchRef.current = debounce((value) => {
-      setFilters(prev => ({ ...prev, globalSearch: value }));
-      setPagination(prev => ({ ...prev, page: 1 }));
-    }, 300);
   }, []);
 
   // ✅ Compute Payment Status from hierarchical payments
@@ -167,8 +163,8 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       const payload = {
         page: pagination.page,
         limit: pagination.limit,
-        searchFields: "case_name, client_name",
-        search: filters.globalSearch || "",
+        searchFields: "",
+        search: debouncedGlobalSearch || "", // Use debounced value here
         filters: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
@@ -218,18 +214,20 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     }
   };
 
-  // ✅ Automatically fetch whenever filters or pagination changes
+  // ✅ Automatically fetch whenever debounced search, filters or pagination changes
   useEffect(() => {
     fetchCases();
-  }, [filters, pagination]);
+  }, [debouncedGlobalSearch, filters.status, filters.priority, filters.verified, pagination.page, pagination.limit]);
 
-  // ✅ Apply filters to cases
+  // ✅ Apply filters to cases (only for frontend filters like searchField)
   const filteredCases = useMemo(() => {
     return cases.filter(caseItem => {
       return Object.entries(filters).every(([key, value]) => {
         if (key === "searchField") {
           return filterConfigs.searchField(caseItem, value, filters);
         }
+        // Skip globalSearch as it's handled by backend
+        if (key === "globalSearch") return true;
         return filterConfigs[key] ? filterConfigs[key](caseItem, value) : true;
       });
     });
@@ -243,8 +241,8 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     }
 
     setCasesToDelete(caseIds);
-    
-    const message = caseIds.length === 1 
+
+    const message = caseIds.length === 1
       ? `Are you sure you want to delete case #${caseIds[0]}? This action cannot be undone.`
       : `Are you sure you want to delete ${caseIds.length} selected cases? This action cannot be undone.`;
 
@@ -273,7 +271,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       await Promise.all(deletePromises);
 
       // Show success message
-      const successMessage = casesToDelete.length === 1 
+      const successMessage = casesToDelete.length === 1
         ? `Case #${casesToDelete[0]} deleted successfully`
         : `${casesToDelete.length} cases deleted successfully`;
 
@@ -283,13 +281,13 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
       // Refresh the cases list
       await fetchCases();
-      
+
       // Clear selections
       setSelectedCaseIds([]);
       setSelectedRowId(null);
 
       // Show success message
-      setError(successMessage); // Using error state to show success message (you might want to use a separate success state)
+      setError(successMessage);
 
     } catch (err) {
       setError(`Failed to delete cases: ${err.message}`);
@@ -412,10 +410,9 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
-    if (name === "globalSearch") {
-      debouncedSearchRef.current(value);
-    } else {
-      setFilters((prev) => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    // Only reset pagination for non-global search fields
+    if (name !== "globalSearch") {
       setPagination((prev) => ({ ...prev, page: 1 }));
     }
   };
