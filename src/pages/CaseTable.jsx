@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getAllCases } from "../services/casesService";
+import { getAllCases, deleteCase } from "../services/casesService";
 import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 
@@ -55,7 +55,35 @@ const filterConfigs = {
   }
 };
 
-const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
+// Custom Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Delete", cancelText = "Cancel" }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [cases, setCases] = useState([]);
   const [expandedCaseIds, setExpandedCaseIds] = useState([]);
   const [filters, setFilters] = useState({
@@ -74,7 +102,13 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   const [exportLoading, setExportLoading] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [selectedRowId, setSelectedRowId] = useState(null); // New state for row selection
+  const [selectedRowId, setSelectedRowId] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [casesToDelete, setCasesToDelete] = useState([]);
+  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
   // Refs for debouncing
   const debouncedSearchRef = useRef();
@@ -146,7 +180,6 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
         },
       };
 
-      // console.log(`Fetching cases for ${currentUserRole} user ${currentUserId}`);
       const response = await getAllCases(payload);
 
       // Transform the response data to ensure consistent structure
@@ -201,6 +234,84 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       });
     });
   }, [cases, filters]);
+
+  // ✅ Show Delete Confirmation
+  const showDeleteConfirmation = (caseIds) => {
+    if (!caseIds || caseIds.length === 0) {
+      setError("No cases selected for deletion");
+      return;
+    }
+
+    setCasesToDelete(caseIds);
+    
+    const message = caseIds.length === 1 
+      ? `Are you sure you want to delete case #${caseIds[0]}? This action cannot be undone.`
+      : `Are you sure you want to delete ${caseIds.length} selected cases? This action cannot be undone.`;
+
+    setDeleteConfirmMessage(message);
+    setShowDeleteConfirm(true);
+  };
+
+  // ✅ DELETE CASE FUNCTIONALITY
+  const handleDeleteCase = async () => {
+    setDeleteLoading(true);
+    setError(null);
+
+    try {
+      const user = localStorage.getItem("user");
+      if (!user) throw new Error("User not logged in");
+
+      const parsedUser = JSON.parse(user);
+      const token = parsedUser?.token;
+
+      if (!token || isTokenExpired(token)) {
+        throw new Error("Token expired. Please login again.");
+      }
+
+      // Delete cases one by one
+      const deletePromises = casesToDelete.map(id => deleteCase(id));
+      await Promise.all(deletePromises);
+
+      // Show success message
+      const successMessage = casesToDelete.length === 1 
+        ? `Case #${casesToDelete[0]} deleted successfully`
+        : `${casesToDelete.length} cases deleted successfully`;
+
+      // Close confirmation modal
+      setShowDeleteConfirm(false);
+      setCasesToDelete([]);
+
+      // Refresh the cases list
+      await fetchCases();
+      
+      // Clear selections
+      setSelectedCaseIds([]);
+      setSelectedRowId(null);
+
+      // Show success message
+      setError(successMessage); // Using error state to show success message (you might want to use a separate success state)
+
+    } catch (err) {
+      setError(`Failed to delete cases: ${err.message}`);
+      setShowDeleteConfirm(false);
+      setCasesToDelete([]);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // ✅ DELETE SINGLE CASE (from action buttons)
+  const handleDeleteSingleCase = (caseItem, e) => {
+    e.stopPropagation();
+    showDeleteConfirmation([caseItem.id]);
+  };
+
+  // ✅ Cancel Delete
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setCasesToDelete([]);
+    setDeleteConfirmMessage("");
+  };
 
   // ✅ Enhanced Payment Details Component
   const PaymentDetailsRow = ({ caseItem }) => {
@@ -442,6 +553,9 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       case 'print':
         onPrint && onPrint(caseItem);
         break;
+      case 'delete':
+        handleDeleteSingleCase(caseItem, e);
+        break;
       case 'more':
         onMore && onMore(caseItem);
         break;
@@ -452,6 +566,17 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
 
   return (
     <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={handleCancelDelete}
+        onConfirm={handleDeleteCase}
+        title="Confirm Deletion"
+        message={deleteConfirmMessage}
+        confirmText={deleteLoading ? "Deleting..." : "Delete"}
+        cancelText="Cancel"
+      />
+
       {/* User Role Indicator */}
       <div className="mb-3 flex justify-between items-center">
         <div className="text-xs font-semibold text-gray-700">
@@ -469,16 +594,16 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       </div>
 
       {/* Loading State */}
-      {loading && (
+      {(loading || deleteLoading) && (
         <div className="flex items-center justify-center py-4" aria-live="polite">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-          <span className="ml-2">Loading cases...</span>
+          <span className="ml-2">{deleteLoading ? "Deleting cases..." : "Loading cases..."}</span>
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-3" role="alert">
+        <div className={`px-3 py-2 rounded mb-3 ${error.includes('successfully') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`} role="alert">
           {error}
         </div>
       )}
@@ -634,13 +759,17 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           {/* Delete Selected - Only show for admin */}
           {userRole === 'admin' && (
             <button
-              onClick={() => onDelete && onDelete(selectedCaseIds)}
-              disabled={selectedCaseIds.length === 0}
+              onClick={() => showDeleteConfirmation(selectedCaseIds)}
+              disabled={selectedCaseIds.length === 0 || deleteLoading}
               className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 hover:bg-red-700 flex items-center gap-1"
               title="Delete Selected Cases"
               aria-label={`Delete ${selectedCaseIds.length} selected cases`}
             >
-              <FiTrash2 size={12} />
+              {deleteLoading ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-1 border-white"></div>
+              ) : (
+                <FiTrash2 size={12} />
+              )}
               {selectedCaseIds.length > 0 && `(${selectedCaseIds.length})`}
             </button>
           )}
@@ -749,16 +878,27 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         >
                           <FiEye size={12} />
                         </button>
-                        {/* Hide edit button for non-admin users */}
+                        {/* Hide edit and delete buttons for non-admin users */}
                         {userRole === 'admin' && (
-                          <button
-                            className="text-blue-600 hover:text-blue-700"
-                            onClick={(e) => handleActionButtonClick('edit', c, e)}
-                            title="Edit"
-                            aria-label={`Edit case ${c.id}`}
-                          >
-                            <FiEdit size={12} />
-                          </button>
+                          <>
+                            <button
+                              className="text-blue-600 hover:text-blue-700"
+                              onClick={(e) => handleActionButtonClick('edit', c, e)}
+                              title="Edit"
+                              aria-label={`Edit case ${c.id}`}
+                            >
+                              <FiEdit size={12} />
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-700"
+                              onClick={(e) => handleActionButtonClick('delete', c, e)}
+                              title="Delete"
+                              aria-label={`Delete case ${c.id}`}
+                              disabled={deleteLoading}
+                            >
+                              <FiTrash2 size={12} />
+                            </button>
+                          </>
                         )}
                         <button
                           className="text-gray-600 hover:text-gray-700"
@@ -953,7 +1093,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
           <li>Use the <span className="font-medium text-green-700">Export button</span> to download cases as CSV.</li>
           {userRole === 'admin' && (
-            <li>Select multiple cases using checkboxes for bulk actions.</li>
+            <>
+              <li>Select multiple cases using checkboxes for bulk actions.</li>
+              <li>Use the <span className="font-medium text-red-700">Delete button</span> to remove individual cases or bulk delete selected cases.</li>
+            </>
           )}
         </ul>
       </div>
