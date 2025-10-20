@@ -61,6 +61,7 @@ const Navbar = () => {
   // Check user roles for conditional rendering
   const isAdmin = userRole.toLowerCase() === 'admin';
   const isAdvocate = userRole.toLowerCase() === 'advocate';
+  const isClient = userRole.toLowerCase() === 'client';
   const showBillingOptions = isAdmin || isAdvocate;
 
   // Sample notifications
@@ -73,6 +74,16 @@ const Navbar = () => {
     ];
     setNotifications(sampleNotifications);
   }, []);
+
+  // Navigation items - Conditionally exclude "Clients" for client users
+  const navItems = [
+    { path: "/", label: "Home", icon: FaHome },
+    { path: "/cases", label: "Cases", icon: FaFolderOpen },
+    // Only show "Clients" if user is NOT a client
+    ...(isClient ? [] : [{ path: "/clients", label: "Clients", icon: FaUsers }]),
+    { path: "/calendar", label: "Calendar", icon: FaCalendarAlt },
+    { path: "/documents", label: "Documents", icon: FaFileAlt },
+  ];
 
   const handleLogout = async () => {
     try {
@@ -280,15 +291,6 @@ const Navbar = () => {
   const trimmedMessageLength = feedback.message.trim().length;
 
   const unreadCount = notifications.filter(n => !n.read).length;
-
-  // Navigation items
-  const navItems = [
-    { path: "/", label: "Home", icon: FaHome },
-    { path: "/cases", label: "Cases", icon: FaFolderOpen },
-    { path: "/clients", label: "Clients", icon: FaUsers },
-    { path: "/calendar", label: "Calendar", icon: FaCalendarAlt },
-    { path: "/documents", label: "Documents", icon: FaFileAlt },
-  ];
 
   // Close dropdowns when clicking outside
   useEffect(() => {

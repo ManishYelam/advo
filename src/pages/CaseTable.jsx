@@ -74,6 +74,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   const [exportLoading, setExportLoading] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [selectedRowId, setSelectedRowId] = useState(null); // New state for row selection
 
   // Refs for debouncing
   const debouncedSearchRef = useRef();
@@ -219,18 +220,12 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
 
     return (
       <tr className="bg-gray-50 text-[8px]">
-        <td colSpan="20" className="p-2">
-          <div className="bg-white border border-gray-300 rounded p-2">
-            <div className="flex justify-between items-center mb-2">
+        <td colSpan="20" >
+          <div className="bg-white rounded p-2">
+            <div className="flex justify-between items-center ">
               <h4 className="font-semibold text-gray-700">
                 Payment Details ({payments.length} payment{payments.length !== 1 ? 's' : ''})
               </h4>
-              <span className={`px-2 py-1 rounded text-white text-[7px] ${getCasePaymentStatus(caseItem) === 'Paid' ? 'bg-green-500' :
-                  getCasePaymentStatus(caseItem) === 'Failed' ? 'bg-red-500' :
-                    getCasePaymentStatus(caseItem) === 'Partial' ? 'bg-blue-500' : 'bg-yellow-500'
-                }`}>
-                Overall: {getCasePaymentStatus(caseItem)}
-              </span>
             </div>
 
             <div className="overflow-x-auto">
@@ -251,7 +246,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                 </thead>
                 <tbody>
                   {payments.map((payment, index) => (
-                    <tr key={payment.id || index} className="hover:bg-gray-50">
+                    <tr key={payment.id || index} className="hover:bg-pink-100">
                       <td className="border px-1 py-1 font-medium">{index + 1}</td>
                       <td className="border px-1 py-1 font-mono text-[7px]">
                         {payment.payment_id || payment.id || 'N/A'}
@@ -268,8 +263,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                       <td className="border px-1 py-1">{payment.currency || 'INR'}</td>
                       <td className="border px-1 py-1">
                         <span className={`px-1 py-0.5 rounded text-white ${payment.status === 'paid' || payment.status === 'Paid' ? 'bg-green-500' :
-                            payment.status === 'failed' || payment.status === 'Failed' ? 'bg-red-500' :
-                              'bg-yellow-500'
+                          payment.status === 'failed' || payment.status === 'Failed' ? 'bg-red-500' :
+                            'bg-yellow-500'
                           }`}>
                           {payment.status || 'Pending'}
                         </span>
@@ -315,10 +310,29 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
   };
 
   // ✅ Toggle hierarchical payment row
-  const toggleExpandCase = (id) => {
+  const toggleExpandCase = (id, e) => {
+    if (e) e.stopPropagation(); // Prevent row click when clicking expand button
     setExpandedCaseIds((prev) =>
       prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
     );
+  };
+
+  // ✅ Handle row selection with highlighting
+  const handleRowClick = (caseId, e) => {
+    // Don't trigger row selection when clicking on action buttons or checkboxes
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
+      return;
+    }
+
+    setSelectedRowId(caseId === selectedRowId ? null : caseId);
+  };
+
+  // ✅ Get row background color based on selection state
+  const getRowBackgroundColor = (caseId) => {
+    if (caseId === selectedRowId) {
+      return 'bg-blue-200 border-l-4 border-blue-500'; // Selected row with blue accent
+    }
+    return 'bg-white hover:bg-pink-100'; // Default state
   };
 
   // ✅ Pagination calculations
@@ -354,7 +368,8 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
     }
   };
 
-  const toggleSelectOne = (id) => {
+  const toggleSelectOne = (id, e) => {
+    if (e) e.stopPropagation(); // Prevent row click when clicking checkbox
     setSelectedCaseIds((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
@@ -409,7 +424,30 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
       verified: "",
     });
     setPagination({ page: 1, limit: 10 });
+    setSelectedRowId(null); // Clear row selection
     fetchCases();
+  };
+
+  // ✅ Action button handlers with event propagation prevention
+  const handleActionButtonClick = (action, caseItem, e) => {
+    e.stopPropagation(); // Prevent row click when clicking action buttons
+
+    switch (action) {
+      case 'view':
+        onView && onView(caseItem);
+        break;
+      case 'edit':
+        onView && onView(caseItem, 'edit');
+        break;
+      case 'print':
+        onPrint && onPrint(caseItem);
+        break;
+      case 'more':
+        onMore && onMore(caseItem);
+        break;
+      default:
+        break;
+    }
   };
 
   return (
@@ -422,6 +460,12 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             <span className="text-gray-600 ml-2">(Your cases only)</span>
           )}
         </div>
+        {/* Selected Row Info */}
+        {selectedRowId && (
+          <div className="text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+            📍 Row Selected: Case #{selectedRowId}
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
@@ -662,7 +706,10 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             ) : (
               filteredCases.map((c, idx) => (
                 <React.Fragment key={c.id ?? idx}>
-                  <tr className="hover:bg-gray-50">
+                  <tr
+                    className={`cursor-pointer transition-all duration-200 ${getRowBackgroundColor(c.id)}`}
+                    onClick={(e) => handleRowClick(c.id, e)}
+                  >
                     {/* Hide select checkbox for non-admin users */}
                     {userRole === 'admin' && (
                       <td className="px-1 py-1 text-center">
@@ -670,18 +717,18 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                           type="checkbox"
                           aria-label={`Select case ${c.id}`}
                           checked={selectedCaseIds.includes(c.id)}
-                          onChange={() => toggleSelectOne(c.id)}
+                          onChange={(e) => toggleSelectOne(c.id, e)}
                           className="scale-75 cursor-pointer"
                         />
                       </td>
                     )}
-                    <td className="px-1 py-1 text-center">{c.id}</td>
+                    <td className="px-1 py-1 text-center font-medium">{c.id}</td>
                     <td className="px-2 py-1 text-center">
                       <div className="flex gap-2 justify-center items-center">
                         <button
                           className={`text-green-600 hover:text-green-700 ${(c.payments && c.payments.length > 0) ? '' : 'opacity-30 cursor-not-allowed'
                             }`}
-                          onClick={() => (c.payments && c.payments.length > 0) && toggleExpandCase(c.id)}
+                          onClick={(e) => (c.payments && c.payments.length > 0) && toggleExpandCase(c.id, e)}
                           disabled={!c.payments || c.payments.length === 0}
                           title={
                             (c.payments && c.payments.length > 0)
@@ -696,7 +743,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         </button>
                         <button
                           className="text-green-600 hover:text-green-700"
-                          onClick={() => onView && onView(c)}
+                          onClick={(e) => handleActionButtonClick('view', c, e)}
                           title="View"
                           aria-label={`View case ${c.id}`}
                         >
@@ -706,7 +753,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         {userRole === 'admin' && (
                           <button
                             className="text-blue-600 hover:text-blue-700"
-                            onClick={() => onView && onView(c, 'edit')}
+                            onClick={(e) => handleActionButtonClick('edit', c, e)}
                             title="Edit"
                             aria-label={`Edit case ${c.id}`}
                           >
@@ -715,7 +762,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         )}
                         <button
                           className="text-gray-600 hover:text-gray-700"
-                          onClick={() => onPrint && onPrint(c)}
+                          onClick={(e) => handleActionButtonClick('print', c, e)}
                           title="Print"
                           aria-label={`Print case ${c.id}`}
                         >
@@ -723,7 +770,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                         </button>
                         <button
                           className="text-gray-600 hover:text-gray-700"
-                          onClick={() => onMore && onMore(c)}
+                          onClick={(e) => handleActionButtonClick('more', c, e)}
                           title="More Options"
                           aria-label={`More options for case ${c.id}`}
                         >
@@ -777,6 +824,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
                           className="mx-0.5 text-red-600 hover:text-blue-800"
                           title={doc.filename || doc.originalname}
                           aria-label={`View document ${doc.filename || doc.originalname}`}
+                          onClick={(e) => e.stopPropagation()} // Prevent row click
                         >
                           <FaFilePdf className="inline-block mr-1" size={12} />
                         </a>
@@ -899,6 +947,7 @@ const CaseTable = ({ onDelete, onSave, onBack, onView, onPrint, onMore }) => {
             You are viewing cases as: <span className="font-medium text-green-700 capitalize">{userRole}</span>
             {userRole !== 'admin' && ' (only your cases)'}
           </li>
+          <li>Click anywhere on a row to <span className="font-medium text-blue-700">highlight and select</span> it.</li>
           <li>Use <span className="font-medium text-green-700">Global Search</span> for quick keyword search across all fields.</li>
           <li>Apply specific filters using the dropdowns and checkboxes above.</li>
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
