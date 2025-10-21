@@ -1,129 +1,197 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 
+// Validation configuration - ALL FIELDS MANDATORY
+const VALIDATION_RULES = {
+  saving_account_start_date: {
+    required: true,
+    message: "Saving account start date is required"
+  },
+  deposit_type: {
+    required: true,
+    message: "Deposit type is required"
+  },
+  deposit_duration_years: {
+    required: true,
+    min: 0,
+    max: 50,
+    message: "Duration must be between 0-50 years"
+  },
+  fixed_deposit_total_amount: {
+    required: true,
+    min: 0,
+    message: "Fixed deposit amount is required and cannot be negative"
+  },
+  interest_rate_fd: {
+    required: true,
+    min: 0,
+    max: 100,
+    message: "FD interest rate is required and must be between 0-100%"
+  },
+  saving_account_total_amount: {
+    required: true,
+    min: 0,
+    message: "Savings account amount is required and cannot be negative"
+  },
+  interest_rate_saving: {
+    required: true,
+    min: 0,
+    max: 100,
+    message: "Savings interest rate is required and must be between 0-100%"
+  },
+  recurring_deposit_total_amount: {
+    required: true,
+    min: 0,
+    message: "Recurring deposit amount is required and cannot be negative"
+  },
+  interest_rate_recurring: {
+    required: true,
+    min: 0,
+    max: 100,
+    message: "RD interest rate is required and must be between 0-100%"
+  },
+  dnyanrudha_investment_total_amount: {
+    required: true,
+    min: 0,
+    message: "Dnyanrudha investment amount is required and cannot be negative"
+  },
+  dynadhara_rate: {
+    required: true,
+    min: 0,
+    max: 100,
+    message: "Dynadhara rate is required and must be between 0-100%"
+  }
+};
+
+const NUMERIC_FIELDS = [
+  'deposit_duration_years',
+  'fixed_deposit_total_amount',
+  'interest_rate_fd',
+  'saving_account_total_amount',
+  'interest_rate_saving',
+  'recurring_deposit_total_amount',
+  'interest_rate_recurring',
+  'dnyanrudha_investment_total_amount',
+  'dynadhara_rate'
+];
+
 const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => {
-  const [errors, setErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
   const [loading, setLoading] = useState(false);
 
   // Field validation
-  const validateField = (name, value) => {
-    const newErrors = { ...errors };
-    
-    switch (name) {
-      case 'deposit_duration_years':
-        if (value < 0) {
-          newErrors.deposit_duration_years = 'Duration cannot be negative';
-        } else if (value > 50) {
-          newErrors.deposit_duration_years = 'Duration seems too long';
-        } else {
-          delete newErrors.deposit_duration_years;
-        }
-        break;
-      case 'interest_rate_fd':
-      case 'interest_rate_saving':
-      case 'interest_rate_recurring':
-      case 'dynadhara_rate':
-        if (value < 0) {
-          newErrors[name] = 'Interest rate cannot be negative';
-        } else if (value > 100) {
-          newErrors[name] = 'Interest rate seems too high';
-        } else {
-          delete newErrors[name];
-        }
-        break;
-      case 'fixed_deposit_total_amount':
-      case 'saving_account_total_amount':
-      case 'recurring_deposit_total_amount':
-      case 'dnyanrudha_investment_total_amount':
-        if (value < 0) {
-          newErrors[name] = 'Amount cannot be negative';
-        } else {
-          delete newErrors[name];
-        }
-        break;
-      default:
-        break;
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const validateField = useCallback((name, value) => {
+    const rule = VALIDATION_RULES[name];
+    if (!rule) return null;
 
-  // Enhanced input change handler
-  const handleEnhancedInputChange = (e) => {
+    const { required, min, max } = rule;
+
+    if (required && (value === undefined || value === null || value === '')) {
+      return rule.message;
+    }
+
+    if (value !== undefined && value !== null && value !== '') {
+      const numValue = Number(value);
+      
+      if (min !== undefined && numValue < min) return rule.message;
+      if (max !== undefined && numValue > max) return rule.message;
+    }
+
+    return null;
+  }, []);
+
+  // Check if form is completely valid
+  const isFormValid = useMemo(() => {
+    return Object.keys(VALIDATION_RULES).every(fieldName => {
+      const error = validateField(fieldName, formData[fieldName]);
+      return !error;
+    });
+  }, [formData, validateField]);
+
+  // Mark field as touched
+  const handleFieldTouch = useCallback((fieldName) => {
+    setTouchedFields(prev => ({
+      ...prev,
+      [fieldName]: true
+    }));
+  }, []);
+
+  // Input change handler
+  const handleEnhancedInputChange = useCallback((e) => {
     const { name, value } = e.target;
     
-    // Convert to number for numeric fields
-    const numericFields = [
-      'deposit_duration_years',
-      'fixed_deposit_total_amount',
-      'interest_rate_fd',
-      'saving_account_total_amount',
-      'interest_rate_saving',
-      'recurring_deposit_total_amount',
-      'interest_rate_recurring',
-      'dnyanrudha_investment_total_amount',
-      'dynadhara_rate'
-    ];
-    
-    const processedValue = numericFields.includes(name) ? 
-      (value === '' ? '' : parseFloat(value)) : value;
-
+    // Update form data
     handleInputChange({ 
       target: { 
         name, 
-        value: processedValue 
+        value: NUMERIC_FIELDS.includes(name) ? value : value
       } 
     });
-    
-    validateField(name, processedValue);
-  };
 
-  // Conditional field requirements based on deposit type
-  const getRequiredFields = () => {
-    const baseFields = ['saving_account_start_date', 'deposit_type', 'deposit_duration_years'];
+    // Mark field as touched
+    handleFieldTouch(name);
+
+    // Validate field in real-time
+    const error = validateField(name, value);
     
-    switch (formData.deposit_type) {
-      case 'Fixed Deposit':
-        return [...baseFields, 'fixed_deposit_total_amount', 'interest_rate_fd'];
-      case 'Savings Account Deposit':
-        return [...baseFields, 'saving_account_total_amount', 'interest_rate_saving'];
-      case 'Recurring Deposit':
-        return [...baseFields, 'recurring_deposit_total_amount', 'interest_rate_recurring'];
-      case 'Investment Scheme (Exhibit A)':
-        return [...baseFields, 'dnyanrudha_investment_total_amount', 'dynadhara_rate'];
-      default:
-        return baseFields;
-    }
-  };
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  }, [handleInputChange, handleFieldTouch, validateField]);
+
+  // Handle field blur
+  const handleFieldBlur = useCallback((e) => {
+    const { name, value } = e.target;
+    handleFieldTouch(name);
+    
+    const error = validateField(name, value);
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  }, [handleFieldTouch, validateField]);
+
+  // Border class calculator - red border for invalid touched fields
+  const getFieldBorderClass = useCallback((fieldName) => {
+    return touchedFields[fieldName] && fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300';
+  }, [fieldErrors, touchedFields]);
+
+  const mandatoryLabel = (label) => (
+    <>
+      {label} <span className="text-red-500">*</span>
+    </>
+  );
 
   const handleNextClick = async (e) => {
     e.preventDefault();
-    
-    // Validate all required fields based on deposit type
-    const requiredFields = getRequiredFields();
-    const missingFields = requiredFields.filter(field => {
-      const value = formData[field];
-      return value === undefined || value === null || value === '' || 
-             (typeof value === 'number' && isNaN(value));
-    });
-    
-    if (missingFields.length > 0) {
-      showWarningToast(`Please fill all required fields for ${formData.deposit_type || 'selected deposit type'}`);
-      return;
-    }
 
-    // Validate field formats
-    if (!validateField('deposit_duration_years', formData.deposit_duration_years)) {
-      showWarningToast("Please fix validation errors before proceeding.");
+    // Mark all fields as touched to show all errors
+    const allTouched = {};
+    Object.keys(VALIDATION_RULES).forEach(fieldName => {
+      allTouched[fieldName] = true;
+    });
+    setTouchedFields(allTouched);
+
+    // Check if form is valid
+    if (!isFormValid) {
+      // Validate all fields to show errors
+      const errors = {};
+      Object.keys(VALIDATION_RULES).forEach(fieldName => {
+        const error = validateField(fieldName, formData[fieldName]);
+        if (error) errors[fieldName] = error;
+      });
+      setFieldErrors(errors);
+
+      const firstError = Object.values(errors)[0];
+      showWarningToast(firstError || "Please fill all required fields correctly");
       return;
     }
 
     setLoading(true);
     try {
-      // Simulate validation process
       await new Promise(resolve => setTimeout(resolve, 500));
-      
       showSuccessToast("Deposit details filled successfully!");
       onNext();
     } catch (error) {
@@ -137,32 +205,6 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
   const handleBackClick = (e) => {
     e.preventDefault();
     onBack();
-  };
-
-  // Format currency for display
-  const formatCurrency = (value) => {
-    if (!value && value !== 0) return '';
-    return new Intl.NumberFormat('en-IN', {
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2
-    }).format(value);
-  };
-
-  // Error message component
-  const ErrorMessage = ({ message }) => (
-    message ? <p className="text-red-500 text-xs mt-1">{message}</p> : null
-  );
-
-  const mandatoryLabel = (label) => (
-    <>
-      {label} <span className="text-red-500">*</span>
-    </>
-  );
-
-  // Helper to check if field should be required based on deposit type
-  const isFieldRequired = (fieldName) => {
-    const requiredFields = getRequiredFields();
-    return requiredFields.includes(fieldName);
   };
 
   return (
@@ -181,7 +223,8 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             name="saving_account_start_date"
             value={formData.saving_account_start_date || ""}
             onChange={handleEnhancedInputChange}
-            className="p-1 border rounded text-[10px]"
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('saving_account_start_date')}`}
             required
           />
 
@@ -192,7 +235,8 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             name="deposit_type"
             value={formData.deposit_type || ""}
             onChange={handleEnhancedInputChange}
-            className="p-1 border rounded text-[10px]"
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('deposit_type')}`}
             required
           >
             <option value="">Select Deposit Type</option>
@@ -213,21 +257,19 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="Duration in Years"
             value={formData.deposit_duration_years || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.deposit_duration_years ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('deposit_duration_years')}`}
             min="0"
             max="50"
-            step="0.5"
+            step="1"
             required
           />
-          <ErrorMessage message={errors.deposit_duration_years} />
         </div>
 
         {/* Column 2 - FD and Savings Details */}
         <div className="flex flex-col gap-2">
           <label className="font-semibold">
-            {isFieldRequired('fixed_deposit_total_amount') ? mandatoryLabel("Fixed Deposit Total Amount") : "Fixed Deposit Total Amount"}
+            {mandatoryLabel("Fixed Deposit Total Amount")}
           </label>
           <input
             type="number"
@@ -235,17 +277,15 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="₹ FD Total Amount"
             value={formData.fixed_deposit_total_amount || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.fixed_deposit_total_amount ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('fixed_deposit_total_amount')}`}
             min="0"
-            step="0.01"
-            required={isFieldRequired('fixed_deposit_total_amount')}
+            step="1"
+            required
           />
-          <ErrorMessage message={errors.fixed_deposit_total_amount} />
 
           <label className="font-semibold">
-            {isFieldRequired('interest_rate_fd') ? mandatoryLabel("Interest Rate (FD %)") : "Interest Rate (FD %)"}
+            {mandatoryLabel("Interest Rate (FD %)")}
           </label>
           <input
             type="number"
@@ -253,18 +293,16 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="FD Interest Rate %"
             value={formData.interest_rate_fd || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.interest_rate_fd ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('interest_rate_fd')}`}
             min="0"
             max="100"
             step="0.01"
-            required={isFieldRequired('interest_rate_fd')}
+            required
           />
-          <ErrorMessage message={errors.interest_rate_fd} />
 
           <label className="font-semibold">
-            {isFieldRequired('saving_account_total_amount') ? mandatoryLabel("Savings Account Total Amount") : "Savings Account Total Amount"}
+            {mandatoryLabel("Savings Account Total Amount")}
           </label>
           <input
             type="number"
@@ -272,17 +310,15 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="₹ Savings Total Amount"
             value={formData.saving_account_total_amount || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.saving_account_total_amount ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('saving_account_total_amount')}`}
             min="0"
-            step="0.01"
-            required={isFieldRequired('saving_account_total_amount')}
+            step="1"
+            required
           />
-          <ErrorMessage message={errors.saving_account_total_amount} />
 
           <label className="font-semibold">
-            {isFieldRequired('interest_rate_saving') ? mandatoryLabel("Interest Rate (Savings %)") : "Interest Rate (Savings %)"}
+            {mandatoryLabel("Interest Rate (Savings %)")}
           </label>
           <input
             type="number"
@@ -290,21 +326,19 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="Savings Interest Rate %"
             value={formData.interest_rate_saving || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.interest_rate_saving ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('interest_rate_saving')}`}
             min="0"
             max="100"
             step="0.01"
-            required={isFieldRequired('interest_rate_saving')}
+            required
           />
-          <ErrorMessage message={errors.interest_rate_saving} />
         </div>
 
         {/* Column 3 - RD and Investment Details */}
         <div className="flex flex-col gap-2">
           <label className="font-semibold">
-            {isFieldRequired('recurring_deposit_total_amount') ? mandatoryLabel("Recurring Deposit Total Amount") : "Recurring Deposit Total Amount"}
+            {mandatoryLabel("Recurring Deposit Total Amount")}
           </label>
           <input
             type="number"
@@ -312,17 +346,15 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="₹ RD Total Amount"
             value={formData.recurring_deposit_total_amount || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.recurring_deposit_total_amount ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('recurring_deposit_total_amount')}`}
             min="0"
-            step="0.01"
-            required={isFieldRequired('recurring_deposit_total_amount')}
+            step="1"
+            required
           />
-          <ErrorMessage message={errors.recurring_deposit_total_amount} />
 
           <label className="font-semibold">
-            {isFieldRequired('interest_rate_recurring') ? mandatoryLabel("Interest Rate (RD %)") : "Interest Rate (RD %)"}
+            {mandatoryLabel("Interest Rate (RD %)")}
           </label>
           <input
             type="number"
@@ -330,18 +362,16 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="RD Interest Rate %"
             value={formData.interest_rate_recurring || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.interest_rate_recurring ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('interest_rate_recurring')}`}
             min="0"
             max="100"
             step="0.01"
-            required={isFieldRequired('interest_rate_recurring')}
+            required
           />
-          <ErrorMessage message={errors.interest_rate_recurring} />
 
           <label className="font-semibold">
-            {isFieldRequired('dnyanrudha_investment_total_amount') ? mandatoryLabel("Dnyanrudha Investment Total Amount") : "Dnyanrudha Investment Total Amount"}
+            {mandatoryLabel("Dnyanrudha Investment Total Amount")}
           </label>
           <input
             type="number"
@@ -349,17 +379,15 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="₹ Investment Total Amount"
             value={formData.dnyanrudha_investment_total_amount || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.dnyanrudha_investment_total_amount ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('dnyanrudha_investment_total_amount')}`}
             min="0"
-            step="0.01"
-            required={isFieldRequired('dnyanrudha_investment_total_amount')}
+            step="1"
+            required
           />
-          <ErrorMessage message={errors.dnyanrudha_investment_total_amount} />
 
           <label className="font-semibold">
-            {isFieldRequired('dynadhara_rate') ? mandatoryLabel("Dynadhara Rate (%)") : "Dynadhara Rate (%)"}
+            {mandatoryLabel("Dynadhara Rate (%)")}
           </label>
           <input
             type="number"
@@ -367,15 +395,13 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
             placeholder="Dynadhara Rate %"
             value={formData.dynadhara_rate || ""}
             onChange={handleEnhancedInputChange}
-            className={`p-1 border rounded text-[10px] ${
-              errors.dynadhara_rate ? 'border-red-500' : ''
-            }`}
+            onBlur={handleFieldBlur}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('dynadhara_rate')}`}
             min="0"
             max="100"
             step="0.01"
-            required={isFieldRequired('dynadhara_rate')}
+            required
           />
-          <ErrorMessage message={errors.dynadhara_rate} />
         </div>
       </div>
 
@@ -390,9 +416,11 @@ const DepositDetailsForm = ({ formData, handleInputChange, onNext, onBack }) => 
         </button>
         <button
           type="submit"
-          disabled={loading}
-          className={`px-3 py-1 bg-green-600 text-white rounded text-[10px] flex items-center gap-2 transition-colors ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+          disabled={!isFormValid || loading}
+          className={`px-3 py-1 text-white rounded text-[10px] flex items-center gap-2 transition-colors ${
+            !isFormValid || loading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
           }`}
         >
           {loading ? (
