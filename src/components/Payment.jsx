@@ -163,6 +163,36 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
     };
   }, [initializeRazorpay]);
 
+  // Helper function to convert paise to rupees in backend responses
+  const convertBackendResponseToRupees = useCallback((backendData) => {
+    if (!backendData) return backendData;
+
+    const convertAmount = (amt) => {
+      // If amount is likely in paise (large number, divisible by 100), convert to rupees
+      if (amt && amt > 1000 && amt % 100 === 0) {
+        return amt / 100;
+      }
+      return amt;
+    };
+
+    // Deep clone and convert amounts
+    const converted = JSON.parse(JSON.stringify(backendData));
+
+    if (converted.order && converted.order.amount) {
+      converted.order.amount_in_paise = converted.order.amount;
+      converted.order.amount = convertAmount(converted.order.amount);
+      converted.order.amount_display = formatAmount(converted.order.amount);
+    }
+
+    if (converted.amount && !converted.order) {
+      converted.amount_in_paise = converted.amount;
+      converted.amount = convertAmount(converted.amount);
+      converted.amount_display = formatAmount(converted.amount);
+    }
+
+    return converted;
+  }, []);
+
   // Memoized payment handler with optimized error handling
   const handleRazorpayPayment = useCallback(async () => {
     if (loading) return;
@@ -178,22 +208,26 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
         return;
       }
 
-      const { data: order } = await createPaymentOrder({ amount });
+      const { data: backendOrder } = await createPaymentOrder({ amount });
 
-      if (!order.order?.id) {
+      if (!backendOrder.order?.id) {
         showErrorToast("Failed to create payment order. Please try UPI payment instead.");
         return;
       }
-      console.log(order);
-      
+
+      // Convert backend response from paise to rupees
+      const order = convertBackendResponseToRupees(backendOrder);
+
+      // console.log("Original order amount in paise:", backendOrder.order.amount);
+      // console.log("Converted order amount in rupees:", order.order.amount);
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: order.order.amount,
-        currency: order.order.currency,
+        amount: backendOrder.order.amount, // Use original paise amount for Razorpay
+        currency: backendOrder.order.currency || "INR",
         name: "Satyamev Jayate",
-        description: "Case Application Fee",
-        order_id: order.order.id,
+        description: `Case Application Fee - ${formatAmount(amount)}`,
+        order_id: backendOrder.order.id,
         handler: async (response) => {
           const verification_data = {
             razorpay_payment_id: response.razorpay_payment_id,
@@ -203,15 +237,21 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
 
           try {
             const verifyRes = await verifyPayment(verification_data);
-            if (verifyRes.data.success) {
-              showSuccessToast("✅ Payment Successful!");
+
+            // Convert verification response from paise to rupees
+            const verifiedPayment = convertBackendResponseToRupees(verifyRes.data);
+
+            if (verifiedPayment.success) {
+              showSuccessToast(`✅ Payment of ${formatAmount(amount)} Successful!`);
               onPaymentSuccess({
                 method: "razorpay",
                 paymentId: response.razorpay_payment_id,
                 orderId: response.razorpay_order_id,
-                amount: amount,
+                amount: amount, // In rupees
+                currency: "INR",
                 status: "completed",
-                order: order.order,
+                order: order.order, // Use converted order in rupees
+                paymentResponse: verifiedPayment,
                 timestamp: new Date().toISOString(),
               });
             } else {
@@ -229,14 +269,15 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
         },
         notes: {
           case_type: "Application Fee",
-          user_id: userData.id || "unknown"
+          user_id: userData.id || "unknown",
+          amount_inr: amount // Store original amount in rupees
         },
         theme: {
           color: "#22c55e",
         },
         modal: {
           ondismiss: () => {
-            showInfoToast("Payment cancelled. You can retry or use UPI payment.");
+            showInfoToast(`Payment of ${formatAmount(amount)} cancelled. You can retry or use UPI payment.`);
           },
         },
         retry: {
@@ -249,7 +290,7 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
 
       rzp.on('payment.failed', function (response) {
         console.error("Payment failed:", response.error);
-        showErrorToast(`Payment failed: ${response.error.description}. Please try UPI payment.`);
+        showErrorToast(`Payment of ${formatAmount(amount)} failed: ${response.error.description}. Please try UPI payment.`);
       });
 
       rzp.open();
@@ -258,16 +299,16 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
       console.error("Razorpay payment error:", error);
 
       if (error.response?.status === 500 || error.message?.includes('network') || !navigator.onLine) {
-        showWarningToast("Payment service unavailable. Switching to UPI payment.");
+        showWarningToast(`Payment service unavailable. Switching to UPI payment.`);
         setRazorpayError(true);
         setPaymentMethod("upi");
       } else {
-        showErrorToast("Payment failed. Please try UPI payment method.");
+        showErrorToast(`Payment of ${formatAmount(amount)} failed. Please try UPI payment method.`);
       }
     } finally {
       setLoading(false);
     }
-  }, [amount, userData, loading, razorpayLoaded, loadRazorpayScript, onPaymentSuccess]);
+  }, [amount, userData, loading, razorpayLoaded, loadRazorpayScript, onPaymentSuccess, convertBackendResponseToRupees]);
 
   // Optimized UPI submit handler
   const handleUPISubmit = useCallback(async () => {
@@ -283,18 +324,18 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
 
     setLoading(true);
     try {
-      // Remove artificial delay for faster submission
-      showSuccessToast("✅ UPI payment proof submitted successfully!");
+      showSuccessToast(`✅ UPI payment of ${formatAmount(amount)} submitted successfully!`);
       onPaymentSuccess({
         method: "upi_manual",
         txnId: txnId.trim(),
         screenshot: screenshot,
-        amount: amount,
+        amount: amount, // In rupees
+        currency: "INR",
         status: "pending_verification",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      showErrorToast("Failed to submit payment proof. Please try again.");
+      showErrorToast(`Failed to submit payment of ${formatAmount(amount)}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -386,6 +427,8 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
             <PaymentMethodSelector
               paymentMethod={paymentMethod}
               onMethodChange={handlePaymentMethodChange}
+              amount={amount}
+              formatAmount={formatAmount}
             />
           )}
 
@@ -424,6 +467,8 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
           onRemoveScreenshot={removeScreenshot}
           onMethodChange={handlePaymentMethodChange}
           onBack={onBack}
+          amount={amount}
+          formatAmount={formatAmount}
         />
       </div>
 
@@ -439,7 +484,7 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
 };
 
 // Extracted Payment Method Selector Component
-const PaymentMethodSelector = React.memo(({ paymentMethod, onMethodChange }) => (
+const PaymentMethodSelector = React.memo(({ paymentMethod, onMethodChange, amount, formatAmount }) => (
   <div className="bg-gray-50 rounded-lg p-6">
     <h4 className="font-semibold text-gray-800 mb-4 text-lg">Choose Payment Method</h4>
     <div className="space-y-3">
@@ -448,7 +493,7 @@ const PaymentMethodSelector = React.memo(({ paymentMethod, onMethodChange }) => 
         currentMethod={paymentMethod}
         icon={faCreditCard}
         title="Razorpay"
-        description="Recommended - Fast & Secure"
+        description={`Recommended - Pay ${formatAmount(amount)} securely`}
         color="green"
         onMethodChange={onMethodChange}
       />
@@ -457,7 +502,7 @@ const PaymentMethodSelector = React.memo(({ paymentMethod, onMethodChange }) => 
         currentMethod={paymentMethod}
         icon={faMobileAlt}
         title="UPI Payment"
-        description="Scan QR Code & Pay"
+        description={`Scan QR Code & Pay ${formatAmount(amount)}`}
         color="blue"
         onMethodChange={onMethodChange}
       />
@@ -491,8 +536,8 @@ const PaymentMethodButton = React.memo(({
     <button
       onClick={() => onMethodChange(method)}
       className={`w-full p-4 border-2 rounded-lg text-left transition-all ${isSelected
-          ? colorClasses[color].selected
-          : "border-gray-300 bg-white hover:bg-gray-50"
+        ? colorClasses[color].selected
+        : "border-gray-300 bg-white hover:bg-gray-50"
         }`}
     >
       <div className="flex items-center gap-3">
@@ -526,7 +571,9 @@ const PaymentActionSection = React.memo(({
   onScreenshotChange,
   onRemoveScreenshot,
   onMethodChange,
-  onBack
+  onBack,
+  amount,
+  formatAmount
 }) => (
   <div className="space-y-6">
     {/* Razorpay Payment Section */}
@@ -535,6 +582,8 @@ const PaymentActionSection = React.memo(({
         loading={loading}
         onPayment={onRazorpayPayment}
         onMethodChange={onMethodChange}
+        amount={amount}
+        formatAmount={formatAmount}
       />
     )}
 
@@ -551,6 +600,8 @@ const PaymentActionSection = React.memo(({
         onScreenshotChange={onScreenshotChange}
         onRemoveScreenshot={onRemoveScreenshot}
         onMethodChange={onMethodChange}
+        amount={amount}
+        formatAmount={formatAmount}
       />
     )}
 
@@ -568,11 +619,11 @@ const PaymentActionSection = React.memo(({
 ));
 
 // Extracted Razorpay Payment Section
-const RazorpayPaymentSection = React.memo(({ loading, onPayment, onMethodChange }) => (
+const RazorpayPaymentSection = React.memo(({ loading, onPayment, onMethodChange, amount, formatAmount }) => (
   <div className="bg-green-50 border border-green-200 rounded-lg p-6">
     <h4 className="font-semibold text-green-800 mb-4 text-lg">Pay with Razorpay</h4>
     <p className="text-green-700 text-sm mb-6">
-      You'll be redirected to Razorpay's secure payment gateway to complete your payment safely.
+      You'll be redirected to Razorpay's secure payment gateway to complete your payment of {formatAmount(amount)} safely.
     </p>
 
     <div className="space-y-4">
@@ -588,7 +639,7 @@ const RazorpayPaymentSection = React.memo(({ loading, onPayment, onMethodChange 
           </>
         ) : (
           <>
-            Pay with Razorpay
+            Pay {formatAmount(amount)} with Razorpay
             <FontAwesomeIcon icon={faArrowRight} />
           </>
         )}
@@ -617,7 +668,9 @@ const UPIPaymentSection = React.memo(({
   onTxnIdChange,
   onScreenshotChange,
   onRemoveScreenshot,
-  onMethodChange
+  onMethodChange,
+  amount,
+  formatAmount
 }) => (
   <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
     {razorpayError && (
@@ -628,7 +681,7 @@ const UPIPaymentSection = React.memo(({
       </div>
     )}
 
-    <UPIPayment />
+    <UPIPayment amount={amount} />
 
     {/* UPI Transaction Details */}
     <UPITransactionDetails
@@ -638,6 +691,8 @@ const UPIPaymentSection = React.memo(({
       onTxnIdChange={onTxnIdChange}
       onScreenshotChange={onScreenshotChange}
       onRemoveScreenshot={onRemoveScreenshot}
+      amount={amount}
+      formatAmount={formatAmount}
     />
 
     {/* UPI Action Buttons */}
@@ -680,7 +735,9 @@ const UPITransactionDetails = React.memo(({
   screenshotPreview,
   onTxnIdChange,
   onScreenshotChange,
-  onRemoveScreenshot
+  onRemoveScreenshot,
+  amount,
+  formatAmount
 }) => (
   <div className="mt-6 space-y-4">
     <div>
@@ -689,7 +746,7 @@ const UPITransactionDetails = React.memo(({
       </label>
       <input
         type="text"
-        placeholder="Enter UPI Transaction ID from your payment app"
+        placeholder={`Enter UPI Transaction ID for ${formatAmount(amount)}`}
         value={txnId}
         onChange={(e) => onTxnIdChange(e.target.value)}
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -701,6 +758,8 @@ const UPITransactionDetails = React.memo(({
       screenshotPreview={screenshotPreview}
       onScreenshotChange={onScreenshotChange}
       onRemoveScreenshot={onRemoveScreenshot}
+      amount={amount}
+      formatAmount={formatAmount}
     />
   </div>
 ));
@@ -710,11 +769,13 @@ const ScreenshotUpload = React.memo(({
   screenshot,
   screenshotPreview,
   onScreenshotChange,
-  onRemoveScreenshot
+  onRemoveScreenshot,
+  amount,
+  formatAmount
 }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-2">
-      Payment Proof Screenshot *
+      Payment Proof Screenshot for {formatAmount(amount)} *
     </label>
     <div className="space-y-3">
       <label className="block">
@@ -725,7 +786,7 @@ const ScreenshotUpload = React.memo(({
           className="hidden"
         />
         <div className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors text-center">
-          {screenshot ? 'Change Screenshot' : 'Upload Payment Confirmation Screenshot'}
+          {screenshot ? 'Change Screenshot' : `Upload Payment Confirmation Screenshot for ${formatAmount(amount)}`}
         </div>
       </label>
 

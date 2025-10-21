@@ -119,7 +119,7 @@ const AdminFeedbackManagement = () => {
   const fetchStats = async () => {
     try {
       const response = await feedbackService.getFeedbackStats();
-      console.log('Stats response:', response);
+      // console.log('Stats response:', response);
       
       if (response.success) {
         setStats(response.data);

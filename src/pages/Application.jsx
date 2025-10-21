@@ -462,8 +462,7 @@ const Application = () => {
         ...prev,
         status: statusUpdates[step]
       }));
-    }
-
+    }    
     setCurrentStep(prev => prev + 1);
   }, [validateStep]);
 
@@ -500,6 +499,8 @@ const Application = () => {
 
       setFormData(updatedFormData);
 
+      // console.log(updatedFormData);
+      
       const response = await saveApplicationData(updatedFormData);
 
       if (!response.data.data?.success) {
