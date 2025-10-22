@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getAllCases, deleteCase } from "../services/casesService";
-import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload } from "react-icons/fa";
+import { getAllCases, deleteCase, getDocumentByCaseId } from "../services/casesService";
+import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload, FaExternalLinkAlt } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 
 // Custom hook for debounce
@@ -108,6 +108,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [userId, setUserId] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(null);
 
   // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -115,7 +116,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
   // Use debounce for global search
-  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500); // 500ms delay
+  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500);
 
   // Initialize user data from localStorage
   useEffect(() => {
@@ -131,6 +132,49 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       }
     }
   }, []);
+
+  // ✅ Document View Handler using your existing service
+  const handleViewDocument = async (filePath) => {
+    if (!filePath) {
+      setError("No document path available");
+      return;
+    }
+
+    setDocumentLoading(filePath);
+
+    try {
+      // Use your existing service function
+      const response = await getDocumentByCaseId(filePath);
+
+      // Create blob URL from response
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type'] || 'application/pdf'
+      });
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Open in new tab
+      window.open(blobUrl, "_blank");
+
+      // Clean up after some time
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 10000);
+
+    } catch (err) {
+      console.error('Document view error:', err);
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please login again.");
+      } else if (err.response?.status === 403) {
+        setError("You don't have permission to access this document.");
+      } else if (err.response?.status === 404) {
+        setError("Document not found on server.");
+      } else {
+        setError(`Failed to open document: ${err.message}`);
+      }
+    } finally {
+      setDocumentLoading(null);
+    }
+  };
 
   // ✅ Compute Payment Status from hierarchical payments
   const getCasePaymentStatus = useCallback((caseItem) => {
@@ -164,13 +208,12 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         page: pagination.page,
         limit: pagination.limit,
         searchFields: "",
-        search: debouncedGlobalSearch || "", // Use debounced value here
+        search: debouncedGlobalSearch || "",
         filters: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
           verified: filters.verified === "true" ? true :
             filters.verified === "false" ? false : undefined,
-          // Add role-based filters
           ...(currentUserRole === 'client' && currentUserId && { client_id: currentUserId }),
           ...(currentUserRole === 'advocate' && currentUserId && { advocate_id: currentUserId })
         },
@@ -180,7 +223,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
       // Transform the response data to ensure consistent structure
       const transformedCases = (response.data.data || []).map(caseItem => {
-        // Ensure payments is always an array
         let payments = [];
 
         if (Array.isArray(caseItem.payments)) {
@@ -419,7 +461,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
   // ✅ Toggle hierarchical payment row
   const toggleExpandCase = (id, e) => {
-    if (e) e.stopPropagation(); // Prevent row click when clicking expand button
+    if (e) e.stopPropagation();
     setExpandedCaseIds((prev) =>
       prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
     );
@@ -438,9 +480,9 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   // ✅ Get row background color based on selection state
   const getRowBackgroundColor = (caseId) => {
     if (caseId === selectedRowId) {
-      return 'bg-blue-200 border-l-4 border-blue-500'; // Selected row with blue accent
+      return 'bg-blue-200 border-l-4 border-blue-500';
     }
-    return 'bg-white hover:bg-pink-100'; // Default state
+    return 'bg-white hover:bg-pink-100';
   };
 
   // ✅ Pagination calculations
@@ -477,7 +519,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   };
 
   const toggleSelectOne = (id, e) => {
-    if (e) e.stopPropagation(); // Prevent row click when clicking checkbox
+    if (e) e.stopPropagation();
     setSelectedCaseIds((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
@@ -532,13 +574,13 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       verified: "",
     });
     setPagination({ page: 1, limit: 10 });
-    setSelectedRowId(null); // Clear row selection
+    setSelectedRowId(null);
     fetchCases();
   };
 
   // ✅ Action button handlers with event propagation prevention
   const handleActionButtonClick = (action, caseItem, e) => {
-    e.stopPropagation(); // Prevent row click when clicking action buttons
+    e.stopPropagation();
 
     switch (action) {
       case 'view':
@@ -952,20 +994,31 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">{c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">
-                      {c.documents?.length > 0 ? c.documents.map((doc, i) => (
-                        <a
-                          key={i}
-                          href={doc.url || doc.path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mx-0.5 text-red-600 hover:text-blue-800"
-                          title={doc.filename || doc.originalname}
-                          aria-label={`View document ${doc.filename || doc.originalname}`}
-                          onClick={(e) => e.stopPropagation()} // Prevent row click
-                        >
-                          <FaFilePdf className="inline-block mr-1" size={12} />
-                        </a>
-                      )) : "N/A"}
+                      {c.documents?.length > 0 ? c.documents.map((doc, i) => {
+                        const documentPath = doc;
+                        const documentName = doc.split('\\').pop() || "document.pdf";
+                        const isLoading = documentLoading === documentPath;
+
+                        return (
+                          <button
+                            key={i}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDocument(documentPath);
+                            }}
+                            disabled={isLoading}
+                            className={`mx-0.5 ${isLoading ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-blue-800'} transition-colors`}
+                            title={isLoading ? "Loading..." : `View ${documentName}`}
+                            aria-label={`View document ${documentName}`}
+                          >
+                            {isLoading ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-1 border-red-600 mx-auto"></div>
+                            ) : (
+                              <FaFilePdf className="inline-block" size={12} />
+                            )}
+                          </button>
+                        );
+                      }) : "N/A"}
                     </td>
                   </tr>
 
@@ -1089,6 +1142,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
           <li>Apply specific filters using the dropdowns and checkboxes above.</li>
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
           <li>Use the <span className="font-medium text-green-700">Export button</span> to download cases as CSV.</li>
+          <li>Click the <span className="font-medium text-red-700">document icon</span> to view case documents in a new tab.</li>
           {userRole === 'admin' && (
             <>
               <li>Select multiple cases using checkboxes for bulk actions.</li>

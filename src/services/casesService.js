@@ -4,6 +4,11 @@ export const getAllCases = (data) => axiosInstance.post(`/case/`, data);
 
 export const getCaseById = (id) => axiosInstance.get(`/cases/${id}`);
 
+export const getDocumentByCaseId = (url) => {
+  const normalizedPath = url.replace(/\\/g, '/');
+  return axiosInstance.get(`/${normalizedPath}`, { responseType: 'blob' });
+};
+
 export const createCase = (data) => axiosInstance.post("/cases", data);
 
 export const updateCase = (id, data) => axiosInstance.put(`/cases/${id}`, data);
