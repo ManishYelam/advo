@@ -67,6 +67,66 @@ export const saveApplicationData = async (applicationData) => {
   }
 };
 
+export const updateApplicationData = async (applicationId, applicationData) => {
+  try {
+    const formData = new FormData();
+
+    // 1️⃣ Extract fields
+    const { application_form, documents, ...otherData } = applicationData;
+    formData.append('applicationData', JSON.stringify(otherData));
+
+    // 2️⃣ Include updated application form (if a new file is uploaded)
+    if (application_form && application_form instanceof File) {
+      formData.append('applicationForm', application_form);
+    }
+
+    // 3️⃣ Include updated or new exhibit documents
+    if (documents && typeof documents === 'object') {
+      Object.entries(documents).forEach(([exhibit, files]) => {
+        if (Array.isArray(files)) {
+          files.forEach((docObject, index) => {
+            if (docObject && docObject.file && docObject.file instanceof File) {
+              formData.append('documents', docObject.file);
+              formData.append(
+                'documentMetadata',
+                JSON.stringify({
+                  exhibit,
+                  fileName: docObject.file.name,
+                  fileType: docObject.file.type,
+                  originalName: docObject.originalName,
+                  documentId: docObject.id,
+                  index,
+                })
+              );
+            }
+          });
+        }
+      });
+    }
+
+    // 4️⃣ Send update request
+    const response = await api.put(`/users/update-application/${applicationId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log(`Upload Progress: ${progress}%`);
+      },
+    });
+
+    return response;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.error || 'Failed to update application');
+    } else if (error.request) {
+      throw new Error('Network error: Could not connect to server');
+    } else {
+      throw new Error('Failed to update application');
+    }
+  }
+};
+
 // import axios from "axios";
 
 // const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
