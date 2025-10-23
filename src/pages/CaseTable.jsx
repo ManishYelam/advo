@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getAllCases, deleteCase } from "../services/casesService";
-import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload } from "react-icons/fa";
+import { getAllCases, deleteCase, getDocumentByCaseId } from "../services/casesService";
+import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload, FaExternalLinkAlt } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 
 // Custom hook for debounce
@@ -34,23 +34,14 @@ const isTokenExpired = (token) => {
 
 // Filter configurations
 const filterConfigs = {
-  globalSearch: (caseItem, value) => {
-    if (!value) return true;
-    const searchTerm = value.toLowerCase();
-    return Object.values(caseItem).some(val =>
-      val?.toString().toLowerCase().includes(searchTerm)
-    );
-  },
-  searchField: (caseItem, value, filters) => {
-    if (!filters.searchField || !filters.searchValue) return true;
-    return caseItem[filters.searchField]?.toString()
-      .toLowerCase()
-      .includes(filters.searchValue.toLowerCase());
-  },
-  status: (caseItem, value) =>
-    !value || caseItem.status?.toLowerCase() === value.toLowerCase(),
-  priority: (caseItem, value) =>
-    !value || caseItem.priority?.toLowerCase() === value.toLowerCase(),
+  globalSearch: (caseItem, value) => !value || Object.values(caseItem).some(val =>
+    val?.toString().toLowerCase().includes(value.toLowerCase())
+  ),
+  searchField: (caseItem, value, filters) => 
+    !filters.searchField || !filters.searchValue || caseItem[filters.searchField]?.toString()
+      .toLowerCase().includes(filters.searchValue.toLowerCase()),
+  status: (caseItem, value) => !value || caseItem.status?.toLowerCase() === value.toLowerCase(),
+  priority: (caseItem, value) => !value || caseItem.priority?.toLowerCase() === value.toLowerCase(),
   verified: (caseItem, value) => {
     if (value === "") return true;
     if (value === "true") return caseItem.verified === true;
@@ -108,6 +99,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [userId, setUserId] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(null);
 
   // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -115,7 +107,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
   // Use debounce for global search
-  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500); // 500ms delay
+  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500);
 
   // Initialize user data from localStorage
   useEffect(() => {
@@ -126,26 +118,76 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         setUserRole(parsedUser?.role || 'client');
         setUserId(parsedUser?.id);
       } catch (error) {
-        console.error("Error parsing user data:", error);
         setUserRole('client');
       }
     }
   }, []);
 
-  // ✅ Compute Payment Status from hierarchical payments
+  // ✅ FIXED: Document View Handler with proper document path handling
+  const handleViewDocument = useCallback(async (filePath) => {
+    if (!filePath) {
+      setError("No document path available");
+      return;
+    }
+
+    setDocumentLoading(filePath);
+
+    try {
+      const response = await getDocumentByCaseId(filePath);
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type'] || 'application/pdf'
+      });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      window.open(blobUrl, "_blank");
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+    } catch (err) {
+      if (err.response?.status === 401) setError("Authentication failed. Please login again.");
+      else if (err.response?.status === 403) setError("You don't have permission to access this document.");
+      else if (err.response?.status === 404) setError("Document not found on server.");
+      else setError(`Failed to open document: ${err.message}`);
+    } finally {
+      setDocumentLoading(null);
+    }
+  }, []);
+
+  // ✅ Get document path from document object/string
+  const getDocumentPath = useCallback((doc) => {
+    if (typeof doc === 'string') return doc;
+    if (doc && typeof doc === 'object') {
+      return doc.path || doc.filePath || doc.url || doc.document_path || '';
+    }
+    return '';
+  }, []);
+
+  // ✅ Get document name from document object/string
+  const getDocumentName = useCallback((doc) => {
+    const path = getDocumentPath(doc);
+    if (!path) return "document.pdf";
+    
+    // Handle both forward and backward slashes
+    const fileName = path.split(/[\\/]/).pop() || "document.pdf";
+    return fileName;
+  }, [getDocumentPath]);
+
+  // ✅ Ultra-fast Payment Status Computation
   const getCasePaymentStatus = useCallback((caseItem) => {
-    if (!caseItem.payments || caseItem.payments.length === 0) return "Pending";
-    const statuses = caseItem.payments.map(p => p.status?.toLowerCase());
+    const payments = caseItem.payments || [];
+    if (payments.length === 0) return "Pending";
+    
+    const statuses = payments.map(p => p.status?.toLowerCase());
     if (statuses.every(s => s === "paid")) return "Paid";
     if (statuses.every(s => s === "failed")) return "Failed";
     if (statuses.includes("pending")) return "Pending";
     return "Partial";
   }, []);
 
-  // ✅ Enhanced Fetch Cases with Role-Based Access
-  const fetchCases = async (retryCount = 0) => {
+  // ✅ Ultra-optimized Fetch Cases
+  const fetchCases = useCallback(async (retryCount = 0) => {
     setLoading(true);
     setError(null);
+    
     try {
       const user = localStorage.getItem("user");
       if (!user) throw new Error("User not logged in");
@@ -159,18 +201,16 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         throw new Error("Token expired. Please login again.");
       }
 
-      // Prepare payload based on user role
+      // Direct payload construction
       const payload = {
         page: pagination.page,
         limit: pagination.limit,
         searchFields: "",
-        search: debouncedGlobalSearch || "", // Use debounced value here
+        search: debouncedGlobalSearch || "",
         filters: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
-          verified: filters.verified === "true" ? true :
-            filters.verified === "false" ? false : undefined,
-          // Add role-based filters
+          verified: filters.verified === "true" ? true : filters.verified === "false" ? false : undefined,
           ...(currentUserRole === 'client' && currentUserId && { client_id: currentUserId }),
           ...(currentUserRole === 'advocate' && currentUserId && { advocate_id: currentUserId })
         },
@@ -178,27 +218,15 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
       const response = await getAllCases(payload);
 
-      // Transform the response data to ensure consistent structure
-      const transformedCases = (response.data.data || []).map(caseItem => {
-        // Ensure payments is always an array
-        let payments = [];
-
-        if (Array.isArray(caseItem.payments)) {
-          payments = caseItem.payments;
-        } else if (caseItem.payment) {
-          payments = [caseItem.payment];
-        }
-
-        return {
-          ...caseItem,
-          payments: payments
-        };
-      });
+      // Direct array transformation
+      const transformedCases = (response.data.data || []).map(caseItem => ({
+        ...caseItem,
+        payments: Array.isArray(caseItem.payments) ? caseItem.payments : caseItem.payment ? [caseItem.payment] : []
+      }));
 
       setCases(transformedCases);
       setTotalRecords(response.data.totalRecords || 0);
 
-      // Update user role and ID if not already set
       if (!userRole) {
         setUserRole(currentUserRole);
         setUserId(currentUserId);
@@ -212,46 +240,42 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedGlobalSearch, filters.status, filters.priority, filters.verified, pagination.page, pagination.limit, userRole]);
 
-  // ✅ Automatically fetch whenever debounced search, filters or pagination changes
+  // ✅ Auto-fetch on dependencies change
   useEffect(() => {
     fetchCases();
-  }, [debouncedGlobalSearch, filters.status, filters.priority, filters.verified, pagination.page, pagination.limit]);
+  }, [fetchCases]);
 
-  // ✅ Apply filters to cases (only for frontend filters like searchField)
-  const filteredCases = useMemo(() => {
-    return cases.filter(caseItem => {
-      return Object.entries(filters).every(([key, value]) => {
-        if (key === "searchField") {
-          return filterConfigs.searchField(caseItem, value, filters);
-        }
-        // Skip globalSearch as it's handled by backend
+  // ✅ Ultra-fast filtered cases computation
+  const filteredCases = useMemo(() => 
+    cases.filter(caseItem => 
+      Object.entries(filters).every(([key, value]) => {
+        if (key === "searchField") return filterConfigs.searchField(caseItem, value, filters);
         if (key === "globalSearch") return true;
         return filterConfigs[key] ? filterConfigs[key](caseItem, value) : true;
-      });
-    });
-  }, [cases, filters]);
+      })
+    ), 
+  [cases, filters]);
 
-  // ✅ Show Delete Confirmation
-  const showDeleteConfirmation = (caseIds) => {
+  // ✅ Ultra-fast Delete Confirmation
+  const showDeleteConfirmation = useCallback((caseIds) => {
     if (!caseIds || caseIds.length === 0) {
       setError("No cases selected for deletion");
       return;
     }
 
     setCasesToDelete(caseIds);
-
-    const message = caseIds.length === 1
-      ? `Are you sure you want to delete case #${caseIds[0]}? This action cannot be undone.`
-      : `Are you sure you want to delete ${caseIds.length} selected cases? This action cannot be undone.`;
-
-    setDeleteConfirmMessage(message);
+    setDeleteConfirmMessage(
+      caseIds.length === 1
+        ? `Are you sure you want to delete case #${caseIds[0]}? This action cannot be undone.`
+        : `Are you sure you want to delete ${caseIds.length} selected cases? This action cannot be undone.`
+    );
     setShowDeleteConfirm(true);
-  };
+  }, []);
 
-  // ✅ DELETE CASE FUNCTIONALITY
-  const handleDeleteCase = async () => {
+  // ✅ Ultra-optimized DELETE CASE
+  const handleDeleteCase = useCallback(async () => {
     setDeleteLoading(true);
     setError(null);
 
@@ -266,28 +290,20 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         throw new Error("Token expired. Please login again.");
       }
 
-      // Delete cases one by one
-      const deletePromises = casesToDelete.map(id => deleteCase(id));
-      await Promise.all(deletePromises);
+      // Direct parallel deletion
+      await Promise.all(casesToDelete.map(id => deleteCase(id)));
 
-      // Show success message
-      const successMessage = casesToDelete.length === 1
-        ? `Case #${casesToDelete[0]} deleted successfully`
-        : `${casesToDelete.length} cases deleted successfully`;
-
-      // Close confirmation modal
+      // Direct state updates
       setShowDeleteConfirm(false);
       setCasesToDelete([]);
-
-      // Refresh the cases list
       await fetchCases();
-
-      // Clear selections
       setSelectedCaseIds([]);
       setSelectedRowId(null);
 
-      // Show success message
-      setError(successMessage);
+      setError(casesToDelete.length === 1
+        ? `Case #${casesToDelete[0]} deleted successfully`
+        : `${casesToDelete.length} cases deleted successfully`
+      );
 
     } catch (err) {
       setError(`Failed to delete cases: ${err.message}`);
@@ -296,23 +312,23 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     } finally {
       setDeleteLoading(false);
     }
-  };
+  }, [casesToDelete, fetchCases]);
 
-  // ✅ DELETE SINGLE CASE (from action buttons)
-  const handleDeleteSingleCase = (caseItem, e) => {
+  // ✅ Ultra-fast Single Case Delete
+  const handleDeleteSingleCase = useCallback((caseItem, e) => {
     e.stopPropagation();
     showDeleteConfirmation([caseItem.id]);
-  };
+  }, [showDeleteConfirmation]);
 
-  // ✅ Cancel Delete
-  const handleCancelDelete = () => {
+  // ✅ Fast Cancel Delete
+  const handleCancelDelete = useCallback(() => {
     setShowDeleteConfirm(false);
     setCasesToDelete([]);
     setDeleteConfirmMessage("");
-  };
+  }, []);
 
-  // ✅ Enhanced Payment Details Component
-  const PaymentDetailsRow = ({ caseItem }) => {
+  // ✅ Ultra-optimized Payment Details Component
+  const PaymentDetailsRow = useCallback(({ caseItem }) => {
     const payments = caseItem.payments || [];
 
     if (payments.length === 0) {
@@ -329,9 +345,9 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
 
     return (
       <tr className="bg-gray-50 text-[8px]">
-        <td colSpan="20" >
+        <td colSpan="20">
           <div className="bg-white rounded p-2">
-            <div className="flex justify-between items-center ">
+            <div className="flex justify-between items-center">
               <h4 className="font-semibold text-gray-700">
                 Payment Details ({payments.length} payment{payments.length !== 1 ? 's' : ''})
               </h4>
@@ -371,10 +387,10 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                       </td>
                       <td className="border px-1 py-1">{payment.currency || 'INR'}</td>
                       <td className="border px-1 py-1">
-                        <span className={`px-1 py-0.5 rounded text-white ${payment.status === 'paid' || payment.status === 'Paid' ? 'bg-green-500' :
-                          payment.status === 'failed' || payment.status === 'Failed' ? 'bg-red-500' :
-                            'bg-yellow-500'
-                          }`}>
+                        <span className={`px-1 py-0.5 rounded text-white ${
+                          payment.status === 'paid' || payment.status === 'Paid' ? 'bg-green-500' :
+                          payment.status === 'failed' || payment.status === 'Failed' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}>
                           {payment.status || 'Pending'}
                         </span>
                       </td>
@@ -396,61 +412,55 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         </td>
       </tr>
     );
-  };
+  }, []);
 
-  // ✅ Handle filters dynamically
-  const handleFilterChange = (e) => {
+  // ✅ Ultra-fast Filter Change Handlers
+  const handleFilterChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
-    setFilters((prev) => ({
+    setFilters(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  };
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, []);
 
-  const handleSearchChange = (e) => {
+  const handleSearchChange = useCallback((e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    // Only reset pagination for non-global search fields
+    setFilters(prev => ({ ...prev, [name]: value }));
     if (name !== "globalSearch") {
-      setPagination((prev) => ({ ...prev, page: 1 }));
+      setPagination(prev => ({ ...prev, page: 1 }));
     }
-  };
+  }, []);
 
-  // ✅ Toggle hierarchical payment row
-  const toggleExpandCase = (id, e) => {
-    if (e) e.stopPropagation(); // Prevent row click when clicking expand button
-    setExpandedCaseIds((prev) =>
-      prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
+  // ✅ Ultra-fast Expand Toggle
+  const toggleExpandCase = useCallback((id, e) => {
+    if (e) e.stopPropagation();
+    setExpandedCaseIds(prev =>
+      prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  // ✅ Handle row selection with highlighting
-  const handleRowClick = (caseId, e) => {
-    // Don't trigger row selection when clicking on action buttons or checkboxes
+  // ✅ Ultra-fast Row Click Handler
+  const handleRowClick = useCallback((caseId, e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
       return;
     }
-
     setSelectedRowId(caseId === selectedRowId ? null : caseId);
-  };
+  }, [selectedRowId]);
 
-  // ✅ Get row background color based on selection state
-  const getRowBackgroundColor = (caseId) => {
-    if (caseId === selectedRowId) {
-      return 'bg-blue-200 border-l-4 border-blue-500'; // Selected row with blue accent
-    }
-    return 'bg-white hover:bg-pink-100'; // Default state
-  };
+  // ✅ Ultra-fast Row Background Color
+  const getRowBackgroundColor = useCallback((caseId) => 
+    caseId === selectedRowId ? 'bg-blue-200 border-l-4 border-blue-500' : 'bg-white hover:bg-pink-100',
+  [selectedRowId]);
 
-  // ✅ Pagination calculations
+  // ✅ Ultra-optimized Pagination Calculations
   const paginationInfo = useMemo(() => ({
     totalPages: Math.ceil(totalRecords / pagination.limit),
     startIndex: (pagination.page - 1) * pagination.limit + 1,
     endIndex: Math.min(pagination.page * pagination.limit, totalRecords)
   }), [pagination, totalRecords]);
 
-  const getPageNumbers = () => {
+  const getPageNumbers = useCallback(() => {
     const delta = 2;
     const range = [];
     const { totalPages } = paginationInfo;
@@ -465,26 +475,22 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     if (range[range.length - 1] !== totalPages) range.push(totalPages);
 
     return range;
-  };
+  }, [paginationInfo, pagination.page]);
 
-  // ✅ Selection handlers
-  const toggleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedCaseIds(cases.map((c) => c.id));
-    } else {
-      setSelectedCaseIds([]);
-    }
-  };
+  // ✅ Ultra-fast Selection Handlers
+  const toggleSelectAll = useCallback((e) => {
+    setSelectedCaseIds(e.target.checked ? cases.map(c => c.id) : []);
+  }, [cases]);
 
-  const toggleSelectOne = (id, e) => {
-    if (e) e.stopPropagation(); // Prevent row click when clicking checkbox
-    setSelectedCaseIds((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+  const toggleSelectOne = useCallback((id, e) => {
+    if (e) e.stopPropagation();
+    setSelectedCaseIds(prev =>
+      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  // ✅ Export functionality
-  const handleExport = async () => {
+  // ✅ Ultra-optimized Export
+  const handleExport = useCallback(async () => {
     setExportLoading(true);
     try {
       const csvHeaders = [
@@ -508,21 +514,21 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `cases-export-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
+      link.href = url;
+      link.download = `cases-export-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       setError(`Export failed: ${err.message}`);
     } finally {
       setExportLoading(false);
     }
-  };
+  }, [filteredCases, getCasePaymentStatus]);
 
-  // ✅ Reset filters
-  const handleResetFilters = () => {
+  // ✅ Ultra-fast Reset Filters
+  const handleResetFilters = useCallback(() => {
     setFilters({
       globalSearch: "",
       searchField: "",
@@ -532,34 +538,67 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
       verified: "",
     });
     setPagination({ page: 1, limit: 10 });
-    setSelectedRowId(null); // Clear row selection
+    setSelectedRowId(null);
     fetchCases();
-  };
+  }, [fetchCases]);
 
-  // ✅ Action button handlers with event propagation prevention
-  const handleActionButtonClick = (action, caseItem, e) => {
-    e.stopPropagation(); // Prevent row click when clicking action buttons
+  // ✅ ULTRA-FAST Action Button Handler (No Switch)
+  const handleActionButtonClick = useCallback((action, caseItem, e) => {
+    e.stopPropagation();
+    
+    // Direct if-else chain - Fastest execution
+    if (action === 'view') onView?.(caseItem);
+    else if (action === 'edit') onView?.(caseItem, 'edit');
+    else if (action === 'print') onPrint?.(caseItem);
+    else if (action === 'delete') handleDeleteSingleCase(caseItem, e);
+    else if (action === 'more') onMore?.(caseItem);
+  }, [onView, onPrint, onMore, handleDeleteSingleCase]);
 
-    switch (action) {
-      case 'view':
-        onView && onView(caseItem);
-        break;
-      case 'edit':
-        onView && onView(caseItem, 'edit');
-        break;
-      case 'print':
-        onPrint && onPrint(caseItem);
-        break;
-      case 'delete':
-        handleDeleteSingleCase(caseItem, e);
-        break;
-      case 'more':
-        onMore && onMore(caseItem);
-        break;
-      default:
-        break;
+  // ✅ FIXED: Safe document rendering
+  const renderDocuments = useCallback((caseItem) => {
+    const documents = caseItem.documents;
+    
+    if (!documents || documents.length === 0) {
+      return "N/A";
     }
-  };
+
+    // Handle both array and single document cases
+    const docArray = Array.isArray(documents) ? documents : [documents];
+
+    return docArray.map((doc, i) => {
+      const documentPath = getDocumentPath(doc);
+      const documentName = getDocumentName(doc);
+      const isLoading = documentLoading === documentPath;
+
+      if (!documentPath) {
+        return (
+          <span key={i} className="text-gray-400 text-[8px]" title="Invalid document path">
+            N/A
+          </span>
+        );
+      }
+
+      return (
+        <button
+          key={i}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewDocument(documentPath);
+          }}
+          disabled={isLoading}
+          className={`mx-0.5 ${isLoading ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-blue-800'} transition-colors`}
+          title={isLoading ? "Loading..." : `View ${documentName}`}
+          aria-label={`View document ${documentName}`}
+        >
+          {isLoading ? (
+            <div className="animate-spin rounded-full h-3 w-3 border-b-1 border-red-600 mx-auto"></div>
+          ) : (
+            <FaFilePdf className="inline-block" size={12} />
+          )}
+        </button>
+      );
+    });
+  }, [getDocumentPath, getDocumentName, documentLoading, handleViewDocument]);
 
   return (
     <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
@@ -582,7 +621,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
             <span className="text-gray-600 ml-2">(Your cases only)</span>
           )}
         </div>
-        {/* Selected Row Info */}
         {selectedRowId && (
           <div className="text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
             📍 Row Selected: Case #{selectedRowId}
@@ -778,7 +816,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
         <table className="min-w-full table-fixed border-collapse text-[9px]" aria-label="Cases table">
           <thead>
             <tr className="bg-green-700 text-white sticky top-0">
-              {/* Hide select all checkbox for non-admin users */}
               {userRole === 'admin' && (
                 <th className="px-1 py-1 w-[2%]">
                   <input
@@ -836,7 +873,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                     className={`cursor-pointer transition-all duration-200 ${getRowBackgroundColor(c.id)}`}
                     onClick={(e) => handleRowClick(c.id, e)}
                   >
-                    {/* Hide select checkbox for non-admin users */}
                     {userRole === 'admin' && (
                       <td className="px-1 py-1 text-center">
                         <input
@@ -875,7 +911,6 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                         >
                           <FiEye size={12} />
                         </button>
-                        {/* Hide edit and delete buttons for non-admin users */}
                         {userRole === 'admin' && (
                           <>
                             <button
@@ -952,20 +987,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                     <td className="px-1 py-1 text-center">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">{c.updatedAt ? new Date(c.updatedAt).toLocaleDateString() : "-"}</td>
                     <td className="px-1 py-1 text-center">
-                      {c.documents?.length > 0 ? c.documents.map((doc, i) => (
-                        <a
-                          key={i}
-                          href={doc.url || doc.path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mx-0.5 text-red-600 hover:text-blue-800"
-                          title={doc.filename || doc.originalname}
-                          aria-label={`View document ${doc.filename || doc.originalname}`}
-                          onClick={(e) => e.stopPropagation()} // Prevent row click
-                        >
-                          <FaFilePdf className="inline-block mr-1" size={12} />
-                        </a>
-                      )) : "N/A"}
+                      {renderDocuments(c)}
                     </td>
                   </tr>
 
@@ -1089,6 +1111,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
           <li>Apply specific filters using the dropdowns and checkboxes above.</li>
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
           <li>Use the <span className="font-medium text-green-700">Export button</span> to download cases as CSV.</li>
+          <li>Click the <span className="font-medium text-red-700">document icon</span> to view case documents in a new tab.</li>
           {userRole === 'admin' && (
             <>
               <li>Select multiple cases using checkboxes for bulk actions.</li>
