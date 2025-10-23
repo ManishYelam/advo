@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import CaseTable from "../CaseTable";
 import Profile from "../Profile";
+import Application from "../Application";
 import { 
   FaFolderOpen, 
   FaUser, 
@@ -25,6 +26,11 @@ const AdvocateDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // New state for edit/view mode
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [applicationMode, setApplicationMode] = useState('view'); // 'view' only for advocates
   
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
@@ -239,6 +245,21 @@ const AdvocateDashboard = () => {
       return matchesSearch && matchesStatus;
     });
   }, [assignedCases, searchTerm, filterStatus]);
+
+  // ✅ Handle View Case
+  const handleViewCase = (caseData) => {
+    setSelectedCase(caseData);
+    setSelectedCaseId(caseData.id);
+    setApplicationMode('view');
+    setView("application");
+  };
+
+  // ✅ Handle Back from Application Form
+  const handleBackFromForm = () => {
+    setView("cases");
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+  };
 
   const handleDeleteCases = (caseIds) => {
     setAssignedCases(prev => prev.filter(c => !caseIds.includes(c.id)));
@@ -627,9 +648,29 @@ const AdvocateDashboard = () => {
               onDelete={handleDeleteCases}
               onSave={handleSaveCase}
               onBack={() => setView("dashboard")}
-              onView={(caseData) => console.log('View case:', caseData)}
+              onView={handleViewCase}
+              onEdit={handleViewCase} // Advocates can only view, not edit
               onPrint={(caseData) => console.log('Print case:', caseData)}
               onMore={(caseData) => console.log('More options:', caseData)}
+            />
+          </div>
+        )}
+
+        {view === "application" && (
+          <div className="w-full h-full px-6 py-8 bg-gray-50">
+            <button
+              onClick={handleBackFromForm}
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md mb-4"
+            >
+              <FaArrowLeft size={16} />
+              <span>Back to Cases</span>
+            </button>
+            <Application
+              mode={applicationMode}
+              initialData={selectedCase}
+              caseId={selectedCaseId}
+              onBack={handleBackFromForm}
+              onSave={handleSaveCase}
             />
           </div>
         )}

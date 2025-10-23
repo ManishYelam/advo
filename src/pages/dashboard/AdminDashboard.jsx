@@ -24,6 +24,11 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  
+  // New state for edit/view mode
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [applicationMode, setApplicationMode] = useState('create'); // 'create', 'edit', 'view'
 
   // Enhanced Sample Data
   const [cases, setCases] = useState([
@@ -195,6 +200,37 @@ const AdminDashboard = () => {
     { type: "document", message: "New document uploaded for Case B", time: "2 days ago" }
   ];
 
+  // ✅ Handle Edit Case
+  const handleEditCase = (caseData) => {
+    setSelectedCase(caseData);
+    setSelectedCaseId(caseData.id);
+    setApplicationMode('edit');
+    setView("application");
+  };
+
+  // ✅ Handle View Case
+  const handleViewCase = (caseData) => {
+    setSelectedCase(caseData);
+    setSelectedCaseId(caseData.id);
+    setApplicationMode('view');
+    setView("application");
+  };
+
+  // ✅ Handle Back from Application Form
+  const handleBackFromForm = () => {
+    setView("cases");
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+  };
+
+  // ✅ Handle Save from Application Form
+  const handleSaveFromForm = (updatedCase) => {
+    setCases(prev => prev.map(c => c.id === updatedCase.id ? updatedCase : c));
+    setView("cases");
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+  };
+
   const renderBackButton = () => (
     <button 
       onClick={() => setView("dashboard")} 
@@ -332,7 +368,10 @@ const AdminDashboard = () => {
           View All Cases
         </button>
         <button 
-          onClick={() => setView("addCase")}
+          onClick={() => {
+            setApplicationMode('create');
+            setView("application");
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
         >
           <FaPlus size={14} />
@@ -460,6 +499,7 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout>
       {view === "dashboard" && renderDashboard()}
+      
       {view === "cases" && (
         <div className="w-full h-full px-6 py-8 bg-gray-50">
           {renderBackButton()}
@@ -467,18 +507,33 @@ const AdminDashboard = () => {
             onDelete={handleDeleteCases}
             onSave={handleSaveCase}
             onBack={() => setView("dashboard")}
-            onView={(caseData) => console.log('View case:', caseData)}
+            onView={handleViewCase}
+            onEdit={handleEditCase}
             onPrint={(caseData) => console.log('Print case:', caseData)}
             onMore={(caseData) => console.log('More options:', caseData)}
           />
         </div>
       )}
-      {view === "addCase" && (
+      
+      {view === "application" && (
         <div className="w-full h-full px-6 py-8 bg-gray-50">
-          {renderBackButton()}
-          <Application onAdd={handleAddCase} />
+          <button 
+            onClick={handleBackFromForm} 
+            className="mb-4 flex items-center gap-2 text-gray-800 hover:text-gray-600 transition px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md"
+          >
+            <FaArrowLeft size={16} /> Back to Cases
+          </button>
+          <Application
+            mode={applicationMode}
+            initialData={selectedCase}
+            caseId={selectedCaseId}
+            onBack={handleBackFromForm}
+            onSave={handleSaveFromForm}
+            onAdd={handleAddCase}
+          />
         </div>
       )}
+      
       {view === "profile" && (
         <div className="w-full h-full px-6 py-8 bg-gray-50">
           {renderBackButton()}

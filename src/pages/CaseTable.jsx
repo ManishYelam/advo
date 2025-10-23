@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { getAllCases, deleteCase, getDocumentByCaseId } from "../services/casesService";
-import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload, FaExternalLinkAlt } from "react-icons/fa";
+import Application from "./Application"; // Import the Application form
+import { FaArrowLeft, FaFilePdf, FaPlus, FaCheck, FaTimes, FaDownload,FaEdit,FaEye,FaPrint,FaTrash,FaEllipsisV , FaExternalLinkAlt } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiEye, FiPrinter, FiMoreVertical, FiRefreshCcw } from "react-icons/fi";
 
 // Custom hook for debounce
@@ -100,6 +101,11 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(null);
+
+  // New state for edit/view mode
+  const [currentView, setCurrentView] = useState('table'); // 'table', 'edit', 'view'
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
 
   // Delete confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -327,6 +333,42 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     setDeleteConfirmMessage("");
   }, []);
 
+  // ✅ Handle Edit Case
+  const handleEditCase = useCallback((caseItem, e) => {
+    e.stopPropagation();
+    setSelectedCase(caseItem);
+    setSelectedCaseId(caseItem.id);
+    setCurrentView('edit');
+  }, []);
+
+  // ✅ Handle View Case
+  const handleViewCase = useCallback((caseItem, e) => {
+    e.stopPropagation();
+    setSelectedCase(caseItem);
+    setSelectedCaseId(caseItem.id);
+    setCurrentView('view');
+  }, []);
+
+  // ✅ Handle Back from Application Form
+  const handleBackFromForm = useCallback(() => {
+    setCurrentView('table');
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+    // Refresh cases to get updated data
+    fetchCases();
+  }, [fetchCases]);
+
+  // ✅ Handle Save from Application Form
+  const handleSaveFromForm = useCallback((updatedCase) => {
+    setCurrentView('table');
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+    // Refresh cases to get updated data
+    fetchCases();
+    // Show success message
+    setError(`Case #${updatedCase.id} updated successfully`);
+  }, [fetchCases]);
+
   // ✅ Ultra-optimized Payment Details Component
   const PaymentDetailsRow = useCallback(({ caseItem }) => {
     const payments = caseItem.payments || [];
@@ -547,12 +589,12 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     e.stopPropagation();
     
     // Direct if-else chain - Fastest execution
-    if (action === 'view') onView?.(caseItem);
-    else if (action === 'edit') onView?.(caseItem, 'edit');
+    if (action === 'view') handleViewCase(caseItem, e);
+    else if (action === 'edit') handleEditCase(caseItem, e);
     else if (action === 'print') onPrint?.(caseItem);
     else if (action === 'delete') handleDeleteSingleCase(caseItem, e);
     else if (action === 'more') onMore?.(caseItem);
-  }, [onView, onPrint, onMore, handleDeleteSingleCase]);
+  }, [handleViewCase, handleEditCase, onPrint, onMore, handleDeleteSingleCase]);
 
   // ✅ FIXED: Safe document rendering
   const renderDocuments = useCallback((caseItem) => {
@@ -600,6 +642,20 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
     });
   }, [getDocumentPath, getDocumentName, documentLoading, handleViewDocument]);
 
+  // ✅ Render Application Form for Edit/View
+  if (currentView === 'edit' || currentView === 'view') {
+    return (
+      <Application
+        mode={currentView}
+        initialData={selectedCase}
+        caseId={selectedCaseId}
+        onBack={handleBackFromForm}
+        onSave={handleSaveFromForm}
+      />
+    );
+  }
+
+  // ✅ Render Case Table
   return (
     <div className="w-full h-screen p-4 bg-gray-100 overflow-auto text-[9px]">
       {/* Delete Confirmation Modal */}
@@ -909,28 +965,28 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                           title="View"
                           aria-label={`View case ${c.id}`}
                         >
-                          <FiEye size={12} />
+                          <FaEye size={12} />
                         </button>
+                        {/* Show edit button for all roles */}
+                        <button
+                          className="text-blue-600 hover:text-blue-700"
+                          onClick={(e) => handleActionButtonClick('edit', c, e)}
+                          title="Edit"
+                          aria-label={`Edit case ${c.id}`}
+                        >
+                          <FaEdit size={12} />
+                        </button>
+                        {/* Hide delete button for non-admin users */}
                         {userRole === 'admin' && (
-                          <>
-                            <button
-                              className="text-blue-600 hover:text-blue-700"
-                              onClick={(e) => handleActionButtonClick('edit', c, e)}
-                              title="Edit"
-                              aria-label={`Edit case ${c.id}`}
-                            >
-                              <FiEdit size={12} />
-                            </button>
-                            <button
-                              className="text-red-600 hover:text-red-700"
-                              onClick={(e) => handleActionButtonClick('delete', c, e)}
-                              title="Delete"
-                              aria-label={`Delete case ${c.id}`}
-                              disabled={deleteLoading}
-                            >
-                              <FiTrash2 size={12} />
-                            </button>
-                          </>
+                          <button
+                            className="text-red-600 hover:text-red-700"
+                            onClick={(e) => handleActionButtonClick('delete', c, e)}
+                            title="Delete"
+                            aria-label={`Delete case ${c.id}`}
+                            disabled={deleteLoading}
+                          >
+                            <FaTrash size={12} />
+                          </button>
                         )}
                         <button
                           className="text-gray-600 hover:text-gray-700"
@@ -938,7 +994,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                           title="Print"
                           aria-label={`Print case ${c.id}`}
                         >
-                          <FiPrinter size={12} />
+                          <FaPrint size={12} />
                         </button>
                         <button
                           className="text-gray-600 hover:text-gray-700"
@@ -946,7 +1002,7 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
                           title="More Options"
                           aria-label={`More options for case ${c.id}`}
                         >
-                          <FiMoreVertical size={12} />
+                          <FaEllipsisV  size={12} />
                         </button>
                       </div>
                     </td>
@@ -1112,6 +1168,8 @@ const CaseTable = ({ onSave, onBack, onView, onPrint, onMore }) => {
           <li>Click the <span className="font-medium text-green-700">+ button</span> to view payment details for each case.</li>
           <li>Use the <span className="font-medium text-green-700">Export button</span> to download cases as CSV.</li>
           <li>Click the <span className="font-medium text-red-700">document icon</span> to view case documents in a new tab.</li>
+          <li>Click the <span className="font-medium text-blue-700">View button</span> to view case details in read-only mode.</li>
+          <li>Click the <span className="font-medium text-yellow-700">Edit button</span> to modify case information.</li>
           {userRole === 'admin' && (
             <>
               <li>Select multiple cases using checkboxes for bulk actions.</li>
