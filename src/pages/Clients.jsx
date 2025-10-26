@@ -35,7 +35,7 @@ const Clients = ({
     searchField: "",
     searchValue: ""
   });
-  const [selectedClientIds, setSelectedClientIds] = useState([]);
+  const [selectedclient_ids, setSelectedclient_ids] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
@@ -138,25 +138,25 @@ const Clients = ({
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedClientIds(filteredClients.map(c => c.id));
+      setSelectedclient_ids(filteredClients.map(c => c.id));
     } else {
-      setSelectedClientIds([]);
+      setSelectedclient_ids([]);
     }
   };
 
   const toggleSelectOne = (id) => {
-    setSelectedClientIds(prev =>
+    setSelectedclient_ids(prev =>
       prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
     );
   };
 
   const handleBulkAction = () => {
-    if (bulkAction && selectedClientIds.length > 0) {
+    if (bulkAction && selectedclient_ids.length > 0) {
       switch (bulkAction) {
         case "delete":
-          if (window.confirm(`Delete ${selectedClientIds.length} client(s)?`)) {
-            onDeleteClient?.(selectedClientIds);
-            setSelectedClientIds([]);
+          if (window.confirm(`Delete ${selectedclient_ids.length} client(s)?`)) {
+            onDeleteClient?.(selectedclient_ids);
+            setSelectedclient_ids([]);
           }
           break;
         case "export":
@@ -205,7 +205,7 @@ const Clients = ({
   const handleResetFilters = () => {
     setFilters({ globalSearch: "", status: "", verified: "", searchField: "", searchValue: "" });
     setPagination({ page: 1, limit: 10 });
-    setSelectedClientIds([]);
+    setSelectedclient_ids([]);
   };
 
   const paginationInfo = useMemo(() => ({
@@ -368,7 +368,7 @@ const Clients = ({
               </select>
 
               {/* Bulk Actions */}
-              {canEditDelete && selectedClientIds.length > 0 && (
+              {canEditDelete && selectedclient_ids.length > 0 && (
                 <div className="flex items-center gap-1">
                   <select
                     value={bulkAction}
@@ -387,7 +387,7 @@ const Clients = ({
                     Apply
                   </button>
                   <span className="text-xs text-gray-600 ml-1">
-                    ({selectedClientIds.length})
+                    ({selectedclient_ids.length})
                   </span>
                 </div>
               )}
@@ -429,7 +429,7 @@ const Clients = ({
                     <th className="px-2 py-2 text-left w-8">
                       <input
                         type="checkbox"
-                        checked={selectedClientIds.length === filteredClients.length && filteredClients.length > 0}
+                        checked={selectedclient_ids.length === filteredClients.length && filteredClients.length > 0}
                         onChange={toggleSelectAll}
                         className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
                       />
@@ -472,7 +472,7 @@ const Clients = ({
                         <td className="px-2 py-2">
                           <input
                             type="checkbox"
-                            checked={selectedClientIds.includes(client.id)}
+                            checked={selectedclient_ids.includes(client.id)}
                             onChange={() => toggleSelectOne(client.id)}
                             className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
                           />

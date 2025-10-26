@@ -67,20 +67,23 @@ export const saveApplicationData = async (applicationData) => {
   }
 };
 
-export const updateApplicationData = async (applicationId, applicationData) => {
+export const updateApplicationData = async (case_id, applicationData) => {
   try {
     const formData = new FormData();
 
-    // 1️⃣ Extract fields
+    // 1️⃣ Append the applicationId explicitly
+    formData.append('case_id', case_id);
+
+    // 2️⃣ Extract fields
     const { application_form, documents, ...otherData } = applicationData;
     formData.append('applicationData', JSON.stringify(otherData));
 
-    // 2️⃣ Include updated application form (if a new file is uploaded)
+    // 3️⃣ Include updated application form (if a new file is uploaded)
     if (application_form && application_form instanceof File) {
       formData.append('applicationForm', application_form);
     }
 
-    // 3️⃣ Include updated or new exhibit documents
+    // 4️⃣ Include updated or new exhibit documents
     if (documents && typeof documents === 'object') {
       Object.entries(documents).forEach(([exhibit, files]) => {
         if (Array.isArray(files)) {
@@ -104,8 +107,8 @@ export const updateApplicationData = async (applicationId, applicationData) => {
       });
     }
 
-    // 4️⃣ Send update request
-    const response = await api.put(`/users/update-application/${applicationId}`, formData, {
+    // 5️⃣ Send update request
+    const response = await api.post(`/users/update-application`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

@@ -469,13 +469,13 @@ const Application = ({
 
       console.log("✅ Case data loaded:", caseData);
 
-      const clientId = caseData?.client_id || caseData?.data?.client_id;
-      console.log("👤 Client ID:", clientId);
+      const client_id = caseData?.client_id || caseData?.data?.client_id;
+      console.log("👤 Client ID:", client_id);
 
-      if (!clientId) throw new Error("Client ID missing from case data");
+      if (!client_id) throw new Error("Client ID missing from case data");
 
-      console.log("📥 Fetching applicant data for client ID:", clientId);
-      const applicantRes = await userApplicant(clientId);
+      console.log("📥 Fetching applicant data for client ID:", client_id);
+      const applicantRes = await userApplicant(client_id);
       console.log("📦 Applicant API Response:", applicantRes);
 
       const applicantData = applicantRes?.data?.data || applicantRes?.data || applicantRes;
@@ -614,7 +614,7 @@ const Application = ({
 
     console.log("💾 Saving case...", documents);
     setIsSubmitting(true);
-    
+
     try {
       const currentFormData = formDataRef.current;
 
@@ -642,15 +642,18 @@ const Application = ({
 
       // Call the update service
       const response = await updateApplicationData(caseId, updatedFormData);
-      
-      if (response.data && response.data.success) {
+
+      console.log("////////////", response);
+
+      // FIXED: Check the correct response structure
+      if (response.data && response.data.data && response.data.data.success) {
         // Update local state with the response data
         const updatedCaseData = response.data.data || updatedFormData;
         setFormData(updatedCaseData);
-        
+
         console.log("✅ Case updated successfully:", updatedCaseData);
         showSuccessToast("✅ Case updated successfully!");
-        
+
         // Call the onSave callback with updated data
         if (onSave) {
           onSave(updatedCaseData);
