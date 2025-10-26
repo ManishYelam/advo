@@ -3,13 +3,22 @@ import { FaCheckCircle } from "react-icons/fa";
 import html2pdf from "html2pdf.js";
 import { showWarningToast, showSuccessToast, showErrorToast } from "../utils/Toastify";
 
-const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
+const CaseReview = ({ formData, setFormData, onNext, onBack, onSave, mode, isLoading }) => {
   const [check, setCheck] = useState(formData.verified || false);
   const [submitting, setSubmitting] = useState(false);
 
+  console.log("🔍 CaseReview Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
+    full_name: formData.full_name,
+    verified: formData.verified,
+    hasData: !!formData.full_name
+  });
+
   // ✅ Handle checkbox verification
   const handleCheckboxChange = useCallback((e) => {
+    if (mode === 'view') return;
+
     const verified = e.target.checked;
+    console.log("✅ Checkbox changed:", verified);
     setCheck(verified);
     setFormData((prev) => ({ ...prev, verified }));
 
@@ -18,7 +27,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
     } else {
       showWarningToast("Please verify the declaration to proceed.");
     }
-  }, [setFormData]);
+  }, [setFormData, mode]);
 
   // ✅ Format currency for display - OPTIMIZED
   const formatCurrency = useCallback((value) => {
@@ -57,16 +66,25 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
   // ✅ Check if all required fields are filled - OPTIMIZED
   const isFormComplete = useMemo(() => {
     const requiredFields = [
-      'full_name', 'date_of_birth', 'age', 'gender', 'phone_number', 
+      'full_name', 'date_of_birth', 'age', 'gender', 'phone_number',
       'email', 'occupation', 'address', 'saving_account_start_date',
       'deposit_type', 'deposit_duration_years'
     ];
-    
-    return requiredFields.every(field => formData[field]);
+
+    const complete = requiredFields.every(field => formData[field]);
+    console.log("📋 Form completeness check:", complete);
+    return complete;
   }, [formData]);
 
   // ✅ Validation and submission - OPTIMIZED
   const handleNext = useCallback(async () => {
+    console.log("🚀 CaseReview Next clicked - mode:", mode);
+
+    if (mode === 'view') {
+      onNext();
+      return;
+    }
+
     if (!check) {
       showWarningToast("Please verify the declaration before proceeding.");
       return;
@@ -78,6 +96,8 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
     }
 
     setSubmitting(true);
+    console.log("📄 Generating PDF...");
+
     try {
       const element = document.getElementById("printableArea");
 
@@ -85,15 +105,15 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
         margin: [10, 10, 10, 10],
         filename: `Application_${formData.full_name || "Applicant"}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { 
+        html2canvas: {
           scale: 2,
           useCORS: true,
           logging: false
         },
-        jsPDF: { 
-          unit: "mm", 
-          format: "a4", 
-          orientation: "portrait" 
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait"
         },
       };
 
@@ -114,26 +134,52 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
       };
 
       setFormData(updatedData);
-      showSuccessToast("Application submitted successfully!");
+      
+      // Call onSave for edit mode to persist changes
+      if (mode === 'edit' && onSave) {
+        await onSave(updatedData);
+        showSuccessToast("Case updated successfully!");
+      } else {
+        showSuccessToast("Application submitted successfully!");
+      }
+      
       onNext(updatedData);
     } catch (error) {
-      console.error("Submission error:", error);
+      console.error("❌ Submission error:", error);
       showErrorToast("Failed to generate application PDF. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [check, isFormComplete, formData, setFormData, onNext]);
+  }, [check, isFormComplete, formData, setFormData, onNext, onSave, mode]);
 
   // ✅ Handle back button
   const handleBack = useCallback(() => {
+    console.log("🔙 CaseReview Back clicked");
     onBack();
   }, [onBack]);
 
+  if (isLoading && mode !== 'create') {
+    return (
+      <div className="max-w-3xl mx-auto bg-white p-6 border border-gray-300 shadow-lg rounded">
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span className="ml-3 text-gray-600">Loading case review data...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto bg-white p-6 border border-gray-300 shadow-lg rounded text-[11px] leading-5">
-      
+
+      {/* Debug info */}
+      <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-[9px] text-blue-700">
+        <strong>Debug:</strong> Mode: {mode} | Loading: {isLoading ? 'Yes' : 'No'} |
+        Complete: {isFormComplete ? 'Yes' : 'No'} | Verified: {check ? 'Yes' : 'No'}
+      </div>
+
       {/* Status Alert */}
-      {!isFormComplete && (
+      {!isFormComplete && mode !== 'view' && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-[10px]">
           ⚠️ Please complete all required fields in previous steps before submitting.
         </div>
@@ -218,12 +264,13 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
             correct to the best of my knowledge and belief, and nothing material has been concealed therefrom.
             I understand that any false information may lead to rejection of my application.
           </p>
-          <label className="flex items-center space-x-3 mt-2 cursor-pointer">
+          <label className={`flex items-center space-x-3 mt-2 ${mode === 'view' ? 'cursor-default' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
               checked={check}
               onChange={handleCheckboxChange}
-              className="cursor-pointer accent-green-600 w-4 h-4"
+              disabled={mode === 'view'}
+              className={`${mode === 'view' ? 'cursor-default' : 'cursor-pointer'} accent-green-600 w-4 h-4`}
             />
             <span className="font-semibold text-green-700">
               {check ? (
@@ -253,34 +300,36 @@ const CaseReview = ({ formData, setFormData, onNext, onBack }) => {
         </footer>
       </div>
 
-      {/* Action Buttons - Simplified */}
+      {/* Action Buttons - Updated: Only Next button for create/edit, no button for view */}
       <div className="flex justify-between items-center mt-8">
         <button
           onClick={handleBack}
           disabled={submitting}
-          className="px-4 py-2 bg-gray-400 text-white rounded text-[11px] hover:bg-gray-500 transition-colors disabled:opacity-50"
+          className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 text-[10px] flex items-center gap-1 transition-colors"
         >
           Back
         </button>
 
-        <button
-          onClick={handleNext}
-          disabled={!check || submitting || !isFormComplete}
-          className={`px-6 py-2 text-white rounded text-[11px] flex items-center gap-2 transition-colors ${
-            !check || submitting || !isFormComplete
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700"
-          }`}
-        >
-          {submitting ? (
-            <>
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-              Submitting...
-            </>
-          ) : (
-            'Next'
-          )}
-        </button>
+        {/* Only show Next button in create and edit modes */}
+        {mode !== 'view' && (
+          <button
+            onClick={handleNext}
+            disabled={!check || submitting || !isFormComplete}
+            className={`px-3 py-1 text-white rounded text-[11px] flex items-center gap-2 transition-colors ${!check || submitting || !isFormComplete
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+              }`}
+          >
+            {submitting ? (
+              <>
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                {mode === 'edit' ? 'Updating...' : 'Submitting...'}
+              </>
+            ) : (
+              'Next'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

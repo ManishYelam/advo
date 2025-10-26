@@ -1,41 +1,55 @@
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: '../../.env' }); // adjust the path to your .env
+const fetchCaseAndApplicantData = useCallback(async () => {
+    if (!["edit", "view"].includes(mode) || !caseId || initialData) return;
 
-async function testApiEndpoint() {
-  try {
-    // Generate a token for user with ID 1
-    const token = jwt.sign({ id: 1 }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    console.log('Generated token:', token);
+    setIsLoading(true);
+    setFetchError(null);
 
-    const testData = {
-      user_id: 1, // Use a valid user ID from your database
-      subject: 'API Test Ticket',
-      description: 'Testing the API endpoint directly',
-      category: 'general',
-      priority: 'medium',
-      case_id: null // Explicitly set to null
-    };
+    try {
+      const caseRes = await getCaseById(caseId);
+      const caseData = caseRes?.data?.data || caseRes?.data || caseRes;
+      if (!caseData || Object.keys(caseData).length === 0)
+        throw new Error("Case data not found");
 
-    console.log('Testing API endpoint with data:', testData);
+      setCaseData(caseData);
 
-    const response = await axios.post('http://localhost:5000/api/support/tickets', testData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
+      const clientId = caseData?.client_id || caseData?.data?.client_id;
+      if (!clientId) throw new Error("Client ID missing from case data");
 
-    console.log('✅ API SUCCESS:', response.data);
-  } catch (error) {
-    console.log('❌ API FAILED:');
-    if (error.response) {
-      console.log('Status:', error.response.status);
-      console.log('Data:', error.response.data);
-    } else {
-      console.log('Error:', error.message);
+      const applicantRes = await userApplicant(clientId);
+      const applicantData =
+        applicantRes?.data?.data || applicantRes?.data || applicantRes;
+      if (!applicantData || Object.keys(applicantData).length === 0)
+        throw new Error("Applicant data not found");
+
+      setApplicantData(applicantData);
+
+      const mergedData = {
+        ...INITIAL_FORM_DATA,
+        ...applicantData,
+        ...caseData,
+        status: caseData?.status || "Not Started",
+        documents: {
+          ...INITIAL_FORM_DATA.documents,
+          ...(caseData?.documents || {}),
+        },
+      };
+      console.log(mergedData);
+      
+
+      setFormData(mergedData);
+    } catch (err) {
+      console.error("❌ Data fetch failed:", err);
+      const msg = err?.message || "Failed to load case or applicant data";
+      setFetchError(msg);
+      showErrorToast(
+        `Failed to load ${mode === "edit" ? "case for editing" : "case details"
+        }: ${msg}`
+      );
+    } finally {
+      setIsLoading(false);
     }
-  }
-}
+  }, [mode, caseId, initialData]);
 
-testApiEndpoint();
+  useEffect(() => {
+    fetchCaseAndApplicantData();
+  }, [fetchCaseAndApplicantData]);

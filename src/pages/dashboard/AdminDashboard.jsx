@@ -218,7 +218,7 @@ const AdminDashboard = () => {
 
   // ✅ Handle Back from Application Form
   const handleBackFromForm = () => {
-    setView("cases");
+    setView("dashboard");
     setSelectedCase(null);
     setSelectedCaseId(null);
   };
@@ -521,7 +521,7 @@ const AdminDashboard = () => {
             onClick={handleBackFromForm} 
             className="mb-4 flex items-center gap-2 text-gray-800 hover:text-gray-600 transition px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md"
           >
-            <FaArrowLeft size={16} /> Back to Cases
+            <FaArrowLeft size={16} /> Back to Dashboard
           </button>
           <Application
             mode={applicationMode}

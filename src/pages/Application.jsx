@@ -7,6 +7,7 @@ import Payment from "../components/Payment";
 import Toast from "../components/Toast";
 import { showErrorToast, showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { saveApplicationData, updateApplicationData, userApplicant } from "../services/applicationService";
+import { getCaseById } from "../services/casesService";
 import {
   FaFileUpload,
   FaCheckCircle,
@@ -71,11 +72,17 @@ const CREATE_STEPS = [
   { number: 5, title: "Payment", icon: FaMoneyBillWave }
 ];
 
-const EDIT_VIEW_STEPS = [
+const EDIT_STEPS = [
   { number: 1, title: "Basic Info", icon: FaUser },
   { number: 2, title: "Case Details", icon: FaFileAlt },
   { number: 3, title: "Review Case", icon: FaClipboardCheck },
   { number: 4, title: "Documents", icon: FaFileUpload }
+];
+
+const VIEW_STEPS = [
+  { number: 1, title: "Basic Info", icon: FaUser },
+  { number: 2, title: "Case Details", icon: FaFileAlt },
+  { number: 3, title: "Review Case", icon: FaClipboardCheck }
 ];
 
 const INITIAL_FORM_DATA = {
@@ -388,11 +395,17 @@ const CREATE_STEP_COMPONENTS = {
   5: Payment
 };
 
-const EDIT_VIEW_STEP_COMPONENTS = {
+const EDIT_STEP_COMPONENTS = {
   1: CaseFormBasic,
   2: CaseFormDetails,
   3: CaseReview,
   4: DocumentStep
+};
+
+const VIEW_STEP_COMPONENTS = {
+  1: CaseFormBasic,
+  2: CaseFormDetails,
+  3: CaseReview
 };
 
 const Application = ({
@@ -408,23 +421,101 @@ const Application = ({
   const [selectedExhibit, setSelectedExhibit] = useState("Exhibit A");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   // Determine steps based on mode
-  const STEPS = mode === 'create' ? CREATE_STEPS : EDIT_VIEW_STEPS;
-  const STEP_COMPONENTS = mode === 'create' ? CREATE_STEP_COMPONENTS : EDIT_VIEW_STEP_COMPONENTS;
+  const STEPS = mode === 'create' ? CREATE_STEPS :
+    mode === 'edit' ? EDIT_STEPS :
+      VIEW_STEPS;
+
+  const STEP_COMPONENTS = mode === 'create' ? CREATE_STEP_COMPONENTS :
+    mode === 'edit' ? EDIT_STEP_COMPONENTS :
+      VIEW_STEP_COMPONENTS;
+
   const totalSteps = STEPS.length;
 
   // Refs for frequently accessed values
   const formDataRef = useRef(formData);
   const currentStepRef = useRef(currentStep);
 
-  // const DepositDetailsForm = getCaseById(caseId);
-  // const userid = DepositDetailsForm.data.client_id
-  // const BasicInfoFormData = userApplicant(userid);
+  // Fetch case and applicant data for edit/view modes
+  const fetchCaseAndApplicantData = useCallback(async () => {
+    console.log("🔄 Starting data fetch for mode:", mode, "caseId:", caseId);
+
+    if (!["edit", "view"].includes(mode) || !caseId) {
+      console.log("⏩ Skipping fetch - mode:", mode, "caseId:", caseId, "initialData:", !!initialData);
+      return;
+    }
+
+    setIsLoading(true);
+    setFetchError(null);
+
+    try {
+      console.log("📥 Fetching case data for ID:", caseId);
+      const caseRes = await getCaseById(caseId);
+      console.log("📦 Case API Response:", caseRes);
+
+      const caseData = caseRes?.data?.data || caseRes?.data || caseRes;
+      if (!caseData || Object.keys(caseData).length === 0) {
+        throw new Error("Case data not found or empty");
+      }
+
+      console.log("✅ Case data loaded:", caseData);
+
+      const clientId = caseData?.client_id || caseData?.data?.client_id;
+      console.log("👤 Client ID:", clientId);
+
+      if (!clientId) throw new Error("Client ID missing from case data");
+
+      console.log("📥 Fetching applicant data for client ID:", clientId);
+      const applicantRes = await userApplicant(clientId);
+      console.log("📦 Applicant API Response:", applicantRes);
+
+      const applicantData = applicantRes?.data?.data || applicantRes?.data || applicantRes;
+      if (!applicantData || Object.keys(applicantData).length === 0) {
+        throw new Error("Applicant data not found or empty");
+      }
+
+      console.log("✅ Applicant data loaded:", applicantData.user);
+
+      // Merge the data with proper structure
+      const mergedData = {
+        ...INITIAL_FORM_DATA,
+        ...applicantData.user,
+        ...caseData,
+        status: caseData?.status || "Not Started",
+        documents: {
+          ...INITIAL_FORM_DATA.documents,
+          ...(caseData?.documents || {}),
+        },
+      };
+
+      console.log("🔄 Merged form data:", mergedData);
+      setFormData(mergedData);
+      setFetchError(null);
+
+    } catch (err) {
+      console.error("❌ Data fetch failed:", err);
+      const msg = err?.message || "Failed to load case or applicant data";
+      setFetchError(msg);
+      showErrorToast(
+        `Failed to load ${mode === "edit" ? "case for editing" : "case details"}: ${msg}`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [mode, caseId, initialData]);
+
+  useEffect(() => {
+    console.log("🎯 useEffect triggered - mode:", mode, "caseId:", caseId);
+    fetchCaseAndApplicantData();
+  }, [fetchCaseAndApplicantData]);
 
   // Initialize form data when initialData changes
   useEffect(() => {
     if (initialData) {
+      console.log("🔄 Setting initial data:", initialData);
       setFormData(initialData);
     }
   }, [initialData]);
@@ -473,6 +564,7 @@ const Application = ({
     if (mode === 'view') return; // Prevent changes in view mode
 
     const { name, value } = e.target;
+    console.log("📝 Input change:", name, value);
 
     setFormData(prev => ({
       ...prev,
@@ -492,6 +584,8 @@ const Application = ({
   const handleDocumentsChange = useCallback((updatedFiles) => {
     if (mode === 'view') return; // Prevent changes in view mode
 
+    console.log("📁 Documents change for exhibit:", selectedExhibit, "files:", updatedFiles);
+
     setFormData(prev => ({
       ...prev,
       documents: {
@@ -510,6 +604,8 @@ const Application = ({
 
   // Optimized navigation handlers
   const goToNextStep = useCallback(() => {
+    console.log("➡️ Next step clicked - current:", currentStep, "mode:", mode);
+
     if (mode === 'view') {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
       return;
@@ -545,6 +641,8 @@ const Application = ({
   }, [validateStep, mode, totalSteps]);
 
   const goToPrevStep = useCallback(() => {
+    console.log("⬅️ Previous step clicked - current:", currentStep, "mode:", mode);
+
     if (mode === 'view') {
       setCurrentStep(prev => Math.max(prev - 1, 1));
       return;
@@ -568,19 +666,25 @@ const Application = ({
     setCurrentStep(prev => Math.max(prev - 1, 1));
   }, [mode]);
 
-  // Handle custom back action
-  const handleBack = useCallback(() => {
+  // Handle custom back action (goes to cases table)
+  const handleBackToCases = useCallback(() => {
+    console.log("🔙 Back to cases action - onBack provided:", !!onBack);
     if (onBack) {
       onBack();
-    } else {
-      goToPrevStep();
     }
-  }, [onBack, goToPrevStep]);
+  }, [onBack]);
+
+  // Handle step back action (goes to previous step)
+  const handleStepBack = useCallback(() => {
+    console.log("🔙 Step back action - current step:", currentStep);
+    goToPrevStep();
+  }, [goToPrevStep, currentStep]);
 
   // Handle save case (for edit mode)
   const handleSaveCase = useCallback(async () => {
     if (mode !== 'edit') return;
 
+    console.log("💾 Saving case...");
     setIsSubmitting(true);
     try {
       const currentFormData = formDataRef.current;
@@ -599,12 +703,13 @@ const Application = ({
       setFormData(updatedFormData);
 
       if (onSave) {
+        console.log("✅ Calling onSave callback with data:", updatedFormData);
         onSave(updatedFormData);
         showSuccessToast("✅ Case updated successfully!");
       }
 
     } catch (error) {
-      console.error("Error saving case:", error);
+      console.error("❌ Error saving case:", error);
       showErrorToast("❌ Failed to update case. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -615,6 +720,7 @@ const Application = ({
   const handlePaymentSuccess = useCallback(async (paymentResponse) => {
     if (mode !== 'create') return;
 
+    console.log("💳 Payment success:", paymentResponse);
     setIsSubmitting(true);
     try {
       const currentFormData = formDataRef.current;
@@ -659,7 +765,7 @@ const Application = ({
       }
 
     } catch (error) {
-      console.error("Payment success handling error:", error);
+      console.error("❌ Payment success handling error:", error);
       showErrorToast(`❌ Failed to ${mode === 'edit' ? 'update case' : 'process application'}. Please contact support.`);
     } finally {
       setIsSubmitting(false);
@@ -668,40 +774,78 @@ const Application = ({
 
   // Optimized reset function
   const resetForm = useCallback(() => {
+    console.log("🔄 Resetting form");
     setFormData(INITIAL_FORM_DATA);
     setSelectedExhibit("Exhibit A");
     setCurrentStep(1);
     setValidationErrors({});
   }, []);
 
-  // Fast component lookup using object map (replaces switch statement)
+  // Fast component lookup using object map
   const stepContent = useMemo(() => {
+    console.log("🔄 Rendering step content - currentStep:", currentStep, "isLoading:", isLoading, "fetchError:", fetchError);
+
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          <span className="ml-3 text-gray-600">Loading case data...</span>
+        </div>
+      );
+    }
+
+    if (fetchError && !formData.full_name && mode !== 'create') {
+      return (
+        <div className="text-center py-12">
+          <div className="text-red-500 text-4xl mb-4">❌</div>
+          <h3 className="text-red-600 font-semibold mb-2">Failed to Load Case</h3>
+          <p className="text-gray-600 mb-4">{fetchError}</p>
+          <button
+            onClick={fetchCaseAndApplicantData}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
     const StepComponent = STEP_COMPONENTS[currentStep];
-    if (!StepComponent) return null;
+    if (!StepComponent) {
+      console.error("❌ No component found for step:", currentStep);
+      return null;
+    }
 
     const stepProps = {
       1: {
         formData,
         handleInputChange,
         onNext: goToNextStep,
+        onBack: handleStepBack, // Use step back for internal navigation
         errors: validationErrors,
-        mode
+        mode,
+        isLoading: mode !== 'create' && isLoading,
+        isLastStep: currentStep === totalSteps
       },
       2: {
         formData,
         handleInputChange,
         onNext: goToNextStep,
-        onBack: handleBack,
+        onBack: handleStepBack, // Use step back for internal navigation
         errors: validationErrors,
-        mode
+        mode,
+        isLoading: mode !== 'create' && isLoading,
+        isLastStep: currentStep === totalSteps
       },
       3: {
         formData,
         setFormData,
         onNext: goToNextStep,
-        onBack: handleBack,
-        onSave: mode === 'edit' ? handleSaveCase : undefined,
-        mode
+        onBack: handleStepBack, // Use step back for internal navigation
+        onSave: undefined,
+        mode,
+        isLoading: mode !== 'create' && isLoading,
+        isLastStep: currentStep === totalSteps
       },
       4: {
         selectedExhibit,
@@ -709,19 +853,24 @@ const Application = ({
         documents: formData.documents,
         onDocumentsChange: handleDocumentsChange,
         onNext: goToNextStep,
-        onBack: handleBack,
+        onBack: handleStepBack, // Use step back for internal navigation
         onSave: mode === 'edit' ? handleSaveCase : undefined,
-        mode
+        mode,
+        isLoading: mode !== 'create' && isLoading,
+        isLastStep: currentStep === totalSteps
       },
       5: {
         amount: 500,
         onPaymentSuccess: handlePaymentSuccess,
-        onBack: handleBack,
+        onBack: handleStepBack, // Use step back for internal navigation
+        onSave: mode === 'edit' ? handleSaveCase : undefined,
         isSubmitting,
-        mode
+        mode,
+        isLastStep: currentStep === totalSteps
       }
     };
 
+    console.log("🎨 Creating component for step:", currentStep, "with props:", Object.keys(stepProps[currentStep]));
     return React.createElement(StepComponent, stepProps[currentStep]);
   }, [
     currentStep,
@@ -729,23 +878,30 @@ const Application = ({
     selectedExhibit,
     validationErrors,
     isSubmitting,
+    isLoading,
+    fetchError,
     mode,
     handleInputChange,
     handleDocumentsChange,
     goToNextStep,
-    handleBack,
+    handleStepBack,
     handlePaymentSuccess,
     handleSaveCase,
-    STEP_COMPONENTS
+    STEP_COMPONENTS,
+    fetchCaseAndApplicantData,
+    totalSteps
   ]);
 
   // Render action buttons based on mode and current step
   const renderActionButtons = useCallback(() => {
+    console.log("🎯 Rendering action buttons - mode:", mode, "currentStep:", currentStep, "totalSteps:", totalSteps);
+
+    // View Mode - Hide Next button in last step
     if (mode === 'view') {
       return (
         <div className="flex justify-between items-center mt-6 pt-6 border-t">
           <button
-            onClick={handleBack}
+            onClick={handleBackToCases}
             className="flex items-center gap-2 px-3 py-1 bg-gray-400 text-white text-[12px] rounded-lg hover:bg-gray-700 transition-all"
           >
             <FaArrowLeft />
@@ -758,54 +914,40 @@ const Application = ({
       );
     }
 
-    if (mode === 'edit' && currentStep === totalSteps) {
-      return (
-        <div className="flex justify-between items-center mt-6 pt-6 border-t">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 px-3 py-1 bg-gray-400 text-white text-[12px] rounded-lg hover:bg-gray-700 transition-all"
-          >
-            <FaArrowLeft />
-            Back to Cases
-          </button>
-          <button
-            onClick={handleSaveCase}
-            disabled={isSubmitting}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all disabled:opacity-50"
-          >
-            <FaSave />
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      );
+    // Create Mode - Show normal navigation
+    if (mode === 'create') {
+      return
     }
 
+    // Edit Mode - Not last step
     return (
       <div className="flex justify-between items-center mt-6 pt-6 border-t">
         <button
-          onClick={handleBack}
-          className="flex items-center gap-2 px-3 py-1 bg-gray-400 text-white text-[12px] rounded-lg hover:bg-gray-700 transition-all disabled:opacity-50"
+          onClick={handleBackToCases}
+          className="flex items-center gap-2 px-3 py-1 bg-gray-400 text-white text-[12px] rounded-lg hover:bg-gray-700 transition-all"
         >
           <FaArrowLeft />
-          {'Back to Cases'}
+          Back to Cases
         </button>
         <div className="text-sm text-gray-500">
           Step {currentStep} of {totalSteps}
         </div>
       </div>
     );
-  }, [mode, currentStep, totalSteps, handleBack, goToNextStep, handleSaveCase, isSubmitting]);
+  }, [mode, currentStep, totalSteps, handleBackToCases, handleStepBack, handleSaveCase, isSubmitting]);
 
   // Determine container classes based on mode
   const containerClasses = useMemo(() => {
     const baseClasses = "min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 py-8";
 
     if (mode === 'view' || mode === 'edit') {
-      return `${baseClasses} px-4 md:px-8 lg:px-16 xl:px-24`; // Added horizontal margins for view/edit modes
+      return `${baseClasses} px-4 md:px-8 lg:px-16 xl:px-24`;
     }
 
-    return `${baseClasses} px-4`; // Default padding for create mode
+    return `${baseClasses} px-4`;
   }, [mode]);
+
+  console.log("🎬 Rendering Application component - mode:", mode, "currentStep:", currentStep, "formData loaded:", !!formData.full_name);
 
   return (
     <div className={containerClasses}>
@@ -872,4 +1014,4 @@ const Application = ({
   );
 };
 
-export default React.memo(Application);
+export default Application;
