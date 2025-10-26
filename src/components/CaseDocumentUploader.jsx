@@ -23,7 +23,9 @@ const CaseDocumentUploader = ({
   exhibit,
   maxFileSize = 10 * 1024 * 1024,
   mode,
-  isLoading
+  isLoading,
+  isSubmitting = false,
+  isLastStep = false
 }) => {
   const [documents, setDocuments] = useState(initialDocuments);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -32,7 +34,7 @@ const CaseDocumentUploader = ({
   const [saving, setSaving] = useState(false);
   const fileRefs = useRef({});
 
-  console.log("🔍 DocumentUploader Debug - mode:", mode, "isLoading:", isLoading, "exhibit:", exhibit, "documents:", documents.length);
+  console.log("🔍 DocumentUploader Debug - mode:", mode, "isLoading:", isLoading, "exhibit:", exhibit, "documents:", documents.length, "isSubmitting:", isSubmitting);
 
   useEffect(() => {
     console.log("🔄 Documents updated:", initialDocuments);
@@ -327,7 +329,7 @@ const CaseDocumentUploader = ({
       return;
     }
 
-    if (onNext) onNext(documents);
+    if (onNext) onNext();
   };
 
   const getUploadStatus = useCallback(() => {
@@ -347,6 +349,11 @@ const CaseDocumentUploader = ({
   const isAnyFileUploading = Object.values(uploadingFiles).some(status => status);
   const isAnyFileCompressing = Object.keys(compressionProgress).length > 0;
 
+  // Determine if we should show Save button (edit mode + last step)
+  const shouldShowSaveButton = mode === 'edit' && isLastStep;
+  // Determine if we should show Next button (create mode OR edit mode but not last step)
+  const shouldShowNextButton = mode === 'create' || (mode === 'edit' && !isLastStep);
+
   if (isLoading && mode !== 'create') {
     return (
       <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -363,7 +370,8 @@ const CaseDocumentUploader = ({
       {/* Debug info */}
       <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-[9px] text-blue-700">
         <strong>Debug:</strong> Mode: {mode} | Loading: {isLoading ? 'Yes' : 'No'} | 
-        Exhibit: {exhibit} | Uploaded: {status.uploadedCount}/{status.totalCount}
+        Exhibit: {exhibit} | Uploaded: {status.uploadedCount}/{status.totalCount} |
+        Last Step: {isLastStep ? 'Yes' : 'No'} | Submitting: {isSubmitting ? 'Yes' : 'No'}
       </div>
 
       {/* Header with Progress */}
@@ -584,7 +592,7 @@ const CaseDocumentUploader = ({
         <button
           type="button"
           onClick={onBack}
-          disabled={isAnyFileUploading || isAnyFileCompressing || saving}
+          disabled={isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting}
           className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-[10px] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           Back
@@ -592,18 +600,18 @@ const CaseDocumentUploader = ({
         
         <div className="flex gap-3">
           {/* Save Changes button for edit mode (last step) */}
-          {mode === 'edit' && (
+          {shouldShowSaveButton && (
             <button
               type="button"
               onClick={handleSaveChanges}
-              disabled={isAnyFileUploading || isAnyFileCompressing || saving || !status.isComplete}
+              disabled={isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting || !status.isComplete}
               className={`px-3 py-1 text-white rounded text-[10px] transition-colors flex items-center gap-2 ${
-                isAnyFileUploading || isAnyFileCompressing || saving || !status.isComplete
+                isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting || !status.isComplete
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
               }`}
             >
-              {saving ? (
+              {saving || isSubmitting ? (
                 <>
                   <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
                   Saving...
@@ -617,14 +625,14 @@ const CaseDocumentUploader = ({
             </button>
           )}
 
-          {/* Next button for create mode */}
-          {mode === 'create' && (
+          {/* Next button for create mode OR edit mode (not last step) */}
+          {shouldShowNextButton && (
             <button
               type="button"
               onClick={handleNextClick}
-              disabled={isAnyFileUploading || isAnyFileCompressing || !status.isComplete}
+              disabled={isAnyFileUploading || isAnyFileCompressing || isSubmitting || !status.isComplete}
               className={`px-3 py-1 text-white rounded text-[10px] transition-colors ${
-                isAnyFileUploading || isAnyFileCompressing || !status.isComplete
+                isAnyFileUploading || isAnyFileCompressing || isSubmitting || !status.isComplete
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
               }`}

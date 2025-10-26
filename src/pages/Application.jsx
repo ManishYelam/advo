@@ -361,7 +361,10 @@ const DocumentStep = React.memo(({
   onNext,
   onBack,
   onSave,
-  mode
+  mode,
+  isLoading,
+  isSubmitting,
+  isLastStep
 }) => (
   <div>
     <ExhibitSelector
@@ -373,13 +376,16 @@ const DocumentStep = React.memo(({
 
     <CaseDocumentUploader
       documents={documents[selectedExhibit] || []}
-      onDocumentsChange={onDocumentsChange}
+      onDocumentsChange={(updatedFiles) => onDocumentsChange(selectedExhibit, updatedFiles)}
       onNext={onNext}
       onBack={onBack}
       onSave={onSave}
       requiredDocs={REQUIRED_DOCUMENTS[selectedExhibit]}
       exhibit={selectedExhibit}
       mode={mode}
+      isLoading={isLoading}
+      isSubmitting={isSubmitting}
+      isLastStep={isLastStep}
     />
 
     <DocumentsSummary documents={documents} />
@@ -580,17 +586,17 @@ const Application = ({
     }
   }, [validationErrors, mode]);
 
-  // Optimized documents change handler
-  const handleDocumentsChange = useCallback((updatedFiles) => {
+  // Optimized documents change handler - now handles specific exhibit
+  const handleDocumentsChange = useCallback((exhibit, updatedFiles) => {
     if (mode === 'view') return; // Prevent changes in view mode
 
-    console.log("📁 Documents change for exhibit:", selectedExhibit, "files:", updatedFiles);
+    console.log("📁 Documents change for exhibit:", exhibit, "files:", updatedFiles);
 
     setFormData(prev => ({
       ...prev,
       documents: {
         ...prev.documents,
-        [selectedExhibit]: updatedFiles,
+        [exhibit]: updatedFiles,
       },
     }));
 
@@ -600,7 +606,67 @@ const Application = ({
         documents: ""
       }));
     }
-  }, [selectedExhibit, validationErrors, mode]);
+  }, [validationErrors, mode]);
+
+  // Handle save case (for edit mode)
+  const handleSaveCase = useCallback(async (documents = null) => {
+    if (mode !== 'edit') return;
+
+    console.log("💾 Saving case...", documents);
+    setIsSubmitting(true);
+    
+    try {
+      const currentFormData = formDataRef.current;
+
+      if (!validateStep(currentStepRef.current)) {
+        showWarningToast("Please fix the validation errors before saving.");
+        return;
+      }
+
+      // Prepare the data for update
+      const updatedFormData = {
+        ...currentFormData,
+        status: "Updated",
+        updated_at: new Date().toISOString()
+      };
+
+      // If documents are passed from DocumentUploader, merge them
+      if (documents) {
+        updatedFormData.documents = {
+          ...updatedFormData.documents,
+          [selectedExhibit]: documents
+        };
+      }
+
+      console.log("📤 Updating case with data:", updatedFormData);
+
+      // Call the update service
+      const response = await updateApplicationData(caseId, updatedFormData);
+      
+      if (response.data && response.data.success) {
+        // Update local state with the response data
+        const updatedCaseData = response.data.data || updatedFormData;
+        setFormData(updatedCaseData);
+        
+        console.log("✅ Case updated successfully:", updatedCaseData);
+        showSuccessToast("✅ Case updated successfully!");
+        
+        // Call the onSave callback with updated data
+        if (onSave) {
+          onSave(updatedCaseData);
+        }
+      } else {
+        throw new Error(response.data?.error || "Failed to update case");
+      }
+
+    } catch (error) {
+      console.error("❌ Error saving case:", error);
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to update case. Please try again.";
+      showErrorToast(`❌ ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [mode, caseId, validateStep, onSave, selectedExhibit]);
 
   // Optimized navigation handlers
   const goToNextStep = useCallback(() => {
@@ -638,7 +704,7 @@ const Application = ({
     }
 
     setCurrentStep(prev => Math.min(prev + 1, totalSteps));
-  }, [validateStep, mode, totalSteps]);
+  }, [validateStep, mode, totalSteps, handleSaveCase, currentStep]);
 
   const goToPrevStep = useCallback(() => {
     console.log("⬅️ Previous step clicked - current:", currentStep, "mode:", mode);
@@ -664,7 +730,7 @@ const Application = ({
     }
 
     setCurrentStep(prev => Math.max(prev - 1, 1));
-  }, [mode]);
+  }, [mode, currentStep]);
 
   // Handle custom back action (goes to cases table)
   const handleBackToCases = useCallback(() => {
@@ -679,42 +745,6 @@ const Application = ({
     console.log("🔙 Step back action - current step:", currentStep);
     goToPrevStep();
   }, [goToPrevStep, currentStep]);
-
-  // Handle save case (for edit mode)
-  const handleSaveCase = useCallback(async () => {
-    if (mode !== 'edit') return;
-
-    console.log("💾 Saving case...");
-    setIsSubmitting(true);
-    try {
-      const currentFormData = formDataRef.current;
-
-      if (!validateStep(currentStepRef.current)) {
-        showWarningToast("Please fix the validation errors before saving.");
-        return;
-      }
-
-      const updatedFormData = {
-        ...currentFormData,
-        status: "Updated",
-        updated_at: new Date().toISOString()
-      };
-
-      setFormData(updatedFormData);
-
-      if (onSave) {
-        console.log("✅ Calling onSave callback with data:", updatedFormData);
-        onSave(updatedFormData);
-        showSuccessToast("✅ Case updated successfully!");
-      }
-
-    } catch (error) {
-      console.error("❌ Error saving case:", error);
-      showErrorToast("❌ Failed to update case. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [mode, validateStep, onSave]);
 
   // Optimized payment success handler (only for create mode)
   const handlePaymentSuccess = useCallback(async (paymentResponse) => {
@@ -857,6 +887,7 @@ const Application = ({
         onSave: mode === 'edit' ? handleSaveCase : undefined,
         mode,
         isLoading: mode !== 'create' && isLoading,
+        isSubmitting: isSubmitting,
         isLastStep: currentStep === totalSteps
       },
       5: {
@@ -934,7 +965,7 @@ const Application = ({
         </div>
       </div>
     );
-  }, [mode, currentStep, totalSteps, handleBackToCases, handleStepBack, handleSaveCase, isSubmitting]);
+  }, [mode, currentStep, totalSteps, handleBackToCases]);
 
   // Determine container classes based on mode
   const containerClasses = useMemo(() => {
