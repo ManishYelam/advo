@@ -19,6 +19,7 @@ import {
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { submitContactForm } from "../services/contactService"; // Import your contact service
 
 const LandingPage = () => {
   const [loading, setLoading] = useState(false);
@@ -48,12 +49,40 @@ const LandingPage = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success("🎉 Message sent successfully! We'll get back to you soon.");
-      reset();
+      // Prepare the data for API submission
+      const contactData = {
+        name: data.name,
+        email: data.email,
+        message: data.message,
+        phone: data.phone || "", // Optional field
+        subject: "Landing Page Contact Form Submission" // Default subject
+      };
+
+      // Submit to your backend API
+      const response = await submitContactForm(contactData);
+      
+      // Check if the submission was successful
+      if (response.data && response.data.success) {
+        toast.success("🎉 Message sent successfully! We'll get back to you soon.");
+        reset();
+      } else {
+        throw new Error(response.data?.message || "Failed to send message");
+      }
     } catch (error) {
-      toast.error("❌ Failed to send message. Please try again later.");
+      console.error("Contact form submission error:", error);
+      
+      // Handle different error scenarios
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.message || "Server error occurred";
+        toast.error(`❌ ${errorMessage}`);
+      } else if (error.request) {
+        // Network error
+        toast.error("❌ Network error. Please check your connection and try again.");
+      } else {
+        // Other errors
+        toast.error("❌ Failed to send message. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
@@ -407,9 +436,15 @@ const LandingPage = () => {
                 <div>
                   <input
                     type="text"
-                    placeholder="Your Name"
+                    placeholder="Your Name *"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
-                    {...register("name", { required: "Name is required" })}
+                    {...register("name", { 
+                      required: "Name is required",
+                      minLength: {
+                        value: 2,
+                        message: "Name must be at least 2 characters"
+                      }
+                    })}
                   />
                   {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
@@ -419,7 +454,7 @@ const LandingPage = () => {
                 <div>
                   <input
                     type="email"
-                    placeholder="Your Email"
+                    placeholder="Your Email *"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
                     {...register("email", { 
                       required: "Email is required",
@@ -435,9 +470,38 @@ const LandingPage = () => {
                 </div>
               </div>
 
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Your Phone Number (Optional)"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
+                    {...register("phone", {
+                      pattern: {
+                        value: /^[\+]?[0-9\s\-\(\)]{10,}$/,
+                        message: "Please enter a valid phone number"
+                      }
+                    })}
+                  />
+                  {errors.phone && (
+                    <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Subject"
+                    value="Application Help Request"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all bg-gray-50"
+                    readOnly
+                  />
+                </div>
+              </div>
+
               <div>
                 <textarea
-                  placeholder="How can we help you with your application?"
+                  placeholder="How can we help you with your application? *"
                   rows="5"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all resize-none"
                   {...register("message", { 
@@ -445,32 +509,46 @@ const LandingPage = () => {
                     minLength: {
                       value: 10,
                       message: "Message must be at least 10 characters"
+                    },
+                    maxLength: {
+                      value: 1000,
+                      message: "Message must be less than 1000 characters"
                     }
                   })}
                 />
                 {errors.message && (
                   <p className="text-red-500 text-sm mt-1">{errors.message.message}</p>
                 )}
+                <div className="text-sm text-gray-500 mt-1">
+                  Please describe your question or concern in detail so we can better assist you.
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 ${
+                className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 ${
                   loading
                     ? "bg-green-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl"
+                    : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transform hover:scale-105"
                 }`}
               >
                 {loading ? (
-                  <div className="flex items-center justify-center space-x-2">
+                  <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Sending Message...</span>
-                  </div>
+                    <span>Submitting Your Message...</span>
+                  </>
                 ) : (
-                  "Get Application Help"
+                  <>
+                    <FaEnvelope />
+                    <span>Send Message</span>
+                  </>
                 )}
               </button>
+
+              <div className="text-center text-sm text-gray-500">
+                <p>We typically respond within 24 hours</p>
+              </div>
             </form>
           </div>
         </div>

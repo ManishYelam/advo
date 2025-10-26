@@ -8,7 +8,8 @@ import {
   faCheckCircle,
   faExclamationTriangle,
   faSpinner,
-  faCompressAlt
+  faCompressAlt,
+  faSave
 } from "@fortawesome/free-solid-svg-icons";
 import { showSuccessToast, showWarningToast, showErrorToast } from "../utils/Toastify";
 
@@ -17,16 +18,26 @@ const CaseDocumentUploader = ({
   onDocumentsChange,
   onNext,
   onBack,
+  onSave,
   requiredDocs = [],
+  exhibit,
   maxFileSize = 10 * 1024 * 1024,
+  mode,
+  isLoading,
+  isSubmitting = false,
+  isLastStep = false
 }) => {
   const [documents, setDocuments] = useState(initialDocuments);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [uploadingFiles, setUploadingFiles] = useState({});
   const [compressionProgress, setCompressionProgress] = useState({});
+  const [saving, setSaving] = useState(false);
   const fileRefs = useRef({});
 
+  console.log("🔍 DocumentUploader Debug - mode:", mode, "isLoading:", isLoading, "exhibit:", exhibit, "documents:", documents.length, "isSubmitting:", isSubmitting);
+
   useEffect(() => {
+    console.log("🔄 Documents updated:", initialDocuments);
     setDocuments(initialDocuments);
     setSelectedDoc(initialDocuments[0] || null);
   }, [initialDocuments]);
@@ -175,6 +186,8 @@ const CaseDocumentUploader = ({
 
   // Batch file processing
   const handleFilesChange = async (docKey, files) => {
+    if (mode === 'view') return;
+
     const validFiles = Array.from(files).filter(file => validateFile(file));
     
     if (validFiles.length === 0) return;
@@ -208,6 +221,8 @@ const CaseDocumentUploader = ({
   };
 
   const handleFileChange = async (docKey, e) => {
+    if (mode === 'view') return;
+
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -217,6 +232,8 @@ const CaseDocumentUploader = ({
 
   // Drag and drop support
   const handleDrop = useCallback((docKey, e) => {
+    if (mode === 'view') return;
+
     e.preventDefault();
     e.stopPropagation();
     
@@ -224,7 +241,7 @@ const CaseDocumentUploader = ({
     if (files.length > 0) {
       handleFilesChange(docKey, files);
     }
-  }, [handleFilesChange]);
+  }, [handleFilesChange, mode]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -232,6 +249,8 @@ const CaseDocumentUploader = ({
   }, []);
 
   const removeDocument = useCallback((docKey) => {
+    if (mode === 'view') return;
+
     const docToRemove = documents.find(doc => doc.exhibit === docKey);
     if (docToRemove?.url) {
       URL.revokeObjectURL(docToRemove.url);
@@ -246,7 +265,7 @@ const CaseDocumentUploader = ({
     if (selectedDoc?.exhibit === docKey) {
       setSelectedDoc(documents.find(doc => doc.exhibit !== docKey) || null);
     }
-  }, [documents, selectedDoc, onDocumentsChange]);
+  }, [documents, selectedDoc, onDocumentsChange, mode]);
 
   const formatFileSize = useCallback((bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -262,18 +281,49 @@ const CaseDocumentUploader = ({
     return faFilePdf;
   }, []);
 
-  const handleNextClick = () => {
-    const uploadedExhibits = documents.map((d) => d.exhibit);
-    const missingDocs = requiredDocs.filter((doc) => !uploadedExhibits.includes(doc));
+  const handleSaveChanges = async () => {
+    if (mode !== 'edit') return;
 
-    if (missingDocs.length > 0) {
-      showWarningToast(
-        `Please upload all required documents: ${missingDocs.join(", ")}`
-      );
+    console.log("💾 Save Changes clicked in edit mode");
+
+    // In edit mode, no validation for required documents - user can save with any number of documents
+    setSaving(true);
+    try {
+      if (onSave) {
+        await onSave(documents);
+        showSuccessToast("Case updated successfully!");
+      }
+    } catch (error) {
+      console.error("❌ Save error:", error);
+      showErrorToast("Failed to update case. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNextClick = () => {
+    console.log("🚀 DocumentUploader Next clicked - mode:", mode);
+
+    if (mode === 'view') {
+      onNext();
       return;
     }
 
-    if (onNext) onNext(documents);
+    // For create mode, validate and proceed (documents are mandatory)
+    if (mode === 'create') {
+      const uploadedExhibits = documents.map((d) => d.exhibit);
+      const missingDocs = requiredDocs.filter((doc) => !uploadedExhibits.includes(doc));
+
+      if (missingDocs.length > 0) {
+        showWarningToast(
+          `Please upload all required documents: ${missingDocs.join(", ")}`
+        );
+        return;
+      }
+    }
+
+    // For edit mode, no validation - user can proceed with any number of documents
+    if (onNext) onNext();
   };
 
   const getUploadStatus = useCallback(() => {
@@ -285,45 +335,80 @@ const CaseDocumentUploader = ({
       uploadedCount,
       totalCount,
       progress,
-      isComplete: uploadedCount >= totalCount
+      // In edit mode, always consider as complete (no mandatory docs)
+      isComplete: mode === 'edit' ? true : uploadedCount >= totalCount
     };
-  }, [documents.length, requiredDocs.length]);
+  }, [documents.length, requiredDocs.length, mode]);
 
   const status = getUploadStatus();
   const isAnyFileUploading = Object.values(uploadingFiles).some(status => status);
   const isAnyFileCompressing = Object.keys(compressionProgress).length > 0;
 
+  // Determine if we should show Save button (edit mode + last step)
+  const shouldShowSaveButton = mode === 'edit' && isLastStep;
+  // Determine if we should show Next button (create mode OR edit mode but not last step)
+  const shouldShowNextButton = mode === 'create' || (mode === 'edit' && !isLastStep);
+
+  if (isLoading && mode !== 'create') {
+    return (
+      <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span className="ml-3 text-gray-600">Loading documents...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
+      {/* Debug info */}
+      <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-[9px] text-blue-700">
+        <strong>Debug:</strong> Mode: {mode} | Loading: {isLoading ? 'Yes' : 'No'} | 
+        Exhibit: {exhibit} | Uploaded: {status.uploadedCount}/{status.totalCount} |
+        Last Step: {isLastStep ? 'Yes' : 'No'} | Submitting: {isSubmitting ? 'Yes' : 'No'} |
+        Complete: {status.isComplete ? 'Yes' : 'No'}
+      </div>
+
       {/* Header with Progress */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-lg flex items-center gap-2 text-gray-800">
             <FontAwesomeIcon icon={faFilePdf} className="text-red-600" />
-            Upload Required Documents
+            {mode === 'view' ? 'View Documents' : 
+             mode === 'edit' ? 'Update Documents (Optional)' : 'Upload Required Documents'}
             {(isAnyFileUploading || isAnyFileCompressing) && (
               <FontAwesomeIcon icon={faSpinner} className="text-blue-600 animate-spin" />
             )}
           </h2>
           <div className="text-sm text-gray-600">
-            {status.uploadedCount} of {status.totalCount} documents uploaded
+            {status.uploadedCount} of {status.totalCount} documents {mode === 'edit' ? 'available' : 'uploaded'}
+            {mode === 'edit' && " (optional)"}
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - Show different colors based on mode */}
         <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
           <div 
             className={`h-2 rounded-full transition-all duration-300 ${
+              mode === 'edit' ? 'bg-blue-400' : // Different color for edit mode (optional)
               status.isComplete ? 'bg-green-600' : 'bg-blue-600'
             }`}
             style={{ width: `${status.progress}%` }}
           ></div>
         </div>
         
-        {status.isComplete && (
+        {status.isComplete && mode === 'create' && (
           <div className="text-green-600 text-sm font-medium flex items-center gap-2">
             <FontAwesomeIcon icon={faCheckCircle} />
             All required documents uploaded successfully!
+          </div>
+        )}
+
+        {mode === 'edit' && (
+          <div className="text-blue-600 text-sm font-medium flex items-center gap-2">
+            <FontAwesomeIcon icon={faExclamationTriangle} />
+            Document upload is optional in edit mode
           </div>
         )}
 
@@ -346,7 +431,9 @@ const CaseDocumentUploader = ({
           return (
             <div
               key={docKey}
-              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+              className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-colors ${
+                mode === 'view' ? 'bg-gray-50 cursor-default' : 'bg-white hover:bg-gray-50'
+              }`}
               onDrop={(e) => handleDrop(docKey, e)}
               onDragOver={handleDragOver}
             >
@@ -393,48 +480,56 @@ const CaseDocumentUploader = ({
                       <FontAwesomeIcon icon={faCheckCircle} />
                       Uploaded
                     </span>
-                    <button
-                      onClick={() => removeDocument(docKey)}
-                      className="text-red-500 hover:text-red-700 transition-colors p-2"
-                      title="Remove document"
-                      disabled={isUploading}
-                    >
-                      <FontAwesomeIcon icon={faTimesCircle} />
-                    </button>
+                    {mode !== 'view' && (
+                      <button
+                        onClick={() => removeDocument(docKey)}
+                        className="text-red-500 hover:text-red-700 transition-colors p-2"
+                        title="Remove document"
+                        disabled={isUploading}
+                      >
+                        <FontAwesomeIcon icon={faTimesCircle} />
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <span className="text-orange-500 text-sm flex items-center gap-1">
-                    <FontAwesomeIcon icon={faExclamationTriangle} />
-                    Required
+                  <span className={`text-sm flex items-center gap-1 ${
+                    mode === 'edit' ? 'text-gray-500' : 'text-orange-500'
+                  }`}>
+                    <FontAwesomeIcon icon={mode === 'edit' ? faFilePdf : faExclamationTriangle} />
+                    {mode === 'edit' ? 'Optional' : 'Required'}
                   </span>
                 )}
 
-                <label 
-                  className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                    isUploading 
-                      ? 'bg-gray-400 cursor-not-allowed text-white' 
-                      : uploadedDoc
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
-                  title="Click to upload or drag & drop files"
-                >
-                  {isUploading ? (
-                    <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                  ) : (
-                    <FontAwesomeIcon icon={faUpload} />
-                  )}
-                  {isUploading ? 'Processing...' : uploadedDoc ? 'Replace' : 'Upload'}
-                  <input
-                    type="file"
-                    accept=".pdf,image/*"
-                    ref={(el) => (fileRefs.current[docKey] = el)}
-                    onChange={(e) => handleFileChange(docKey, e)}
-                    className="hidden"
-                    disabled={isUploading}
-                    multiple
-                  />
-                </label>
+                {mode !== 'view' && (
+                  <label 
+                    className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                      isUploading 
+                        ? 'bg-gray-400 cursor-not-allowed text-white' 
+                        : uploadedDoc
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : mode === 'edit'
+                        ? 'bg-gray-600 hover:bg-gray-700 text-white' // Different color for optional uploads
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                    title="Click to upload or drag & drop files"
+                  >
+                    {isUploading ? (
+                      <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                    ) : (
+                      <FontAwesomeIcon icon={faUpload} />
+                    )}
+                    {isUploading ? 'Processing...' : uploadedDoc ? 'Replace' : 'Upload'}
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      ref={(el) => (fileRefs.current[docKey] = el)}
+                      onChange={(e) => handleFileChange(docKey, e)}
+                      className="hidden"
+                      disabled={isUploading}
+                      multiple
+                    />
+                  </label>
+                )}
               </div>
             </div>
           );
@@ -502,36 +597,78 @@ const CaseDocumentUploader = ({
         </div>
       )}
 
-      {/* Navigation Buttons - Updated to match BasicInfoForm design */}
+      {/* Navigation Buttons */}
       <div className="flex justify-between items-center pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onBack}
-          disabled={isAnyFileUploading || isAnyFileCompressing}
+          disabled={isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting}
           className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-[10px] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           Back
         </button>
         
-        <button
-          type="button"
-          onClick={handleNextClick}
-          disabled={isAnyFileUploading || isAnyFileCompressing || !status.isComplete}
-          className={`px-3 py-1 text-white rounded text-[10px] transition-colors ${
-            isAnyFileUploading || isAnyFileCompressing || !status.isComplete
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
-        >
-          {isAnyFileUploading || isAnyFileCompressing ? (
-            <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-1" />
-              Processing...
-            </>
-          ) : (
-            'Next'
+        <div className="flex gap-3">
+          {/* Save Changes button for edit mode (last step) */}
+          {shouldShowSaveButton && (
+            <button
+              type="button"
+              onClick={handleSaveChanges}
+              disabled={isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting}
+              className={`px-3 py-1 text-white rounded text-[10px] transition-colors flex items-center gap-2 ${
+                isAnyFileUploading || isAnyFileCompressing || saving || isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {saving || isSubmitting ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faSave} />
+                  Save Changes
+                </>
+              )}
+            </button>
           )}
-        </button>
+
+          {/* Next button for create mode OR edit mode (not last step) */}
+          {shouldShowNextButton && (
+            <button
+              type="button"
+              onClick={handleNextClick}
+              disabled={isAnyFileUploading || isAnyFileCompressing || isSubmitting || (mode === 'create' && !status.isComplete)}
+              className={`px-3 py-1 text-white rounded text-[10px] transition-colors ${
+                isAnyFileUploading || isAnyFileCompressing || isSubmitting || (mode === 'create' && !status.isComplete)
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isAnyFileUploading || isAnyFileCompressing ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-1" />
+                  Processing...
+                </>
+              ) : (
+                'Next'
+              )}
+            </button>
+          )}
+
+          {/* Continue button for view mode */}
+          {mode === 'view' && (
+            <button
+              type="button"
+              onClick={onNext}
+              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-[10px] transition-colors"
+            >
+              Continue
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

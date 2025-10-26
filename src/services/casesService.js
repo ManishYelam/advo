@@ -2,7 +2,7 @@ import axiosInstance from "./axiosInstance";
 
 export const getAllCases = (data) => axiosInstance.post(`/case/`, data);
 
-export const getCaseById = (id) => axiosInstance.get(`/cases/${id}`);
+export const getCaseById = (id) => axiosInstance.get(`/case/${id}`);
 
 export const getDocumentByCaseId = (url) => {
   const normalizedPath = url.replace(/\\/g, '/');

@@ -95,6 +95,11 @@ const ClientDashboard = () => {
     }
   ]);
 
+  // New state for edit/view mode
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [applicationMode, setApplicationMode] = useState('create'); // 'create', 'view'
+
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -157,6 +162,21 @@ const ClientDashboard = () => {
       .sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate))
       .slice(0, 3)
   , [myCases]);
+
+  // ✅ Handle View Case
+  const handleViewCase = (caseData) => {
+    setSelectedCase(caseData);
+    setSelectedCaseId(caseData.id);
+    setApplicationMode('view');
+    setView("application");
+  };
+
+  // ✅ Handle Back from Application Form
+  const handleBackFromForm = () => {
+    setView("cases");
+    setSelectedCase(null);
+    setSelectedCaseId(null);
+  };
 
   const addNewCase = (caseData) => {
     const newCase = {
@@ -316,7 +336,10 @@ const ClientDashboard = () => {
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3 mb-8">
         <button
-          onClick={() => setView("addCase")}
+          onClick={() => {
+            setApplicationMode('create');
+            setView("application");
+          }}
           className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg"
         >
           <FaPlus />
@@ -532,17 +555,31 @@ const ClientDashboard = () => {
               onDelete={handleDeleteCases}
               onSave={handleSaveCase}
               onBack={() => setView("dashboard")}
-              onView={(caseData) => console.log('View case:', caseData)}
+              onView={handleViewCase}
+              onEdit={handleViewCase} // Clients can only view, not edit
               onPrint={(caseData) => console.log('Print case:', caseData)}
               onMore={(caseData) => console.log('More options:', caseData)}
             />
           </div>
         )}
 
-        {view === "addCase" && (
+        {view === "application" && (
           <div className="w-full h-full px-6 py-8 bg-gray-50">
-            {renderBackButton()}
-            <Application onAdd={addNewCase} />
+            <button
+              onClick={handleBackFromForm}
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md mb-4"
+            >
+              <FaArrowLeft size={16} />
+              <span>Back to {applicationMode === 'create' ? 'Dashboard' : 'Cases'}</span>
+            </button>
+            <Application
+              mode={applicationMode}
+              initialData={selectedCase}
+              caseId={selectedCaseId}
+              onBack={handleBackFromForm}
+              onSave={handleSaveCase}
+              onAdd={addNewCase}
+            />
           </div>
         )}
 

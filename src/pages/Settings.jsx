@@ -3,10 +3,11 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import Button from "../components/Button";
 import { changePasswordWithOtp, oldChangePasswordService } from "../services/authService";
-// import ViewAllCases from "./ViewAllCases";
 import Application from "./Application";
 import AdminFeedbackManagement from "../components/AdminFeedbackManagement";
 import FeedbackHistory from "../components/FeedbackHistory";
+import ContactManagement from "../components/ContactManagement";
+import UserContacts from "../components/UserContacts";
 import {
   FaFolderOpen,
   FaPlus,
@@ -21,7 +22,9 @@ import {
   FaPalette,
   FaSave,
   FaTimes,
-  FaArrowLeft
+  FaArrowLeft,
+  FaAddressBook,
+  FaUserPlus
 } from "react-icons/fa";
 
 const Settings = () => {
@@ -100,6 +103,7 @@ const Settings = () => {
     { id: "security", label: "Security", icon: FaShieldAlt },
     { id: "preferences", label: "Preferences", icon: FaPalette },
     { id: "notifications", label: "Notifications", icon: FaBell },
+    { id: "my-contacts", label: "My Contacts", icon: FaAddressBook },
     { id: "feedback-history", label: "My Feedback", icon: FaHistory },
   ];
 
@@ -108,6 +112,7 @@ const Settings = () => {
     { id: "security", label: "Security", icon: FaShieldAlt },
     { id: "preferences", label: "Preferences", icon: FaPalette },
     { id: "notifications", label: "Notifications", icon: FaBell },
+    { id: "contact-management", label: "Contact Management", icon: FaAddressBook },
     { id: "feedback-history", label: "My Feedback", icon: FaHistory },
     { id: "cases", label: "Case Management", icon: FaFolderOpen },
     { id: "add-case", label: "Add New Case", icon: FaPlus },
@@ -466,6 +471,10 @@ const Settings = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Pending Feedback</span>
                       <span className="font-medium text-yellow-600">5</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Contact Submissions</span>
+                      <span className="font-medium text-purple-600">18</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Active Users</span>
@@ -986,6 +995,26 @@ const Settings = () => {
                       <label htmlFor="system-alerts" className="text-sm text-gray-700">System alerts and maintenance</label>
                     </div>
                   </div>
+                </div>
+              </Card>
+            )}
+
+            {/* My Contacts - For Regular Users */}
+            {activeTab === "my-contacts" && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  <UserContacts />
+                </div>
+              </Card>
+            )}
+
+            {/* Contact Management - For Admins */}
+            {activeTab === "contact-management" && isAdmin && (
+              <Card>
+                <div className="p-6">
+                  {renderBackButton()}
+                  <ContactManagement />
                 </div>
               </Card>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { showSuccessToast, showWarningToast } from "../utils/Toastify";
 import { calculateAgeFromDOB, calculateDOBFromAge } from "../utils/Age";
 import { checkExistsEmail } from "../services/applicationService";
@@ -61,17 +61,34 @@ const VALIDATION_RULES = {
   }
 };
 
-const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
+const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLoading }) => {
   const user = getUserData();
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  console.log("🔍 BasicInfoForm Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
+    full_name: formData.full_name,
+    email: formData.email,
+    hasData: !!formData.full_name
+  });
+
+  // Reset field errors when formData changes (for fetched data)
+  useEffect(() => {
+    if (mode !== 'create' && formData.full_name) {
+      console.log("🔄 Resetting field errors for loaded data");
+      setFieldErrors({});
+      setTouchedFields({});
+    }
+  }, [formData.full_name, mode]);
 
   // Memoized user data
   const userEmail = useMemo(() => user?.email?.toLowerCase(), [user]);
 
   // Ultra-fast field validation
   const validateField = useCallback((name, value) => {
+    if (mode === 'view') return null; // Skip validation in view mode
+
     const rule = VALIDATION_RULES[name];
     if (!rule) return null;
 
@@ -93,27 +110,34 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
     }
 
     return null;
-  }, []);
+  }, [mode]);
 
   // Check if form is completely valid
   const isFormValid = useMemo(() => {
-    return Object.keys(VALIDATION_RULES).every(fieldName => {
+    if (mode === 'view') return true;
+    const isValid = Object.keys(VALIDATION_RULES).every(fieldName => {
       const error = validateField(fieldName, formData[fieldName]);
       return !error;
     });
-  }, [formData, validateField]);
+    console.log("✅ Form validation result:", isValid);
+    return isValid;
+  }, [formData, validateField, mode]);
 
   // Mark field as touched
   const handleFieldTouch = useCallback((fieldName) => {
+    if (mode === 'view') return;
     setTouchedFields(prev => ({
       ...prev,
       [fieldName]: true
     }));
-  }, []);
+  }, [mode]);
 
   // Fast field change handler with real-time validation
   const handleFieldChange = useCallback((e) => {
+    if (mode === 'view') return;
+
     const { name, value } = e.target;
+    console.log("📝 Field change:", name, value);
 
     handleInputChange(e);
 
@@ -126,10 +150,12 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
       ...prev,
       [name]: error
     }));
-  }, [handleInputChange, validateField, handleFieldTouch]);
+  }, [handleInputChange, validateField, handleFieldTouch, mode]);
 
   // Handle field blur - validate when user leaves field
   const handleFieldBlur = useCallback((e) => {
+    if (mode === 'view') return;
+
     const { name, value } = e.target;
     handleFieldTouch(name);
 
@@ -138,15 +164,26 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
       ...prev,
       [name]: error
     }));
-  }, [validateField, handleFieldTouch]);
+  }, [validateField, handleFieldTouch, mode]);
 
-  // Handle DOB change - EXACT ORIGINAL LOGIC with real-time validation
+  // Handle DOB change - FIXED: Properly update both fields
   const handleDOBChange = (e) => {
-    const date_of_birth = e.target.value;
-    const age = calculateAgeFromDOB(date_of_birth);
+    if (mode === 'view') return;
 
+    const date_of_birth = e.target.value;
+    console.log("🎂 DOB changed:", date_of_birth);
+
+    const age = calculateAgeFromDOB(date_of_birth);
+    console.log("🔢 Calculated age:", age);
+
+    // Update both fields in the parent form data
+    // First update DOB
     handleInputChange({ target: { name: "date_of_birth", value: date_of_birth } });
-    handleInputChange({ target: { name: "age", value: age } });
+
+    // Then update age with calculated value
+    setTimeout(() => {
+      handleInputChange({ target: { name: "age", value: age.toString() } });
+    }, 0);
 
     // Mark fields as touched
     handleFieldTouch("date_of_birth");
@@ -163,13 +200,24 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
     }));
   };
 
-  // Handle Age change - EXACT ORIGINAL LOGIC with real-time validation
+  // Handle Age change - FIXED: Properly update both fields
   const handleAgeChange = (e) => {
-    const age = e.target.value;
-    const date_of_birth = calculateDOBFromAge(age);
+    if (mode === 'view') return;
 
+    const age = e.target.value;
+    console.log("🔢 Age changed:", age);
+
+    const date_of_birth = calculateDOBFromAge(age);
+    console.log("🎂 Calculated DOB:", date_of_birth);
+
+    // Update both fields in the parent form data
+    // First update age
     handleInputChange({ target: { name: "age", value: age } });
-    handleInputChange({ target: { name: "date_of_birth", value: date_of_birth } });
+
+    // Then update DOB with calculated value
+    setTimeout(() => {
+      handleInputChange({ target: { name: "date_of_birth", value: date_of_birth } });
+    }, 0);
 
     // Mark fields as touched
     handleFieldTouch("age");
@@ -188,12 +236,35 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
 
   // Fast border class calculator - show red border if field is touched and has error
   const getFieldBorderClass = useCallback((fieldName) => {
+    if (mode === 'view') return 'border-gray-300 bg-gray-50';
     return touchedFields[fieldName] && fieldErrors[fieldName] ? 'border-red-500' : 'border-gray-300';
-  }, [fieldErrors, touchedFields]);
+  }, [fieldErrors, touchedFields, mode]);
+
+  // Get input disabled state
+  const getInputDisabled = useCallback((fieldName) => {
+    const disabled = mode === 'view' || isLoading;
+    console.log(`🔒 Input ${fieldName} disabled:`, disabled);
+    return disabled;
+  }, [mode, isLoading]);
 
   // Optimized form submission
   const handleNextClick = async (e) => {
     e.preventDefault();
+    console.log("🚀 Next button clicked - mode:", mode);
+
+    // Debug: Check current form data before submission
+    console.log("📊 Current form data before submission:", {
+      full_name: formData.full_name,
+      date_of_birth: formData.date_of_birth,
+      age: formData.age,
+      email: formData.email
+    });
+
+    if (mode === 'view') {
+      console.log("👀 View mode - proceeding to next step");
+      onNext();
+      return;
+    }
 
     // Mark all fields as touched to show all errors
     const allTouched = {};
@@ -204,6 +275,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
 
     // Check if form is valid
     if (!isFormValid) {
+      console.log("❌ Form validation failed");
       // Validate all fields to show errors
       const errors = {};
       Object.keys(VALIDATION_RULES).forEach(fieldName => {
@@ -217,22 +289,43 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
       return;
     }
 
+    // Validate that both age and date_of_birth are properly set
+    if (!formData.date_of_birth || !formData.age) {
+      console.log("❌ Age or Date of Birth is missing:", {
+        date_of_birth: formData.date_of_birth,
+        age: formData.age
+      });
+      showWarningToast("Please ensure both Date of Birth and Age are properly set");
+      return;
+    }
+
     const { email } = formData;
+
+    // Skip email check in edit mode
+    if (mode === 'edit') {
+      console.log("✏️ Edit mode - skipping email check");
+      showSuccessToast("Basic information updated successfully!");
+      onNext();
+      return;
+    }
 
     if (user) formData.isLogin = true;
 
     setIsCheckingEmail(true);
+    console.log("📧 Checking email existence:", email);
 
     try {
       // Skip check if user is editing their own email
       if (user && user.email && user.email.toLowerCase() === email.toLowerCase()) {
+        console.log("✅ Same user email - skipping check");
         showSuccessToast("Basic information filled successfully!");
         onNext();
         return;
       }
 
-      // Check email existence
+      // Check email existence (only in create mode)
       const res = await checkExistsEmail(email);
+      console.log("📧 Email check response:", res);
 
       if (res.data.exists) {
         showWarningToast("This email is already registered. Please use another one.");
@@ -242,12 +335,23 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
       showSuccessToast("Basic information filled successfully!");
       onNext();
     } catch (error) {
-      console.error("Error checking email:", error);
+      console.error("❌ Error checking email:", error);
       showWarningToast("Something went wrong while checking the email.");
     } finally {
       setIsCheckingEmail(false);
     }
   };
+
+  if (isLoading && mode !== 'create') {
+    return (
+      <div className="p-4 bg-white rounded shadow-md space-y-4 text-[10px]">
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span className="ml-3 text-gray-600">Loading applicant data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -267,9 +371,14 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.full_name || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('full_name')}`}
+            disabled={getInputDisabled('full_name')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('full_name')} ${getInputDisabled('full_name') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             required
           />
+          {touchedFields.full_name && fieldErrors.full_name && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.full_name}</p>
+          )}
 
           <label className="font-semibold">
             Date of Birth <span className="text-red-500">*</span>
@@ -280,9 +389,14 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.date_of_birth || ""}
             onChange={handleDOBChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('date_of_birth')}`}
+            disabled={getInputDisabled('date_of_birth')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('date_of_birth')} ${getInputDisabled('date_of_birth') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             required
           />
+          {touchedFields.date_of_birth && fieldErrors.date_of_birth && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.date_of_birth}</p>
+          )}
 
           <label className="font-semibold">
             Age <span className="text-red-500">*</span>
@@ -294,11 +408,16 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.age || ""}
             onChange={handleAgeChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('age')}`}
+            disabled={getInputDisabled('age')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('age')} ${getInputDisabled('age') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             min="1"
             max="120"
             required
           />
+          {touchedFields.age && fieldErrors.age && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.age}</p>
+          )}
         </div>
 
         {/* Column 2 - EXACT ORIGINAL DESIGN */}
@@ -313,10 +432,15 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.phone_number || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('phone_number')}`}
+            disabled={getInputDisabled('phone_number')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('phone_number')} ${getInputDisabled('phone_number') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             pattern="[0-9]{10}"
             required
           />
+          {touchedFields.phone_number && fieldErrors.phone_number && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.phone_number}</p>
+          )}
 
           <label className="font-semibold">
             Email <span className="text-red-500">*</span>
@@ -328,9 +452,14 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.email || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('email')}`}
+            disabled={getInputDisabled('email') || mode === 'edit'} // Disable email in edit mode
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('email')} ${getInputDisabled('email') || mode === 'edit' ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             required
           />
+          {touchedFields.email && fieldErrors.email && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.email}</p>
+          )}
 
           <label className="font-semibold">
             Gender <span className="text-red-500">*</span>
@@ -340,7 +469,9 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.gender || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('gender')}`}
+            disabled={getInputDisabled('gender')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('gender')} ${getInputDisabled('gender') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             required
           >
             <option value="">Select Gender</option>
@@ -348,6 +479,9 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             <option value="Female">Female</option>
             <option value="Other">Other</option>
           </select>
+          {touchedFields.gender && fieldErrors.gender && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.gender}</p>
+          )}
         </div>
 
         {/* Column 3 - EXACT ORIGINAL DESIGN */}
@@ -362,9 +496,14 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.occupation || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('occupation')}`}
+            disabled={getInputDisabled('occupation')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('occupation')} ${getInputDisabled('occupation') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             required
           />
+          {touchedFields.occupation && fieldErrors.occupation && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.occupation}</p>
+          )}
 
           <label className="font-semibold">Aadhar Number</label>
           <input
@@ -374,10 +513,15 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.adhar_number || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('adhar_number')}`}
+            disabled={getInputDisabled('adhar_number')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('adhar_number')} ${getInputDisabled('adhar_number') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
             pattern="[0-9]{12}"
             required
           />
+          {touchedFields.adhar_number && fieldErrors.adhar_number && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.adhar_number}</p>
+          )}
 
           <label className="font-semibold">
             Address <span className="text-red-500">*</span>
@@ -388,10 +532,15 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.address || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] resize-none ${getFieldBorderClass('address')}`}
-            rows={1}
+            disabled={getInputDisabled('address')}
+            className={`p-1 border rounded text-[10px] resize-none ${getFieldBorderClass('address')} ${getInputDisabled('address') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
+            rows={2}
             required
           />
+          {touchedFields.address && fieldErrors.address && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.address}</p>
+          )}
         </div>
 
         {/* Full-width field - EXACT ORIGINAL DESIGN */}
@@ -403,23 +552,47 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext }) => {
             value={formData.additional_notes || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
-            className={`p-1 border rounded text-[10px] resize-none ${getFieldBorderClass('additional_notes')}`}
-            rows={1}
+            disabled={getInputDisabled('additional_notes')}
+            className={`p-1 border rounded text-[10px] resize-none ${getFieldBorderClass('additional_notes')} ${getInputDisabled('additional_notes') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
+            rows={2}
           />
+          {touchedFields.additional_notes && fieldErrors.additional_notes && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.additional_notes}</p>
+          )}
         </div>
       </div>
 
-      {/* Next button - EXACT ORIGINAL DESIGN with enabled/disabled state */}
+      {/* Debug info */}
+      <div className="mt-4 p-2 bg-gray-100 rounded text-[8px] text-gray-600">
+        <strong>Debug Info:</strong> Mode: {mode} | Loading: {isLoading ? 'Yes' : 'No'} |
+        Form Valid: {isFormValid ? 'Yes' : 'No'} | Has Data: {formData.full_name ? 'Yes' : 'No'} |
+        DOB: {formData.date_of_birth || 'Empty'} | Age: {formData.age || 'Empty'}
+      </div>
+
+      {/* Next button - Show in ALL modes including view mode */}
       <div className="flex justify-end mt-3">
         <button
           type="submit"
-          disabled={!isFormValid || isCheckingEmail}
-          className={`px-3 py-1 text-white rounded text-[10px] transition-colors ${!isFormValid || isCheckingEmail
+          disabled={mode !== 'view' && (!isFormValid || isCheckingEmail || isLoading)}
+          className={`px-3 py-1 text-white rounded text-[10px] transition-colors flex items-center gap-2 ${mode !== 'view' && (!isFormValid || isCheckingEmail || isLoading)
             ? 'bg-gray-400 cursor-not-allowed'
             : 'bg-green-600 hover:bg-green-700'
             }`}
         >
-          {isCheckingEmail ? "Checking..." : "Next"}
+          {isCheckingEmail ? (
+            <>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              Checking Email...
+            </>
+          ) : isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              Loading...
+            </>
+          ) : (
+            'Next'
+          )}
         </button>
       </div>
     </form>
