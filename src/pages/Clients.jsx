@@ -32,6 +32,7 @@ const Clients = ({
     globalSearch: "", 
     status: "", 
     verified: "",
+    regType: "",
     searchField: "",
     searchValue: ""
   });
@@ -74,6 +75,7 @@ const Clients = ({
             createdAt: "2025-01-15T10:30:00Z", 
             status: "Active", 
             verified: true,
+            regType: "Manual",
             clientSince: "2024-01-15",
             lastActive: "2025-01-10",
             totalCases: 5,
@@ -89,10 +91,43 @@ const Clients = ({
             createdAt: "2025-01-10T14:20:00Z", 
             status: "Inactive", 
             verified: false,
+            regType: "Reg_Link",
             clientSince: "2024-03-20",
             lastActive: "2024-12-15",
             totalCases: 3,
             activeCases: 0
+          },
+          { 
+            id: 3, 
+            name: "Mike Johnson", 
+            email: "mike@example.com", 
+            phone: "+1 (555) 456-7890", 
+            address: "789 Pine Road, Chicago, IL 60601", 
+            company: "Tech Solutions Inc", 
+            createdAt: "2025-01-08T09:15:00Z", 
+            status: "Active", 
+            verified: true,
+            regType: "Reg_Link",
+            clientSince: "2023-11-10",
+            lastActive: "2025-01-12",
+            totalCases: 8,
+            activeCases: 3
+          },
+          { 
+            id: 4, 
+            name: "Sarah Wilson", 
+            email: "sarah@example.com", 
+            phone: "+1 (555) 234-5678", 
+            address: "321 Elm Street, Miami, FL 33101", 
+            company: "Wilson & Associates", 
+            createdAt: "2025-01-05T16:45:00Z", 
+            status: "Active", 
+            verified: true,
+            regType: "Manual",
+            clientSince: "2024-02-28",
+            lastActive: "2025-01-14",
+            totalCases: 12,
+            activeCases: 4
           }
         ];
         setTotalRecords(data.length);
@@ -129,10 +164,11 @@ const Clients = ({
       const matchesVerified = filters.verified === "" || 
         (filters.verified === "true" && client.verified) || 
         (filters.verified === "false" && !client.verified);
+      const matchesRegType = !filters.regType || client.regType === filters.regType;
       const matchesFieldSearch = !filters.searchField || !filters.searchValue ||
         client[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
 
-      return matchesGlobalSearch && matchesStatus && matchesVerified && matchesFieldSearch;
+      return matchesGlobalSearch && matchesStatus && matchesVerified && matchesRegType && matchesFieldSearch;
     });
   }, [clients, filters]);
 
@@ -172,19 +208,20 @@ const Clients = ({
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const csvHeaders = ['ID', 'Name', 'Email', 'Phone', 'Company', 'Status', 'Verified', 'Client Since', 'Total Cases', 'Active Cases'].join(',');
+      const csvHeaders = ['ID', 'Name', 'Email', 'Phone', 'Company', 'Registration Type', 'Status', 'Verified', 'Client Since', 'Total Cases', 'Active Cases'].join(',');
       const csvRows = filteredClients.map(client => [
         client.id,
         `"${client.name}"`,
         client.email,
         client.phone,
         `"${client.company}"`,
+        client.regType,
         client.status,
         client.verified ? 'Yes' : 'No',
         client.clientSince ? new Date(client.clientSince).toLocaleDateString() : '-',
         client.totalCases || 0,
         client.activeCases || 0
-      ].join(','));
+      ].join(',')); // Fixed: Added missing closing bracket and parenthesis
       const csvContent = [csvHeaders, ...csvRows].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -203,7 +240,7 @@ const Clients = ({
   };
 
   const handleResetFilters = () => {
-    setFilters({ globalSearch: "", status: "", verified: "", searchField: "", searchValue: "" });
+    setFilters({ globalSearch: "", status: "", verified: "", regType: "", searchField: "", searchValue: "" });
     setPagination({ page: 1, limit: 10 });
     setSelectedclient_ids([]);
   };
@@ -280,15 +317,15 @@ const Clients = ({
           </div>
           <div className="bg-white p-2 rounded shadow-sm border text-center">
             <div className="text-lg font-bold text-blue-600">
-              {clients.filter(c => c.verified).length}
+              {clients.filter(c => c.regType === "Manual").length}
             </div>
-            <div className="text-gray-600 text-xs">Verified</div>
+            <div className="text-gray-600 text-xs">Manual</div>
           </div>
           <div className="bg-white p-2 rounded shadow-sm border text-center">
-            <div className="text-lg font-bold text-orange-600">
-              {clients.reduce((sum, client) => sum + (client.activeCases || 0), 0)}
+            <div className="text-lg font-bold text-purple-600">
+              {clients.filter(c => c.regType === "Reg_Link").length}
             </div>
-            <div className="text-gray-600 text-xs">Active Cases</div>
+            <div className="text-gray-600 text-xs">Reg Link</div>
           </div>
         </div>
 
@@ -332,6 +369,7 @@ const Clients = ({
                 <option value="email">Email</option>
                 <option value="company">Company</option>
                 <option value="phone">Phone</option>
+                <option value="regType">Registration Type</option>
               </select>
 
               <input
@@ -344,7 +382,7 @@ const Clients = ({
                 className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32 disabled:bg-gray-100"
               />
 
-              {/* Status & Verified */}
+              {/* Status & Verified & Reg Type */}
               <select
                 name="status"
                 value={filters.status}
@@ -365,6 +403,17 @@ const Clients = ({
                 <option value="">All Clients</option>
                 <option value="true">Verified Only</option>
                 <option value="false">Unverified Only</option>
+              </select>
+
+              <select
+                name="regType"
+                value={filters.regType}
+                onChange={handleFilterChange}
+                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
+              >
+                <option value="">All Types</option>
+                <option value="Manual">Manual</option>
+                <option value="Reg_Link">Reg Link</option>
               </select>
 
               {/* Bulk Actions */}
@@ -438,6 +487,7 @@ const Clients = ({
                   <th className="px-2 py-2 text-left">Client</th>
                   <th className="px-2 py-2 text-left">Contact</th>
                   <th className="px-2 py-2 text-center">Cases</th>
+                  <th className="px-2 py-2 text-center">Reg Type</th>
                   <th className="px-2 py-2 text-center">Status</th>
                   <th className="px-2 py-2 text-center">Verified</th>
                   <th className="px-2 py-2 text-center">Actions</th>
@@ -446,7 +496,7 @@ const Clients = ({
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={canEditDelete ? 7 : 6} className="px-2 py-4 text-center">
+                    <td colSpan={canEditDelete ? 8 : 7} className="px-2 py-4 text-center">
                       <div className="flex justify-center items-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                         <span className="text-gray-600 text-xs">Loading clients...</span>
@@ -455,7 +505,7 @@ const Clients = ({
                   </tr>
                 ) : filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={canEditDelete ? 7 : 6} className="px-2 py-6 text-center">
+                    <td colSpan={canEditDelete ? 8 : 7} className="px-2 py-6 text-center">
                       <div className="text-gray-400 text-2xl mb-1">👥</div>
                       <h3 className="text-sm font-medium text-gray-900 mb-1">No clients found</h3>
                       <p className="text-gray-500 text-xs">
@@ -510,6 +560,15 @@ const Clients = ({
                             </span>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          client.regType === 'Manual' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {client.regType}
+                        </span>
                       </td>
                       <td className="px-2 py-2 text-center">
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -655,6 +714,7 @@ const Clients = ({
           <ul className="text-blue-700 space-y-0.5 list-disc list-inside">
             <li>Use search and filters to find clients</li>
             <li>Select multiple clients for bulk actions</li>
+            <li>Filter by Registration Type: Manual or Reg Link</li>
             {canAddClients && <li>Add new clients with the Add Client button</li>}
           </ul>
         </div>

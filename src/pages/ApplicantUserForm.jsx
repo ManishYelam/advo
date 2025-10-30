@@ -48,7 +48,7 @@ const ApplicantUserForm = () => {
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumbers = /\d/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
+
     return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
   };
 
@@ -135,7 +135,7 @@ const ApplicantUserForm = () => {
     // Required fields validation
     const requiredFields = ['full_name', 'email', 'phone_number', 'gender', 'occupation', 'address'];
     const missingFields = requiredFields.filter(field => !formData[field]);
-    
+
     if (missingFields.length > 0) {
       showErrorToast("Please fill all required fields!");
       return;
@@ -166,7 +166,7 @@ const ApplicantUserForm = () => {
     try {
       setSubmitting(true);
       setFormDisabled(true);
-      
+
       if (formData.email !== originalEmail) {
         const res = await checkExistsEmail(formData.email);
         if (res.data.exists) {
@@ -177,8 +177,8 @@ const ApplicantUserForm = () => {
         }
       }
 
-      // ✅ Add reg_link_status = 'active' before updating user
-      const updatedData = { ...formData, reg_link_status: 'active' };
+      // ✅ Add reg_link_status = 'active' and reg_type = 'reg_link' before updating user
+      const updatedData = { ...formData, reg_link_status: 'active', reg_type: 'reg_link', };
 
       const response = await updateUserApplicant(userId, updatedData);
 
@@ -192,7 +192,7 @@ const ApplicantUserForm = () => {
       }
     } catch (error) {
       console.error("Update error:", error);
-      
+
       if (error.response?.status === 400) {
         showErrorToast(error.response.data.message || "Invalid data provided.");
       } else if (error.response?.status === 404) {
@@ -203,7 +203,7 @@ const ApplicantUserForm = () => {
       } else {
         showErrorToast("An error occurred while updating user data. Please try again.");
       }
-      
+
       setSubmitting(false);
       setFormDisabled(false);
     }
@@ -325,7 +325,7 @@ const ApplicantUserForm = () => {
                     </li>
                   </ul>
                 </div>
-                
+
                 <div className="pt-4 border-t border-emerald-500">
                   <h3 className="font-semibold text-emerald-100 mb-3">Requirements</h3>
                   <ul className="space-y-2 text-sm text-emerald-50">
@@ -561,8 +561,8 @@ const ApplicantUserForm = () => {
                           <div className="flex justify-between text-xs text-gray-600 mb-1">
                             <span>Password Strength:</span>
                             <span className={`font-medium ${passwordStrength >= 4 ? 'text-green-600' :
-                                passwordStrength >= 3 ? 'text-blue-600' :
-                                  passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'
+                              passwordStrength >= 3 ? 'text-blue-600' :
+                                passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'
                               }`}>
                               {getPasswordStrengthText()}
                             </span>
