@@ -40,11 +40,11 @@ const Navbar = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const [validationErrors, setValidationErrors] = useState({});
-  
+
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const feedbackModalRef = useRef(null);
-  
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -52,7 +52,7 @@ const Navbar = () => {
   const user = JSON.parse(localStorage.getItem("user")) || {};
   const userFullName = user.full_name || "John Doe";
   const userEmail = user.email || "user@example.com";
-  const userImage = user.image || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face&auto=format";
+  const userImage = user.image || import.meta.env.VITE_DEFAULT_PROFILE_IMG;
   const userRole = user.role || "Admin";
 
   // Navbar gradient
@@ -158,7 +158,7 @@ const Navbar = () => {
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setValidationErrors({});
     setSubmitStatus({ type: '', message: '' });
@@ -171,7 +171,7 @@ const Navbar = () => {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Prepare payload exactly as your backend expects
       const feedbackData = {
@@ -187,34 +187,34 @@ const Navbar = () => {
       // console.log('Feedback API result:', result);
 
       if (result.success) {
-        setSubmitStatus({ 
-          type: 'success', 
-          message: result.message || 'Thank you for your feedback! We appreciate your input.' 
+        setSubmitStatus({
+          type: 'success',
+          message: result.message || 'Thank you for your feedback! We appreciate your input.'
         });
-        
+
         // Reset form and close modal after success
         setTimeout(() => {
           resetFeedbackForm();
         }, 2000);
-        
+
       } else {
-        setSubmitStatus({ 
-          type: 'error', 
-          message: result.message || 'Failed to submit feedback. Please try again.' 
+        setSubmitStatus({
+          type: 'error',
+          message: result.message || 'Failed to submit feedback. Please try again.'
         });
       }
     } catch (error) {
       console.error('Feedback submission error:', error);
-      
+
       // Handle specific validation errors from backend
-      if (error.message.includes('Rating must be') || 
-          error.message.includes('Category must be') || 
-          error.message.includes('Message must be')) {
+      if (error.message.includes('Rating must be') ||
+        error.message.includes('Category must be') ||
+        error.message.includes('Message must be')) {
         setValidationErrors({ backend: error.message });
       } else {
-        setSubmitStatus({ 
-          type: 'error', 
-          message: error.message || 'An unexpected error occurred. Please try again later.' 
+        setSubmitStatus({
+          type: 'error',
+          message: error.message || 'An unexpected error occurred. Please try again later.'
         });
       }
     } finally {
@@ -244,12 +244,12 @@ const Navbar = () => {
   const handleMessageChange = (e) => {
     const message = e.target.value;
     setFeedback(prev => ({ ...prev, message }));
-    
+
     // Clear message error when user starts typing
     if (validationErrors.message && message.trim().length >= 10) {
       setValidationErrors(prev => ({ ...prev, message: '' }));
     }
-    
+
     if (submitStatus.type === 'error') {
       setSubmitStatus({ type: '', message: '' });
     }
@@ -358,11 +358,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
                       ? "bg-green-600 text-white shadow-inner"
                       : "text-green-100 hover:bg-green-600 hover:text-white"
-                  }`}
+                    }`}
                 >
                   <Icon size={14} />
                   <span>{item.label}</span>
@@ -404,9 +403,8 @@ const Navbar = () => {
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notification.read ? "bg-blue-50" : ""
-                        }`}
+                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : ""
+                          }`}
                         onClick={() => markNotificationAsRead(notification.id)}
                       >
                         <p className="text-sm text-gray-800">{notification.message}</p>
@@ -450,9 +448,8 @@ const Navbar = () => {
               </div>
               <FaChevronDown
                 size={12}
-                className={`text-green-200 transition-transform ${
-                  openProfile ? "rotate-180" : ""
-                }`}
+                className={`text-green-200 transition-transform ${openProfile ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -599,11 +596,10 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${isActive
                       ? "bg-green-100 text-green-700 border-l-4 border-green-600"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setOpenMobileMenu(false)}
                 >
                   <Icon size={16} className={isActive ? "text-green-600" : "text-gray-500"} />
@@ -622,7 +618,7 @@ const Navbar = () => {
                 <FaCog className="text-gray-500" size={16} />
                 <span>Settings</span>
               </Link>
-              
+
               {/* Activity Log & Analytics - Only for Admin */}
               {isAdmin && (
                 <>
@@ -633,7 +629,7 @@ const Navbar = () => {
                     <FaHistory size={16} />
                     <span>Activity Log</span>
                   </button>
-                  
+
                   <button
                     onClick={() => navigate('/analytics')}
                     className="flex items-center space-x-3 w-full px-3 py-3 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
@@ -672,7 +668,7 @@ const Navbar = () => {
                 <FaCommentDots size={16} />
                 <span>Give Feedback</span>
               </button>
-              
+
               <button
                 onClick={() => navigate('/support')}
                 className="flex items-center space-x-3 w-full px-3 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
@@ -692,7 +688,7 @@ const Navbar = () => {
                   <span>Admin Panel</span>
                 </Link>
               )}
-              
+
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-3 w-full px-3 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg"
@@ -716,7 +712,7 @@ const Navbar = () => {
       {/* Enhanced Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div 
+          <div
             ref={feedbackModalRef}
             className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
           >
@@ -738,11 +734,10 @@ const Navbar = () => {
 
               {/* Status Message */}
               {submitStatus.message && (
-                <div className={`mb-4 p-3 rounded-lg ${
-                  submitStatus.type === 'success' 
-                    ? 'bg-green-50 border border-green-200 text-green-800' 
+                <div className={`mb-4 p-3 rounded-lg ${submitStatus.type === 'success'
+                    ? 'bg-green-50 border border-green-200 text-green-800'
                     : 'bg-red-50 border border-red-200 text-red-800'
-                }`}>
+                  }`}>
                   {submitStatus.message}
                 </div>
               )}
@@ -768,11 +763,10 @@ const Navbar = () => {
                         type="button"
                         onClick={() => handleRatingClick(star)}
                         disabled={isSubmitting}
-                        className={`p-2 rounded-lg transition-all ${
-                          feedback.rating >= star
+                        className={`p-2 rounded-lg transition-all ${feedback.rating >= star
                             ? "bg-yellow-100 text-yellow-500 border-2 border-yellow-400"
                             : "bg-gray-100 text-gray-400 hover:bg-gray-200 border-2 border-transparent"
-                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <FaStar size={20} />
                       </button>
@@ -796,9 +790,8 @@ const Navbar = () => {
                     value={feedback.category}
                     onChange={handleCategoryChange}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      validationErrors.category ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${validationErrors.category ? 'border-red-300' : 'border-gray-300'
+                      }`}
                   >
                     <option value="general">General Feedback</option>
                     <option value="bug">Bug Report</option>
@@ -822,16 +815,15 @@ const Navbar = () => {
                     placeholder="Please share your thoughts, suggestions, or issues (minimum 10 characters)..."
                     rows={4}
                     disabled={isSubmitting}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                      validationErrors.message ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed ${validationErrors.message ? 'border-red-300' : 'border-gray-300'
+                      }`}
                     required
                   />
                   <div className="text-xs mt-1 flex justify-between">
                     <span className={
                       messageStatus === 'valid' ? 'text-green-600' :
-                      messageStatus === 'empty' ? 'text-gray-500' :
-                      'text-red-500'
+                        messageStatus === 'empty' ? 'text-gray-500' :
+                          'text-red-500'
                     }>
                       {trimmedMessageLength}/2000 characters
                       {messageStatus === 'too-short' && ` (minimum 10 required)`}
