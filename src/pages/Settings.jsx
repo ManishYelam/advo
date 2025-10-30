@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import Card from "../components/Card";
 import Button from "../components/Button";
-import { changePasswordWithOtp, oldChangePasswordService } from "../services/authService";
+import { changePasswordWithOtp, oldChangePasswordService, resendVerification } from "../services/authService";
 import Application from "./Application";
 import AdminFeedbackManagement from "../components/AdminFeedbackManagement";
 import FeedbackHistory from "../components/FeedbackHistory";
@@ -44,7 +44,7 @@ const Settings = () => {
 
   // User data from localStorage with safe parsing
   const [user, setUser] = useState({});
-  
+
   useEffect(() => {
     try {
       const userData = localStorage.getItem("user");
@@ -142,7 +142,7 @@ const Settings = () => {
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumbers = /\d/.test(password);
     const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
-    
+
     return {
       isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
       requirements: {
@@ -253,24 +253,18 @@ const Settings = () => {
     }
 
     setResendVerificationLoading(true);
+
     try {
-      const response = await fetch('https://mbvdvt7z-5000.inc1.devtunnels.ms/api/users/resend-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
+      const response = await resendVerification(user.id);
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        alert('Verification email sent successfully! Please check your inbox.');
+      if (response.data?.success) {
+        alert("Verification email sent successfully! Please check your inbox.");
       } else {
-        alert(data.message || 'Failed to send verification email');
+        alert(response.data?.message || "Failed to send verification email");
       }
     } catch (error) {
-      alert('Network error. Please try again.');
+      console.error("Resend verification failed:", error);
+      alert(error.response?.data?.message || "Network error. Please try again.");
     } finally {
       setResendVerificationLoading(false);
     }
@@ -278,7 +272,7 @@ const Settings = () => {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!profileData.full_name.trim()) {
       alert("Full name is required!");
@@ -294,10 +288,10 @@ const Settings = () => {
     const emailChanged = profileData.email !== user.email;
     if (emailChanged) {
       // Reset verification status if email changed
-      const updatedUser = { 
-        ...user, 
-        ...profileData, 
-        email_verified: false 
+      const updatedUser = {
+        ...user,
+        ...profileData,
+        email_verified: false
       };
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -361,20 +355,20 @@ const Settings = () => {
       // In real app, you would call:
       if (passwordChangeMethod === "current") {
         await oldChangePasswordService(
-          securityData.currentPassword, 
+          securityData.currentPassword,
           securityData.newPassword
         );
       } else {
-        await changePasswordWithOtp({ 
-          otp: otpData.otp, 
-          new_password: securityData.newPassword 
+        await changePasswordWithOtp({
+          otp: otpData.otp,
+          new_password: securityData.newPassword
         });
       }
 
       // Reset all forms
       resetSecurityForm();
       resetOtpState();
-      
+
       alert("Password updated successfully!");
     } catch (error) {
       alert(error.message || "Failed to update password. Please try again.");
@@ -405,8 +399,8 @@ const Settings = () => {
 
   // Render back button for nested views
   const renderBackButton = () => (
-    <button 
-      onClick={() => setActiveTab("profile")} 
+    <button
+      onClick={() => setActiveTab("profile")}
       className="mb-4 flex items-center gap-2 text-gray-800 hover:text-gray-600 transition px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md"
     >
       <FaArrowLeft size={16} /> Back to Settings
@@ -432,8 +426,8 @@ const Settings = () => {
                   )}
                 </div>
                 <p className="text-gray-600 text-xs">
-                  {isAdmin 
-                    ? "Account & system administration" 
+                  {isAdmin
+                    ? "Account & system administration"
                     : "Manage your account preferences"
                   }
                 </p>
@@ -446,11 +440,10 @@ const Settings = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                        activeTab === tab.id
-                          ? "bg-green-100 text-green-700 border border-green-200"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === tab.id
+                        ? "bg-green-100 text-green-700 border border-green-200"
+                        : "text-gray-700 hover:bg-gray-100"
+                        }`}
                     >
                       <Icon size={16} />
                       <span className="font-medium">{tab.label}</span>
@@ -492,7 +485,7 @@ const Settings = () => {
             {activeTab === "profile" && (
               <Card>
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Profile Settings</h2>
-                
+
                 {/* Email Verification Status */}
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between">
@@ -636,11 +629,10 @@ const Settings = () => {
                         resetOtpState();
                         resetSecurityForm();
                       }}
-                      className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                        passwordChangeMethod === "current"
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${passwordChangeMethod === "current"
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
                     >
                       Use Current Password
                     </button>
@@ -649,11 +641,10 @@ const Settings = () => {
                         setPasswordChangeMethod("otp");
                         resetSecurityForm();
                       }}
-                      className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                        passwordChangeMethod === "otp"
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${passwordChangeMethod === "otp"
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
                     >
                       Use OTP Verification
                     </button>
