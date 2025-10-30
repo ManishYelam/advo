@@ -113,7 +113,7 @@ const Payment = ({ amount, onPaymentSuccess, onBack, userData = {} }) => {
       // Create and load new script
       const script = document.createElement("script");
       script.id = "razorpay-script";
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.src = import.meta.env.RAZORPAY_CHECKOUT;
       script.async = true;
       script.defer = true;
 
