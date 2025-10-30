@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  FaFacebookF, 
-  FaTwitter, 
-  FaInstagram, 
+import {
+  FaFacebookF,
+  FaTwitter,
+  FaInstagram,
   FaLinkedin,
   FaWhatsapp,
   FaArrowUp,
@@ -60,7 +60,7 @@ const LandingPage = () => {
 
       // Submit to your backend API
       const response = await submitContactForm(contactData);
-      
+
       // Check if the submission was successful
       if (response.data && response.data.success) {
         toast.success("🎉 Message sent successfully! We'll get back to you soon.");
@@ -70,7 +70,7 @@ const LandingPage = () => {
       }
     } catch (error) {
       console.error("Contact form submission error:", error);
-      
+
       // Handle different error scenarios
       if (error.response) {
         // Server responded with error status
@@ -219,17 +219,17 @@ const LandingPage = () => {
               <FaFileAlt className="text-yellow-400" />
               <span className="text-sm font-medium">1000+ Applications Processed</span>
             </div>
-            
+
             <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
               Get Legal Assistance
               <span className="text-yellow-400 block">Made Simple</span>
             </h1>
-            
+
             <p className="text-xl lg:text-2xl text-green-100 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Start your journey to justice with our easy-to-use application form. 
+              Start your journey to justice with our easy-to-use application form.
               Get expert legal guidance in just a few simple steps.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/apply"
@@ -287,7 +287,7 @@ const LandingPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <div 
+              <div
                 key={index}
                 className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100 text-center"
               >
@@ -438,7 +438,7 @@ const LandingPage = () => {
                     type="text"
                     placeholder="Your Name *"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
-                    {...register("name", { 
+                    {...register("name", {
                       required: "Name is required",
                       minLength: {
                         value: 2,
@@ -450,13 +450,13 @@ const LandingPage = () => {
                     <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <input
                     type="email"
                     placeholder="Your Email *"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
-                    {...register("email", { 
+                    {...register("email", {
                       required: "Email is required",
                       pattern: {
                         value: /^\S+@\S+$/i,
@@ -487,7 +487,7 @@ const LandingPage = () => {
                     <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <input
                     type="text"
@@ -504,7 +504,7 @@ const LandingPage = () => {
                   placeholder="How can we help you with your application? *"
                   rows="5"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all resize-none"
-                  {...register("message", { 
+                  {...register("message", {
                     required: "Message is required",
                     minLength: {
                       value: 10,
@@ -527,11 +527,10 @@ const LandingPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 ${
-                  loading
-                    ? "bg-green-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transform hover:scale-105"
-                }`}
+                className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 ${loading
+                  ? "bg-green-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  }`}
               >
                 {loading ? (
                   <>
@@ -622,7 +621,7 @@ const LandingPage = () => {
 
       {/* WhatsApp Floating Button */}
       <a
-        href="https://wa.me/919373200525"
+        href={import.meta.env.VITE_WHATSAPP_LINK}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-50"
@@ -643,7 +642,7 @@ const LandingPage = () => {
       )}
 
       {/* Toast Container */}
-      <ToastContainer 
+      <ToastContainer
         position="top-right"
         autoClose={5000}
         hideProgressBar={false}
