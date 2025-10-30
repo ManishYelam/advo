@@ -176,8 +176,11 @@ const ApplicantUserForm = () => {
           return;
         }
       }
-      
-      const response = await updateUserApplicant(userId, formData);
+
+      // ✅ Add reg_link_status = 'active' before updating user
+      const updatedData = { ...formData, reg_link_status: 'active' };
+
+      const response = await updateUserApplicant(userId, updatedData);
 
       if (response.data.message) {
         showSuccessToast("Registration completed successfully! Redirecting to login...");
@@ -360,7 +363,7 @@ const ApplicantUserForm = () => {
                     </div>
                     Personal Information
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -471,7 +474,7 @@ const ApplicantUserForm = () => {
                     </div>
                     Contact Information
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -534,7 +537,7 @@ const ApplicantUserForm = () => {
                     </div>
                     Security Setup
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -551,22 +554,21 @@ const ApplicantUserForm = () => {
                         autoComplete="new-password"
                         required
                       />
-                      
+
                       {/* Password Strength Meter */}
                       {formData.password && (
                         <div className="mt-2">
                           <div className="flex justify-between text-xs text-gray-600 mb-1">
                             <span>Password Strength:</span>
-                            <span className={`font-medium ${
-                              passwordStrength >= 4 ? 'text-green-600' : 
-                              passwordStrength >= 3 ? 'text-blue-600' : 
-                              passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
+                            <span className={`font-medium ${passwordStrength >= 4 ? 'text-green-600' :
+                                passwordStrength >= 3 ? 'text-blue-600' :
+                                  passwordStrength >= 2 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
                               {getPasswordStrengthText()}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                               className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
                               style={{ width: `${(passwordStrength / 5) * 100}%` }}
                             ></div>
@@ -614,7 +616,7 @@ const ApplicantUserForm = () => {
                   <div className="text-sm text-gray-600 mb-4 sm:mb-0">
                     <p>By submitting this form, you agree to our terms and conditions.</p>
                   </div>
-                  
+
                   <div className="flex space-x-4">
                     <button
                       type="button"
