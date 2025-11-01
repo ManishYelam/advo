@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
-import { FaPlus, FaCheck, FaTimes, FaArrowLeft, FaDownload, FaSearch } from "react-icons/fa";
+import { FaPlus, FaCheck, FaTimes, FaArrowLeft, FaDownload, FaSearch, FaFilePdf, FaEdit, FaEye, FaPrint, FaTrash, FaEllipsisV } from "react-icons/fa";
 import { FiTrash2, FiEdit, FiRefreshCcw, FiEye, FiPrinter, FiMoreVertical, FiUserPlus } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { getAllUser } from "../services/applicationService"; // Import your service
 
 // Debounce utility for search
 const debounce = (func, wait) => {
@@ -17,8 +18,64 @@ const debounce = (func, wait) => {
   };
 };
 
+// Custom hook for debounce
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Token validation utility
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const decodedToken = JSON.parse(atob(token.split(".")[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decodedToken.exp < currentTime;
+  } catch (error) {
+    return true;
+  }
+};
+
+// Custom Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Delete", cancelText = "Cancel" }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Clients = ({ 
-  fetchClientsApi, 
   onDeleteClient, 
   onEditClient, 
   onView, 
@@ -43,9 +100,19 @@ const Clients = ({
   const [totalRecords, setTotalRecords] = useState(0);
   const [exportLoading, setExportLoading] = useState(false);
   const [bulkAction, setBulkAction] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedRowId, setSelectedRowId] = useState(null);
+
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [clientsToDelete, setCliientsToDelete] = useState([]);
+  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
   const navigate = useNavigate();
   const debouncedSearchRef = React.useRef();
+
+  // Use debounce for global search
+  const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500);
 
   useEffect(() => {
     debouncedSearchRef.current = debounce((value) => {
@@ -58,87 +125,87 @@ const Clients = ({
     setLoading(true);
     setError(null);
     try {
-      let data;
-      if (fetchClientsApi) {
-        const response = await fetchClientsApi({ filters, pagination });
-        data = response?.data || [];
-        setTotalRecords(response?.totalRecords || data.length);
-      } else {
-        data = [
-          { 
-            id: 1, 
-            name: "John Doe", 
-            email: "john@example.com", 
-            phone: "+1 (555) 123-4567", 
-            address: "123 Main Street, New York, NY 10001", 
-            company: "ABC Corp", 
-            createdAt: "2025-01-15T10:30:00Z", 
-            status: "Active", 
-            verified: true,
-            regType: "Manual",
-            clientSince: "2024-01-15",
-            lastActive: "2025-01-10",
-            totalCases: 5,
-            activeCases: 2
-          },
-          { 
-            id: 2, 
-            name: "Jane Smith", 
-            email: "jane@example.com", 
-            phone: "+1 (555) 987-6543", 
-            address: "456 Oak Avenue, Los Angeles, CA 90210", 
-            company: "XYZ Ltd", 
-            createdAt: "2025-01-10T14:20:00Z", 
-            status: "Inactive", 
-            verified: false,
-            regType: "Reg_Link",
-            clientSince: "2024-03-20",
-            lastActive: "2024-12-15",
-            totalCases: 3,
-            activeCases: 0
-          },
-          { 
-            id: 3, 
-            name: "Mike Johnson", 
-            email: "mike@example.com", 
-            phone: "+1 (555) 456-7890", 
-            address: "789 Pine Road, Chicago, IL 60601", 
-            company: "Tech Solutions Inc", 
-            createdAt: "2025-01-08T09:15:00Z", 
-            status: "Active", 
-            verified: true,
-            regType: "Reg_Link",
-            clientSince: "2023-11-10",
-            lastActive: "2025-01-12",
-            totalCases: 8,
-            activeCases: 3
-          },
-          { 
-            id: 4, 
-            name: "Sarah Wilson", 
-            email: "sarah@example.com", 
-            phone: "+1 (555) 234-5678", 
-            address: "321 Elm Street, Miami, FL 33101", 
-            company: "Wilson & Associates", 
-            createdAt: "2025-01-05T16:45:00Z", 
-            status: "Active", 
-            verified: true,
-            regType: "Manual",
-            clientSince: "2024-02-28",
-            lastActive: "2025-01-14",
-            totalCases: 12,
-            activeCases: 4
-          }
-        ];
-        setTotalRecords(data.length);
+      // Prepare request data for getAllUser API
+      const requestData = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedGlobalSearch || '',
+        searchFields: filters.searchField ? [filters.searchField] : [],
+        // Apply filters - transform to match API expectations
+        ...(filters.status && { status: filters.status.toLowerCase() }),
+        ...(filters.verified && { isVerified: filters.verified }),
+        ...(filters.regType && { reg_type: filters.regType }),
+        role: 'client' // Only fetch clients, not admins
+      };
+
+      // Add field-specific search if applicable
+      if (filters.searchField && filters.searchValue) {
+        requestData.search = filters.searchValue;
+        requestData.searchFields = [filters.searchField];
       }
-      setClients(data);
+
+      console.log('API Request:', requestData); // For debugging
+
+      const response = await getAllUser(requestData);
+      
+      // Transform API response to match table format
+      const transformedData = response.data.data.map(user => ({
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        phone: user.phone_number,
+        address: user.address,
+        company: user.occupation || 'N/A',
+        createdAt: user.createdAt,
+        status: user.status === 'active' ? 'Active' : 'Inactive',
+        verified: user.isVerified,
+        regType: user.reg_type || 'Manual',
+        clientSince: user.createdAt,
+        lastActive: user.last_login_at || user.createdAt,
+        totalCases: 0, // You might need to calculate this from another API
+        activeCases: 0, // You might need to calculate this from another API
+        // Include additional fields that might be useful
+        role: user.role,
+        dateOfBirth: user.date_of_birth,
+        gender: user.gender,
+        age: user.age,
+        adharNumber: user.adhar_number,
+        isVerified: user.isVerified,
+        lastLoginAt: user.last_login_at
+      }));
+
+      setClients(transformedData);
+      setTotalRecords(response.totalRecords || response.total || transformedData.length);
+
     } catch (err) {
       setError(`Failed to fetch clients: ${err.message}`);
+      console.error('API Error:', err);
+      
+      // Fallback to mock data if API fails (optional)
+      const fallbackData = [
+        { 
+          id: 1, 
+          name: "John Doe", 
+          email: "john@example.com", 
+          phone: "+1 (555) 123-4567", 
+          address: "123 Main Street, New York, NY 10001", 
+          company: "ABC Corp", 
+          createdAt: "2025-01-15T10:30:00Z", 
+          status: "Active", 
+          verified: true,
+          regType: "Manual",
+          clientSince: "2024-01-15",
+          lastActive: "2025-01-10",
+          totalCases: 5,
+          activeCases: 2
+        }
+      ];
+      setClients(fallbackData);
+      setTotalRecords(fallbackData.length);
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination, fetchClientsApi]);
+  }, [debouncedGlobalSearch, filters, pagination]);
 
   useEffect(() => { 
     fetchClients(); 
@@ -148,6 +215,12 @@ const Clients = ({
     const { name, value } = e.target;
     if (name === "globalSearch") {
       debouncedSearchRef.current(value);
+    } else if (name === "searchField") {
+      setFilters(prev => ({ 
+        ...prev, 
+        searchField: value,
+        searchValue: "" // Reset search value when field changes
+      }));
     } else {
       setFilters(prev => ({ ...prev, [name]: value }));
       setPagination(prev => ({ ...prev, page: 1 }));
@@ -180,20 +253,87 @@ const Clients = ({
     }
   };
 
-  const toggleSelectOne = (id) => {
+  const toggleSelectOne = (id, e) => {
+    if (e) e.stopPropagation();
     setSelectedclient_ids(prev =>
       prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
     );
   };
 
+  // ✅ Ultra-fast Delete Confirmation
+  const showDeleteConfirmation = useCallback((clientIds) => {
+    if (!clientIds || clientIds.length === 0) {
+      setError("No clients selected for deletion");
+      return;
+    }
+
+    setCliientsToDelete(clientIds);
+    setDeleteConfirmMessage(
+      clientIds.length === 1
+        ? `Are you sure you want to delete client #${clientIds[0]}? This action cannot be undone.`
+        : `Are you sure you want to delete ${clientIds.length} selected clients? This action cannot be undone.`
+    );
+    setShowDeleteConfirm(true);
+  }, []);
+
+  // ✅ Ultra-optimized DELETE CLIENT
+  const handleDeleteClient = useCallback(async () => {
+    setDeleteLoading(true);
+    setError(null);
+
+    try {
+      const user = localStorage.getItem("user");
+      if (!user) throw new Error("User not logged in");
+
+      const parsedUser = JSON.parse(user);
+      const token = parsedUser?.token;
+
+      if (!token || isTokenExpired(token)) {
+        throw new Error("Token expired. Please login again.");
+      }
+
+      // Direct parallel deletion
+      await Promise.all(clientsToDelete.map(id => onDeleteClient?.(id)));
+
+      // Direct state updates
+      setShowDeleteConfirm(false);
+      setCliientsToDelete([]);
+      await fetchClients();
+      setSelectedclient_ids([]);
+      setSelectedRowId(null);
+
+      setError(clientsToDelete.length === 1
+        ? `Client #${clientsToDelete[0]} deleted successfully`
+        : `${clientsToDelete.length} clients deleted successfully`
+      );
+
+    } catch (err) {
+      setError(`Failed to delete clients: ${err.message}`);
+      setShowDeleteConfirm(false);
+      setCliientsToDelete([]);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [clientsToDelete, fetchClients, onDeleteClient]);
+
+  // ✅ Ultra-fast Single Client Delete
+  const handleDeleteSingleClient = useCallback((client, e) => {
+    e.stopPropagation();
+    showDeleteConfirmation([client.id]);
+  }, [showDeleteConfirmation]);
+
+  // ✅ Fast Cancel Delete
+  const handleCancelDelete = useCallback(() => {
+    setShowDeleteConfirm(false);
+    setCliientsToDelete([]);
+    setDeleteConfirmMessage("");
+  }, []);
+
   const handleBulkAction = () => {
     if (bulkAction && selectedclient_ids.length > 0) {
       switch (bulkAction) {
         case "delete":
-          if (window.confirm(`Delete ${selectedclient_ids.length} client(s)?`)) {
-            onDeleteClient?.(selectedclient_ids);
-            setSelectedclient_ids([]);
-          }
+          showDeleteConfirmation(selectedclient_ids);
           break;
         case "export":
           handleExport();
@@ -221,7 +361,7 @@ const Clients = ({
         client.clientSince ? new Date(client.clientSince).toLocaleDateString() : '-',
         client.totalCases || 0,
         client.activeCases || 0
-      ].join(',')); // Fixed: Added missing closing bracket and parenthesis
+      ].join(','));
       const csvContent = [csvHeaders, ...csvRows].join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -243,15 +383,30 @@ const Clients = ({
     setFilters({ globalSearch: "", status: "", verified: "", regType: "", searchField: "", searchValue: "" });
     setPagination({ page: 1, limit: 10 });
     setSelectedclient_ids([]);
+    setSelectedRowId(null);
   };
 
+  // ✅ Ultra-fast Row Click Handler
+  const handleRowClick = useCallback((clientId, e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
+      return;
+    }
+    setSelectedRowId(clientId === selectedRowId ? null : clientId);
+  }, [selectedRowId]);
+
+  // ✅ Ultra-fast Row Background Color
+  const getRowBackgroundColor = useCallback((clientId) => 
+    clientId === selectedRowId ? 'bg-blue-200 border-l-4 border-blue-500' : 'bg-white hover:bg-pink-100',
+  [selectedRowId]);
+
+  // ✅ Ultra-optimized Pagination Calculations
   const paginationInfo = useMemo(() => ({
     totalPages: Math.ceil(totalRecords / pagination.limit),
     startIndex: (pagination.page - 1) * pagination.limit + 1,
     endIndex: Math.min(pagination.page * pagination.limit, totalRecords)
   }), [pagination, totalRecords]);
 
-  const getPageNumbers = () => {
+  const getPageNumbers = useCallback(() => {
     const delta = 2;
     const range = [];
     const { totalPages } = paginationInfo;
@@ -266,14 +421,47 @@ const Clients = ({
     if (range[range.length - 1] !== totalPages) range.push(totalPages);
 
     return range;
-  };
+  }, [paginationInfo, pagination.page]);
+
+  // ✅ ULTRA-FAST Action Button Handler
+  const handleActionButtonClick = useCallback((action, client, e) => {
+    e.stopPropagation();
+    
+    // Direct if-else chain - Fastest execution
+    if (action === 'view') onView?.(client);
+    else if (action === 'edit') onEditClient?.(client);
+    else if (action === 'print') onPrint?.(client);
+    else if (action === 'delete') handleDeleteSingleClient(client, e);
+    else if (action === 'more') onMore?.(client);
+  }, [onView, onEditClient, onPrint, onMore, handleDeleteSingleClient]);
 
   const canEditDelete = userRole === "admin";
   const canAddClients = userRole === "admin" || userRole === "advocate";
 
+  // Search field options matching API field names
+  const searchFieldOptions = [
+    { value: "full_name", label: "Name" },
+    { value: "email", label: "Email" },
+    { value: "occupation", label: "Company" },
+    { value: "phone_number", label: "Phone" },
+    { value: "reg_type", label: "Registration Type" },
+    { value: "adhar_number", label: "Aadhar Number" }
+  ];
+
   return (
     <DashboardLayout>
       <div className="m-3 min-h-screen bg-gray-50 rounded-lg p-3">
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={handleCancelDelete}
+          onConfirm={handleDeleteClient}
+          title="Confirm Deletion"
+          message={deleteConfirmMessage}
+          confirmText={deleteLoading ? "Deleting..." : "Delete"}
+          cancelText="Cancel"
+        />
+
         {/* Header - Compact */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
           <div className="flex items-center gap-2">
@@ -287,7 +475,7 @@ const Clients = ({
             <div>
               <h1 className="text-lg font-bold text-gray-800">Clients</h1>
               <p className="text-gray-600 text-xs">
-                Manage client relationships
+                Manage client relationships - Connected to API
               </p>
             </div>
           </div>
@@ -331,11 +519,16 @@ const Clients = ({
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-xs mb-3 flex justify-between items-center">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
-              <FaTimes size={12} />
-            </button>
+          <div className={`px-3 py-2 rounded mb-3 ${error.includes('successfully') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`} role="alert">
+            {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {(loading || deleteLoading) && (
+          <div className="flex items-center justify-center py-4" aria-live="polite">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+            <span className="ml-2">{deleteLoading ? "Deleting clients..." : "Loading clients..."}</span>
           </div>
         )}
 
@@ -365,11 +558,11 @@ const Clients = ({
                 className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
               >
                 <option value="">Search Field</option>
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-                <option value="company">Company</option>
-                <option value="phone">Phone</option>
-                <option value="regType">Registration Type</option>
+                {searchFieldOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
 
               <input
@@ -464,6 +657,22 @@ const Clients = ({
                 )}
                 Export
               </button>
+
+              {/* Delete Selected - Only show for admin */}
+              {canEditDelete && (
+                <button
+                  onClick={() => showDeleteConfirmation(selectedclient_ids)}
+                  disabled={selectedclient_ids.length === 0 || deleteLoading}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1"
+                >
+                  {deleteLoading ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  ) : (
+                    <FiTrash2 size={12} />
+                  )}
+                  {selectedclient_ids.length > 0 && `(${selectedclient_ids.length})`}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -517,13 +726,17 @@ const Clients = ({
                   </tr>
                 ) : (
                   filteredClients.map((client) => (
-                    <tr key={client.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={client.id} 
+                      className={`cursor-pointer transition-all duration-200 ${getRowBackgroundColor(client.id)}`}
+                      onClick={(e) => handleRowClick(client.id, e)}
+                    >
                       {canEditDelete && (
                         <td className="px-2 py-2">
                           <input
                             type="checkbox"
                             checked={selectedclient_ids.includes(client.id)}
-                            onChange={() => toggleSelectOne(client.id)}
+                            onChange={(e) => toggleSelectOne(client.id, e)}
                             className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
                           />
                         </td>
@@ -589,34 +802,44 @@ const Clients = ({
                       <td className="px-2 py-2">
                         <div className="flex justify-center gap-1">
                           <button
-                            onClick={() => onView?.(client)}
+                            onClick={(e) => handleActionButtonClick('view', client, e)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
                             title="View"
                           >
-                            <FiEye size={12} />
+                            <FaEye size={12} />
                           </button>
                           {canEditDelete && (
                             <button
-                              onClick={() => onEditClient?.(client)}
+                              onClick={(e) => handleActionButtonClick('edit', client, e)}
                               className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors duration-200"
                               title="Edit"
                             >
-                              <FiEdit size={12} />
+                              <FaEdit size={12} />
                             </button>
                           )}
                           <button
-                            onClick={() => onPrint?.(client)}
+                            onClick={(e) => handleActionButtonClick('print', client, e)}
                             className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
                             title="Print"
                           >
-                            <FiPrinter size={12} />
+                            <FaPrint size={12} />
                           </button>
+                          {canEditDelete && (
+                            <button
+                              onClick={(e) => handleActionButtonClick('delete', client, e)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
+                              title="Delete"
+                              disabled={deleteLoading}
+                            >
+                              <FaTrash size={12} />
+                            </button>
+                          )}
                           <button
-                            onClick={() => onMore?.(client)}
+                            onClick={(e) => handleActionButtonClick('more', client, e)}
                             className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
                             title="More"
                           >
-                            <FiMoreVertical size={12} />
+                            <FaEllipsisV size={12} />
                           </button>
                         </div>
                       </td>
@@ -628,82 +851,95 @@ const Clients = ({
           </div>
         </div>
 
-        {/* Compact Pagination */}
+        {/* Pagination - Same as CaseTable */}
         {filteredClients.length > 0 && (
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2">
-            <div className="text-xs text-gray-600">
-              Showing <span className="font-semibold">{paginationInfo.startIndex}</span> to{" "}
-              <span className="font-semibold">{paginationInfo.endIndex}</span> of{" "}
-              <span className="font-semibold">{totalRecords}</span>
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2 text-xs">
+            <div>
+              Showing{" "}
+              <span className="font-medium">{paginationInfo.startIndex}</span>{" "}
+              to{" "}
+              <span className="font-medium">{paginationInfo.endIndex}</span>{" "}
+              of <span className="font-medium">{totalRecords}</span> clients
             </div>
 
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-1 text-xs">
+            <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-1 ml-2">
                 <span>Show</span>
                 <select
                   value={pagination.limit}
                   onChange={(e) =>
-                    setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))
+                    setPagination((prev) => ({
+                      ...prev,
+                      limit: parseInt(e.target.value),
+                      page: 1,
+                    }))
                   }
-                  className="px-1 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                  className="px-2 py-1 border rounded text-xs focus:outline-none focus:border-green-500"
+                  aria-label="Items per page"
                 >
-                  {[5, 10, 20, 50].map(num => (
-                    <option key={num} value={num}>{num}</option>
+                  {[5, 10, 20, 50].map((num) => (
+                    <option key={num} value={num}>
+                      {num}
+                    </option>
                   ))}
                 </select>
+                <span>per page</span>
               </div>
 
-              <div className="flex items-center gap-0.5">
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
-                  disabled={pagination.page === 1}
-                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
-                >
-                  First
-                </button>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page === 1}
-                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
-                >
-                  Prev
-                </button>
+              <button
+                onClick={() => setPagination({ ...pagination, page: 1 })}
+                disabled={pagination.page === 1}
+                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Go to first page"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                disabled={pagination.page === 1}
+                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Go to previous page"
+              >
+                Prev
+              </button>
 
-                {getPageNumbers().map((page, index) =>
-                  page === "..." ? (
-                    <span key={`ellipsis-${index}`} className="px-1 py-1 text-gray-500 text-xs">
-                      ...
-                    </span>
-                  ) : (
-                    <button
-                      key={page}
-                      onClick={() => setPagination(prev => ({ ...prev, page }))}
-                      className={`px-2 py-1 border rounded text-xs ${
-                        pagination.page === page
-                          ? "bg-green-600 text-white border-green-600"
-                          : "border-gray-300 hover:bg-gray-50"
+              {getPageNumbers().map((p, i) =>
+                p === "..." ? (
+                  <span key={i} className="px-2 py-1 text-gray-500">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={i}
+                    onClick={() => setPagination({ ...pagination, page: p })}
+                    className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${pagination.page === p
+                      ? "bg-green-800 text-white"
+                      : "bg-white border border-gray-300 hover:bg-green-100"
                       }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                )}
+                    aria-label={`Go to page ${p}`}
+                    aria-current={pagination.page === p ? 'page' : undefined}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
 
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  disabled={pagination.page === paginationInfo.totalPages}
-                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
-                >
-                  Next
-                </button>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: paginationInfo.totalPages }))}
-                  disabled={pagination.page === paginationInfo.totalPages}
-                  className="px-2 py-1 border border-gray-300 rounded text-xs disabled:opacity-50 hover:bg-gray-50"
-                >
-                  Last
-                </button>
-              </div>
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                disabled={pagination.page === paginationInfo.totalPages}
+                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Go to next page"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setPagination({ ...pagination, page: paginationInfo.totalPages })}
+                disabled={pagination.page === paginationInfo.totalPages}
+                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Go to last page"
+              >
+                Last
+              </button>
             </div>
           </div>
         )}
@@ -716,6 +952,14 @@ const Clients = ({
             <li>Select multiple clients for bulk actions</li>
             <li>Filter by Registration Type: Manual or Reg Link</li>
             {canAddClients && <li>Add new clients with the Add Client button</li>}
+            <li>Click anywhere on a row to <span className="font-medium text-blue-700">highlight and select</span> it.</li>
+            <li>Use the <span className="font-medium text-green-700">Export button</span> to download clients as CSV.</li>
+            {canEditDelete && (
+              <>
+                <li>Select multiple clients using checkboxes for bulk actions.</li>
+                <li>Use the <span className="font-medium text-red-700">Delete button</span> to remove individual clients or bulk delete selected clients.</li>
+              </>
+            )}
           </ul>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
@@ -149,4 +150,6 @@ export const checkExistsEmail = (email) => axios.post(`${baseURL}/users/email`, 
 export const userApplicant = (id) => axios.get(`${baseURL}/users/${id}`);
 
 export const updateUserApplicant = (id, data) => axios.put(`${baseURL}/users/${id}`, data);
+
+export const getAllUser = (data) => axiosInstance.post(`${baseURL}/users/v2`, data);
 
