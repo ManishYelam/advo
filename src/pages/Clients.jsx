@@ -474,9 +474,9 @@ const Clients = ({
             </button>
             <div>
               <h1 className="text-lg font-bold text-gray-800">Clients</h1>
-              <p className="text-gray-600 text-xs">
+              {/* <p className="text-gray-600 text-xs">
                 Manage client relationships - Connected to API
-              </p>
+              </p> */}
             </div>
           </div>
 
