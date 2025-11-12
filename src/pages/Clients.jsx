@@ -75,19 +75,19 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
   );
 };
 
-const Clients = ({ 
-  onDeleteClient, 
-  onEditClient, 
-  onView, 
-  onPrint, 
-  onMore, 
+const Clients = ({
+  onDeleteClient,
+  onEditClient,
+  onView,
+  onPrint,
+  onMore,
   onAddClient,
   userRole = "admin"
 }) => {
   const [clients, setClients] = useState([]);
-  const [filters, setFilters] = useState({ 
-    globalSearch: "", 
-    status: "", 
+  const [filters, setFilters] = useState({
+    globalSearch: "",
+    status: "",
     verified: "",
     regType: "",
     searchField: "",
@@ -147,7 +147,7 @@ const Clients = ({
       console.log('API Request:', requestData); // For debugging
 
       const response = await getAllUser(requestData);
-      
+
       // Transform API response to match table format
       const transformedData = response.data.data.map(user => ({
         id: user.id,
@@ -180,18 +180,18 @@ const Clients = ({
     } catch (err) {
       setError(`Failed to fetch clients: ${err.message}`);
       console.error('API Error:', err);
-      
+
       // Fallback to mock data if API fails (optional)
       const fallbackData = [
-        { 
-          id: 1, 
-          name: "John Doe", 
-          email: "john@example.com", 
-          phone: "+1 (555) 123-4567", 
-          address: "123 Main Street, New York, NY 10001", 
-          company: "ABC Corp", 
-          createdAt: "2025-01-15T10:30:00Z", 
-          status: "Active", 
+        {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          phone: "+1 (555) 123-4567",
+          address: "123 Main Street, New York, NY 10001",
+          company: "ABC Corp",
+          createdAt: "2025-01-15T10:30:00Z",
+          status: "Active",
           verified: true,
           regType: "Manual",
           clientSince: "2024-01-15",
@@ -207,8 +207,8 @@ const Clients = ({
     }
   }, [debouncedGlobalSearch, filters, pagination]);
 
-  useEffect(() => { 
-    fetchClients(); 
+  useEffect(() => {
+    fetchClients();
   }, [fetchClients]);
 
   const handleFilterChange = (e) => {
@@ -216,8 +216,8 @@ const Clients = ({
     if (name === "globalSearch") {
       debouncedSearchRef.current(value);
     } else if (name === "searchField") {
-      setFilters(prev => ({ 
-        ...prev, 
+      setFilters(prev => ({
+        ...prev,
         searchField: value,
         searchValue: "" // Reset search value when field changes
       }));
@@ -229,13 +229,13 @@ const Clients = ({
 
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
-      const matchesGlobalSearch = !filters.globalSearch || 
-        Object.values(client).some(val => 
+      const matchesGlobalSearch = !filters.globalSearch ||
+        Object.values(client).some(val =>
           val?.toString().toLowerCase().includes(filters.globalSearch.toLowerCase())
         );
       const matchesStatus = !filters.status || client.status === filters.status;
-      const matchesVerified = filters.verified === "" || 
-        (filters.verified === "true" && client.verified) || 
+      const matchesVerified = filters.verified === "" ||
+        (filters.verified === "true" && client.verified) ||
         (filters.verified === "false" && !client.verified);
       const matchesRegType = !filters.regType || client.regType === filters.regType;
       const matchesFieldSearch = !filters.searchField || !filters.searchValue ||
@@ -395,9 +395,9 @@ const Clients = ({
   }, [selectedRowId]);
 
   // ✅ Ultra-fast Row Background Color
-  const getRowBackgroundColor = useCallback((clientId) => 
+  const getRowBackgroundColor = useCallback((clientId) =>
     clientId === selectedRowId ? 'bg-blue-200 border-l-4 border-blue-500' : 'bg-white hover:bg-pink-100',
-  [selectedRowId]);
+    [selectedRowId]);
 
   // ✅ Ultra-optimized Pagination Calculations
   const paginationInfo = useMemo(() => ({
@@ -426,7 +426,7 @@ const Clients = ({
   // ✅ ULTRA-FAST Action Button Handler
   const handleActionButtonClick = useCallback((action, client, e) => {
     e.stopPropagation();
-    
+
     // Direct if-else chain - Fastest execution
     if (action === 'view') onView?.(client);
     else if (action === 'edit') onEditClient?.(client);
@@ -479,8 +479,8 @@ const Clients = ({
               </p>
             </div>
           </div>
-          
-          {canAddClients && (
+
+          {/* {canAddClients && (
             <button
               onClick={onAddClient}
               className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors duration-200 flex items-center gap-1 font-medium"
@@ -488,32 +488,67 @@ const Clients = ({
               <FiUserPlus size={12} />
               Add Client
             </button>
-          )}
+          )} */}
         </div>
 
-        {/* Stats Overview - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-          <div className="bg-white p-2 rounded shadow-sm border text-center">
-            <div className="text-lg font-bold text-gray-800">{totalRecords}</div>
-            <div className="text-gray-600 text-xs">Total</div>
+        {/* Compact Stats Overview - Small Size */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {/* Total Records Card */}
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-3 rounded-lg shadow-xs border border-slate-200 text-center hover:shadow-sm transition-all duration-150">
+            <div className="flex justify-center items-center mb-1">
+              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-slate-800">{totalRecords}</div>
+            <div className="text-slate-600 text-xs">Total</div>
           </div>
-          <div className="bg-white p-2 rounded shadow-sm border text-center">
-            <div className="text-lg font-bold text-green-600">
+
+          {/* Active Clients Card */}
+          <div className="bg-gradient-to-br from-emerald-50 to-green-100 p-3 rounded-lg shadow-xs border border-emerald-200 text-center hover:shadow-sm transition-all duration-150">
+            <div className="flex justify-center items-center mb-1">
+              <div className="w-6 h-6 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-emerald-700">
               {clients.filter(c => c.status === "Active").length}
             </div>
-            <div className="text-gray-600 text-xs">Active</div>
+            <div className="text-emerald-700 text-xs">Active</div>
           </div>
-          <div className="bg-white p-2 rounded shadow-sm border text-center">
-            <div className="text-lg font-bold text-blue-600">
+
+          {/* Manual Registration Card */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-3 rounded-lg shadow-xs border border-amber-200 text-center hover:shadow-sm transition-all duration-150">
+            <div className="flex justify-center items-center mb-1">
+              <div className="w-6 h-6 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-amber-700">
               {clients.filter(c => c.regType === "Manual").length}
             </div>
-            <div className="text-gray-600 text-xs">Manual</div>
+            <div className="text-amber-700 text-xs">Manual</div>
           </div>
-          <div className="bg-white p-2 rounded shadow-sm border text-center">
-            <div className="text-lg font-bold text-purple-600">
+
+          {/* Registration Link Card */}
+          <div className="bg-gradient-to-br from-violet-50 to-purple-100 p-3 rounded-lg shadow-xs border border-violet-200 text-center hover:shadow-sm transition-all duration-150">
+            <div className="flex justify-center items-center mb-1">
+              <div className="w-6 h-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-lg font-bold text-violet-700">
               {clients.filter(c => c.regType === "Reg_Link").length}
             </div>
-            <div className="text-gray-600 text-xs">Reg Link</div>
+            <div className="text-violet-700 text-xs">Reg Link</div>
           </div>
         </div>
 
@@ -533,20 +568,21 @@ const Clients = ({
         )}
 
         {/* Filters and Actions - Left & Right Aligned */}
-        <div className="bg-white p-3 rounded shadow-sm border mb-3">
+        {/* Filters and Actions - Left & Right Aligned */}
+        <div className="bg-white p-3 rounded shadow-sm border">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             {/* Filters - Left Side */}
             <div className="flex flex-wrap items-center gap-2 flex-1">
               {/* Global Search */}
               <div className="relative">
-                <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={12} />
+                <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={10} />
                 <input
                   type="text"
                   name="globalSearch"
                   value={filters.globalSearch}
                   onChange={handleFilterChange}
                   placeholder="Search clients..."
-                  className="pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-48"
+                  className="pl-7 pr-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-44 h-[28px]"
                 />
               </div>
 
@@ -555,7 +591,7 @@ const Clients = ({
                 name="searchField"
                 value={filters.searchField}
                 onChange={handleFilterChange}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
+                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
               >
                 <option value="">Search Field</option>
                 {searchFieldOptions.map(option => (
@@ -572,7 +608,7 @@ const Clients = ({
                 onChange={handleFilterChange}
                 placeholder="Search value..."
                 disabled={!filters.searchField}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32 disabled:bg-gray-100"
+                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px] disabled:bg-gray-100"
               />
 
               {/* Status & Verified & Reg Type */}
@@ -580,7 +616,7 @@ const Clients = ({
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28"
+                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-24 h-[28px]"
               >
                 <option value="">All Status</option>
                 <option value="Active">Active</option>
@@ -591,7 +627,7 @@ const Clients = ({
                 name="verified"
                 value={filters.verified}
                 onChange={handleFilterChange}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
+                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
               >
                 <option value="">All Clients</option>
                 <option value="true">Verified Only</option>
@@ -602,11 +638,11 @@ const Clients = ({
                 name="regType"
                 value={filters.regType}
                 onChange={handleFilterChange}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-32"
+                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
               >
                 <option value="">All Types</option>
-                <option value="Manual">Manual</option>
-                <option value="Reg_Link">Reg Link</option>
+                <option value="manual">Manual</option>
+                <option value="reg_link">Reg Link</option>
               </select>
 
               {/* Bulk Actions */}
@@ -615,7 +651,7 @@ const Clients = ({
                   <select
                     value={bulkAction}
                     onChange={(e) => setBulkAction(e.target.value)}
-                    className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28"
+                    className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-24 h-[28px]"
                   >
                     <option value="">Bulk Actions</option>
                     <option value="delete">Delete</option>
@@ -624,7 +660,7 @@ const Clients = ({
                   <button
                     onClick={handleBulkAction}
                     disabled={!bulkAction}
-                    className="px-2 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 h-[28px]"
                   >
                     Apply
                   </button>
@@ -639,21 +675,21 @@ const Clients = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleResetFilters}
-                className="px-3 py-1.5 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors duration-200 flex items-center gap-1"
+                className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition-colors duration-200 flex items-center gap-1 h-[28px]"
               >
-                <FiRefreshCcw size={12} />
+                <FiRefreshCcw size={10} />
                 Reset
               </button>
 
               <button
                 onClick={handleExport}
                 disabled={exportLoading || filteredClients.length === 0}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1"
+                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1 h-[28px]"
               >
                 {exportLoading ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
                 ) : (
-                  <FaDownload size={12} />
+                  <FaDownload size={10} />
                 )}
                 Export
               </button>
@@ -663,12 +699,12 @@ const Clients = ({
                 <button
                   onClick={() => showDeleteConfirmation(selectedclient_ids)}
                   disabled={selectedclient_ids.length === 0 || deleteLoading}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1"
+                  className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1 h-[28px]"
                 >
                   {deleteLoading ? (
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
                   ) : (
-                    <FiTrash2 size={12} />
+                    <FiTrash2 size={10} />
                   )}
                   {selectedclient_ids.length > 0 && `(${selectedclient_ids.length})`}
                 </button>
@@ -718,16 +754,16 @@ const Clients = ({
                       <div className="text-gray-400 text-2xl mb-1">👥</div>
                       <h3 className="text-sm font-medium text-gray-900 mb-1">No clients found</h3>
                       <p className="text-gray-500 text-xs">
-                        {Object.values(filters).some(f => f) 
-                          ? "Adjust filters to see results" 
+                        {Object.values(filters).some(f => f)
+                          ? "Adjust filters to see results"
                           : "Add your first client"}
                       </p>
                     </td>
                   </tr>
                 ) : (
                   filteredClients.map((client) => (
-                    <tr 
-                      key={client.id} 
+                    <tr
+                      key={client.id}
                       className={`cursor-pointer transition-all duration-200 ${getRowBackgroundColor(client.id)}`}
                       onClick={(e) => handleRowClick(client.id, e)}
                     >
@@ -764,31 +800,28 @@ const Clients = ({
                         <div>
                           <div className="text-sm font-bold text-gray-900">{client.totalCases || 0}</div>
                           <div className="text-xs">
-                            <span className={`px-1.5 py-0.5 rounded-full ${
-                              (client.activeCases || 0) > 0 
-                                ? 'bg-green-100 text-green-800' 
+                            <span className={`px-1.5 py-0.5 rounded-full ${(client.activeCases || 0) > 0
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-gray-100 text-gray-800'
-                            }`}>
+                              }`}>
                               {client.activeCases || 0}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          client.regType === 'Manual' 
-                            ? 'bg-blue-100 text-blue-800' 
+                        <span className={`px-2 py-1 rounded-full text-xs ${client.regType === 'Manual'
+                            ? 'bg-blue-100 text-blue-800'
                             : 'bg-purple-100 text-purple-800'
-                        }`}>
+                          }`}>
                           {client.regType}
                         </span>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          client.status === 'Active' 
-                            ? 'bg-green-100 text-green-800' 
+                        <span className={`px-2 py-1 rounded-full text-xs ${client.status === 'Active'
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {client.status}
                         </span>
                       </td>
@@ -951,7 +984,7 @@ const Clients = ({
             <li>Use search and filters to find clients</li>
             <li>Select multiple clients for bulk actions</li>
             <li>Filter by Registration Type: Manual or Reg Link</li>
-            {canAddClients && <li>Add new clients with the Add Client button</li>}
+            {/* {canAddClients && <li>Add new clients with the Add Client button</li>} */}
             <li>Click anywhere on a row to <span className="font-medium text-blue-700">highlight and select</span> it.</li>
             <li>Use the <span className="font-medium text-green-700">Export button</span> to download clients as CSV.</li>
             {canEditDelete && (
