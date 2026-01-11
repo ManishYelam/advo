@@ -3,7 +3,7 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import AdminDashboard from "../pages/dashboard/AdminDashboard";
 import ClientDashboard from "../pages/dashboard/ClientDashboard";
-import AdvocateDashboard from "../pages/dashboard/AdvocateDashboard"; 
+import AdvocateDashboard from "../pages/dashboard/AdvocateDashboard";
 import Cases from "../pages/Cases";
 import Clients from "../pages/Clients";
 import Calendar from "../pages/Calendar";
@@ -25,11 +25,12 @@ import ResetPassword from "../pages/auth/ResetPassword";
 import VerifyOTP from "../pages/auth/VerifyOTP";
 import VerifyEmail from "../pages/auth/verifyEmail";
 import Support from "../pages/Support";
+import About from "../pages/About";
 
 // Dashboard route mapping - faster than switch
 const DASHBOARD_ROUTES = {
   admin: "/admin",
-  advocate: "/advocate", 
+  advocate: "/advocate",
   client: "/client"
 };
 
@@ -47,18 +48,19 @@ const AppRoutes = () => {
   const getDashboardRoute = (role) => DASHBOARD_ROUTES[role] || "/login";
 
   // Check if user has required role access
-  const hasRoleAccess = (requiredRoles) => 
+  const hasRoleAccess = (requiredRoles) =>
     user && requiredRoles.includes(user.role);
 
   return (
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route 
-          path="/" 
-          element={user ? <Navigate to={getDashboardRoute(user.role)} /> : <LandingPage />} 
+        <Route
+          path="/"
+          element={user ? <Navigate to={getDashboardRoute(user.role)} /> : <LandingPage />}
         />
         <Route path="/apply" element={<Application />} />
+        <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/support" element={<Support />} />
@@ -85,7 +87,7 @@ const AppRoutes = () => {
         />
 
         {/* Shared Protected Routes */}
-        
+
         {/* Accessible to all authenticated users */}
         <Route
           path="/profile"

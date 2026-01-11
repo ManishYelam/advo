@@ -189,7 +189,7 @@ const Login = () => {
           </div>
 
           {/* Demo Credentials Toggle */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <button
               type="button"
               onClick={() => setShowDemoInfo(!showDemoInfo)}
@@ -218,10 +218,10 @@ const Login = () => {
                 </p>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Social Login Buttons */}
-          <div className="flex gap-3 mb-6">
+          {/* <div className="flex gap-3 mb-6">
             <button
               type="button"
               onClick={() => handleSocialLogin("google")}
@@ -238,16 +238,16 @@ const Login = () => {
               <FaGithub className="text-gray-800" />
               <span className="text-sm">GitHub</span>
             </button>
-          </div>
+          </div> */}
 
-          <div className="relative mb-6">
+          {/* <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-gray-500">Or continue with email</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && (

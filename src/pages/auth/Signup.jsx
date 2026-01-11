@@ -249,7 +249,7 @@ const Signup = () => {
           </div>
 
           {/* Social Signup Buttons */}
-          <div className="flex gap-3 mb-6">
+          {/* <div className="flex gap-3 mb-6">
             <button
               type="button"
               onClick={() => handleSocialSignup("google")}
@@ -266,16 +266,16 @@ const Signup = () => {
               <FaGithub className="text-gray-800" />
               <span className="text-sm">GitHub</span>
             </button>
-          </div>
+          </div> */}
 
-          <div className="relative mb-6">
+          {/* <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-gray-500">Or sign up with email</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && (
@@ -448,11 +448,11 @@ const Signup = () => {
               />
               <span className="text-sm text-gray-600">
                 I agree to the{" "}
-                <Link to="/terms" className="text-green-600 hover:text-green-800 font-medium">
+                <Link to="/signup" className="text-green-600 hover:text-green-800 font-medium">
                   Terms and Conditions
                 </Link>{" "}
                 and{" "}
-                <Link to="/privacy" className="text-green-600 hover:text-green-800 font-medium">
+                <Link to="/signup" className="text-green-600 hover:text-green-800 font-medium">
                   Privacy Policy
                 </Link>
               </span>

@@ -19,7 +19,7 @@ import {
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { submitContactForm } from "../services/contactService"; // Import your contact service
+import { submitContactForm } from "../services/contactService";
 
 const LandingPage = () => {
   const [loading, setLoading] = useState(false);
@@ -44,6 +44,21 @@ const LandingPage = () => {
   // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // NEW: Scroll to contact section function
+  const scrollToContact = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      const offset = 80; // Adjust for navbar height
+      const elementPosition = contactSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
   };
 
   const onSubmit = async (data) => {
@@ -137,30 +152,9 @@ const LandingPage = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      name: "Rajesh Kumar",
-      role: "Client",
-      content: "The application process was incredibly smooth. I got the legal help I needed within hours of submitting my form!",
-      rating: 5
-    },
-    {
-      name: "Priya Sharma",
-      role: "Applicant",
-      content: "Very professional and efficient service. The team guided me through every step of the process.",
-      rating: 5
-    },
-    {
-      name: "Amit Patel",
-      role: "Client",
-      content: "I was nervous about the legal process, but the simple application form made everything easy to understand.",
-      rating: 5
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50">
-      {/* Navigation Bar */}
+      {/* Navigation Bar - UPDATED CONTACT LINK */}
       <nav className="bg-gradient-to-r from-green-800 to-green-600 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -175,7 +169,7 @@ const LandingPage = () => {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - UPDATED: Contact now scrolls */}
             <div className="hidden md:flex items-center space-x-8">
               <Link to="/" className="text-sm font-medium hover:text-green-200 transition-colors">
                 Home
@@ -186,9 +180,13 @@ const LandingPage = () => {
               <Link to="/apply" className="text-sm font-medium hover:text-green-200 transition-colors">
                 Apply Now
               </Link>
-              <Link to="/contact" className="text-sm font-medium hover:text-green-200 transition-colors">
+              {/* CHANGED: Now scrolls to contact section instead of separate page */}
+              <button
+                onClick={scrollToContact}
+                className="text-sm font-medium hover:text-green-200 transition-colors"
+              >
                 Contact
-              </Link>
+              </button>
             </div>
 
             {/* CTA Buttons */}
@@ -354,44 +352,8 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-green-900 mb-4">
-              Success Stories
-            </h2>
-            <p className="text-xl text-gray-600">
-              Hear from people who found legal solutions through our application process
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-8 shadow-lg">
-                <div className="flex text-yellow-400 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <FaAward key={i} className="text-lg" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-6 italic">
-                  "{testimonial.content}"
-                </p>
-                <div>
-                  <div className="font-semibold text-green-900">
-                    {testimonial.name}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
+      {/* REMOVED: Testimonials Section - Entire section deleted */}
+      {/* CTA Section - UPDATED: Contact button now scrolls */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-green-800 text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold mb-6">
@@ -408,17 +370,17 @@ const LandingPage = () => {
               <FaFileAlt />
               <span>Start Application Now</span>
             </Link>
-            <a
-              href="#contact"
+            <button
+              onClick={scrollToContact}
               className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-green-700 transition-all duration-300 transform hover:scale-105 text-lg"
             >
               Have Questions?
-            </a>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* Contact Section - ADDED id for scrolling */}
       <section id="contact" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -579,14 +541,14 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Quick Links */}
+            {/* Quick Links - UPDATED: Contact link now scrolls */}
             <div>
               <h3 className="font-semibold text-lg mb-4">Quick Access</h3>
               <ul className="space-y-3 text-green-100">
                 <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
                 <li><Link to="/apply" className="hover:text-white transition-colors">Apply Now</Link></li>
                 <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+                <li><button onClick={scrollToContact} className="hover:text-white transition-colors text-left">Contact</button></li>
               </ul>
             </div>
 

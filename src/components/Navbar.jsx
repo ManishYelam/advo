@@ -81,8 +81,8 @@ const Navbar = () => {
     { path: "/cases", label: "Cases", icon: FaFolderOpen },
     // Only show "Clients" if user is NOT a client
     ...(isClient ? [] : [{ path: "/clients", label: "Clients", icon: FaUsers }]),
-    { path: "/calendar", label: "Calendar", icon: FaCalendarAlt },
-    { path: "/documents", label: "Documents", icon: FaFileAlt },
+    // { path: "/calendar", label: "Calendar", icon: FaCalendarAlt },
+    // { path: "/documents", label: "Documents", icon: FaFileAlt },
   ];
 
   const handleLogout = async () => {
@@ -371,7 +371,7 @@ const Navbar = () => {
           </div>
 
           {/* Notifications */}
-          <div className="relative" ref={notificationRef}>
+          {/* <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 rounded-lg hover:bg-green-600 transition-colors"
@@ -428,7 +428,7 @@ const Navbar = () => {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -486,7 +486,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Activity & Analytics - Only for Admin */}
-                {isAdmin && (
+                {/* {isAdmin && (
                   <div className="p-2 border-t border-gray-200">
                     <button
                       onClick={() => navigate('/activity-log')}
@@ -503,10 +503,10 @@ const Navbar = () => {
                       <span>Analytics</span>
                     </button>
                   </div>
-                )}
+                )} */}
 
                 {/* Billing & Upgrade - Only for Admin and Advocate */}
-                {showBillingOptions && (
+                {/* {showBillingOptions && (
                   <div className="p-2 border-t border-gray-200">
                     <button
                       onClick={() => navigate('/billing')}
@@ -523,7 +523,7 @@ const Navbar = () => {
                       <span>Upgrade Plan</span>
                     </button>
                   </div>
-                )}
+                )} */}
 
                 {/* Help & Support */}
                 <div className="p-2 border-t border-gray-200">
@@ -534,20 +534,20 @@ const Navbar = () => {
                     <FaCommentDots size={16} />
                     <span>Give Feedback</span>
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => navigate('/support')}
                     className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-1"
                   >
                     <FaQuestionCircle size={16} />
                     <span>Help & Support</span>
-                  </button>
-                  <button
+                  </button> */}
+                  {/* <button
                     onClick={() => navigate('/privacy')}
                     className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-1"
                   >
                     <FaShieldAlt size={16} />
                     <span>Privacy & Security</span>
-                  </button>
+                  </button> */}
                 </div>
 
                 {/* Admin Panel - Only for Admin */}
