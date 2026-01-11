@@ -9,12 +9,12 @@ import {
   FaArrowUp,
   FaCheck,
   FaBalanceScale,
-  FaAward,
   FaFileAlt,
   FaUserFriends,
   FaShieldAlt,
   FaClock,
-  FaEnvelope
+  FaEnvelope,
+  FaInfoCircle
 } from "react-icons/fa";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
@@ -46,12 +46,12 @@ const LandingPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // NEW: Scroll to contact section function
-  const scrollToContact = () => {
-    const contactSection = document.getElementById('contact');
-    if (contactSection) {
+  // Scroll to section function
+  const scrollToSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
       const offset = 80; // Adjust for navbar height
-      const elementPosition = contactSection.getBoundingClientRect().top;
+      const elementPosition = section.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
       
       window.scrollTo({
@@ -64,19 +64,16 @@ const LandingPage = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      // Prepare the data for API submission
       const contactData = {
         name: data.name,
         email: data.email,
         message: data.message,
-        phone: data.phone || "", // Optional field
-        subject: "Landing Page Contact Form Submission" // Default subject
+        phone: data.phone || "",
+        subject: "Landing Page Contact Form Submission"
       };
 
-      // Submit to your backend API
       const response = await submitContactForm(contactData);
 
-      // Check if the submission was successful
       if (response.data && response.data.success) {
         toast.success("🎉 Message sent successfully! We'll get back to you soon.");
         reset();
@@ -86,16 +83,12 @@ const LandingPage = () => {
     } catch (error) {
       console.error("Contact form submission error:", error);
 
-      // Handle different error scenarios
       if (error.response) {
-        // Server responded with error status
         const errorMessage = error.response.data?.message || "Server error occurred";
         toast.error(`❌ ${errorMessage}`);
       } else if (error.request) {
-        // Network error
         toast.error("❌ Network error. Please check your connection and try again.");
       } else {
-        // Other errors
         toast.error("❌ Failed to send message. Please try again later.");
       }
     } finally {
@@ -154,7 +147,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50">
-      {/* Navigation Bar - UPDATED CONTACT LINK */}
+      {/* Navigation Bar */}
       <nav className="bg-gradient-to-r from-green-800 to-green-600 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -169,20 +162,22 @@ const LandingPage = () => {
               </div>
             </Link>
 
-            {/* Desktop Navigation - UPDATED: Contact now scrolls */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
               <Link to="/" className="text-sm font-medium hover:text-green-200 transition-colors">
                 Home
               </Link>
-              <Link to="/about" className="text-sm font-medium hover:text-green-200 transition-colors">
+              <button
+                onClick={() => scrollToSection("about")}
+                className="text-sm font-medium hover:text-green-200 transition-colors"
+              >
                 About
-              </Link>
+              </button>
               <Link to="/apply" className="text-sm font-medium hover:text-green-200 transition-colors">
                 Apply Now
               </Link>
-              {/* CHANGED: Now scrolls to contact section instead of separate page */}
               <button
-                onClick={scrollToContact}
+                onClick={() => scrollToSection("contact")}
                 className="text-sm font-medium hover:text-green-200 transition-colors"
               >
                 Contact
@@ -271,6 +266,151 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about" className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-green-900 mb-4">
+              About the Committee
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Official Committee constituted under the Hon'ble High Court, Calcutta
+            </p>
+          </div>
+
+          {/* Committee Overview */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-12 border border-green-100">
+            <div className="flex items-center gap-3 mb-6">
+              <FaInfoCircle className="text-blue-600 text-2xl" />
+              <h3 className="text-2xl font-bold text-gray-800">Committee Overview</h3>
+            </div>
+            
+            <div className="prose prose-lg max-w-none text-gray-700">
+              <p className="mb-6 leading-relaxed">
+                Subsequently another writ petition being WPA no.27005 of 2016, was filed and the WPO no.275 of 2015 is now being heard analogously along with WPA No. 25845 of 2016 before the Hon'ble Division Bench Constituted to hear Ponzi Scheme matters.
+              </p>
+              
+              <p className="mb-6 leading-relaxed">
+                The Assets Disposal Committee so appointed on 15th May, 2015 now consists of the Hon'ble Justice D.K. Seth (Retired Judge of the Hon'ble High Court at Calcutta), a nominated Member of Enforcement Directorate and a nominated Member of the State of West Bengal.
+              </p>
+              
+              <p className="mb-6 leading-relaxed">
+                For the purpose to refund the money to the investors, the Assets Disposal Committee is empowered to investigate into and/or control the affairs and properties of the Company and to sell assets under the Rose Valley Group of Companies upon obtaining leave of the Hon'ble High Court, Calcutta.
+              </p>
+              
+              <p className="leading-relaxed">
+                The Assets Disposal Committee is acting to discharge the above duties entrusted by the Hon'ble High Court at Calcutta in terms of the orders passed by the Hon'ble High Court at Calcutta.
+              </p>
+            </div>
+            
+            {/* Key Details Box */}
+            <div className="mt-8 p-6 bg-green-50 rounded-lg border border-green-200">
+              <h4 className="font-bold text-green-800 mb-3">Key Committee Information:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Appointment Date:</p>
+                  <p className="font-semibold text-green-700">15th May, 2015</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Writ Petitions:</p>
+                  <p className="font-semibold text-green-700">WPA 27005/2016 & WPA 25845/2016</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Original Case:</p>
+                  <p className="font-semibold text-green-700">WPO 275/2015</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Case Type:</p>
+                  <p className="font-semibold text-green-700">Ponzi Scheme Matters</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Committee Structure */}
+          <div className="bg-gray-50 p-6 rounded-xl mb-12">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">Committee Composition</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h4 className="text-xl font-semibold text-gray-800 mb-2">Chairperson</h4>
+                <p className="text-gray-600">Hon'ble Justice D.K. Seth</p>
+                <p className="text-sm text-gray-500">(Retired Judge of the Hon'ble High Court at Calcutta)</p>
+              </div>
+              <div className="bg-white p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h4 className="text-xl font-semibold text-gray-800 mb-2">Member</h4>
+                <p className="text-gray-600">Nominated Member</p>
+                <p className="text-sm text-gray-500">Enforcement Directorate</p>
+              </div>
+              <div className="bg-white p-5 rounded-lg shadow border-l-4 border-purple-500">
+                <h4 className="text-xl font-semibold text-gray-800 mb-2">Member</h4>
+                <p className="text-gray-600">Nominated Member</p>
+                <p className="text-sm text-gray-500">State of West Bengal</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Committee Powers */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 border border-green-100">
+            <div className="flex items-center gap-3 mb-6">
+              <FaShieldAlt className="text-green-600 text-2xl" />
+              <h3 className="text-2xl font-bold text-gray-800">Committee Powers & Duties</h3>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-full mt-1">
+                    <FaCheck className="text-green-600 text-sm" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">Investigation Authority</h4>
+                    <p className="text-gray-600 text-sm">Empowered to investigate affairs and properties of the Company</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-full mt-1">
+                    <FaCheck className="text-green-600 text-sm" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">Asset Control</h4>
+                    <p className="text-gray-600 text-sm">Authorized to control company affairs and properties</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-full mt-1">
+                    <FaCheck className="text-green-600 text-sm" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">Asset Disposal</h4>
+                    <p className="text-gray-600 text-sm">Empowered to sell assets under Rose Valley Group of Companies</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded-full mt-1">
+                    <FaCheck className="text-green-600 text-sm" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">Court Authorization</h4>
+                    <p className="text-gray-600 text-sm">All actions subject to leave of the Hon'ble High Court, Calcutta</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-center text-gray-600">
+                The Committee operates under the direct supervision and authority of the Hon'ble High Court at Calcutta
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -352,8 +492,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* REMOVED: Testimonials Section - Entire section deleted */}
-      {/* CTA Section - UPDATED: Contact button now scrolls */}
+      {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-green-800 text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold mb-6">
@@ -371,7 +510,7 @@ const LandingPage = () => {
               <span>Start Application Now</span>
             </Link>
             <button
-              onClick={scrollToContact}
+              onClick={() => scrollToSection("contact")}
               className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-green-700 transition-all duration-300 transform hover:scale-105 text-lg"
             >
               Have Questions?
@@ -380,7 +519,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Contact Section - ADDED id for scrolling */}
+      {/* Contact Section */}
       <section id="contact" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -541,14 +680,22 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Quick Links - UPDATED: Contact link now scrolls */}
+            {/* Quick Links */}
             <div>
               <h3 className="font-semibold text-lg mb-4">Quick Access</h3>
               <ul className="space-y-3 text-green-100">
                 <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+                <li>
+                  <button onClick={() => scrollToSection("about")} className="hover:text-white transition-colors text-left">
+                    About
+                  </button>
+                </li>
                 <li><Link to="/apply" className="hover:text-white transition-colors">Apply Now</Link></li>
-                <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                <li><button onClick={scrollToContact} className="hover:text-white transition-colors text-left">Contact</button></li>
+                <li>
+                  <button onClick={() => scrollToSection("contact")} className="hover:text-white transition-colors text-left">
+                    Contact
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -583,7 +730,7 @@ const LandingPage = () => {
 
       {/* WhatsApp Floating Button */}
       <a
-        href={import.meta.env.VITE_WHATSAPP_LINK}
+        href="https://wa.me/919373200525"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 z-50"
