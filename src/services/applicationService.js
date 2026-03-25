@@ -115,7 +115,7 @@ export const updateApplicationData = async (case_id, applicationData) => {
       },
       onUploadProgress: (progressEvent) => {
         const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(`Upload Progress: ${progress}%`);
+        // console.log(`Upload Progress: ${progress}%`);
       },
     });
 

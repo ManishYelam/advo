@@ -34,10 +34,10 @@ const CaseDocumentUploader = ({
   const [saving, setSaving] = useState(false);
   const fileRefs = useRef({});
 
-  console.log("🔍 DocumentUploader Debug - mode:", mode, "isLoading:", isLoading, "exhibit:", exhibit, "documents:", documents.length, "isSubmitting:", isSubmitting);
+  // console.log("🔍 DocumentUploader Debug - mode:", mode, "isLoading:", isLoading, "exhibit:", exhibit, "documents:", documents.length, "isSubmitting:", isSubmitting);
 
   useEffect(() => {
-    console.log("🔄 Documents updated:", initialDocuments);
+    // console.log("🔄 Documents updated:", initialDocuments);
     setDocuments(initialDocuments);
     setSelectedDoc(initialDocuments[0] || null);
   }, [initialDocuments]);
@@ -284,7 +284,7 @@ const CaseDocumentUploader = ({
   const handleSaveChanges = async () => {
     if (mode !== 'edit') return;
 
-    console.log("💾 Save Changes clicked in edit mode");
+    // console.log("💾 Save Changes clicked in edit mode");
 
     // In edit mode, no validation for required documents - user can save with any number of documents
     setSaving(true);
@@ -302,7 +302,7 @@ const CaseDocumentUploader = ({
   };
 
   const handleNextClick = () => {
-    console.log("🚀 DocumentUploader Next clicked - mode:", mode);
+    // console.log("🚀 DocumentUploader Next clicked - mode:", mode);
 
     if (mode === 'view') {
       onNext();

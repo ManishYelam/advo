@@ -41,7 +41,7 @@ const ForgotPassword = () => {
 
     try {
       const res = await forgetPasswordService( email);
-      console.log(res);
+      // console.log(res);
 
       setSuccess(true);
       setStep(2);

@@ -95,7 +95,7 @@ export const formatSupportData = {
       formatted.case_id = null;
     }
 
-    console.log('Formatted ticket data for API (no ticket_number):', formatted);
+    // console.log('Formatted ticket data for API (no ticket_number):', formatted);
     return formatted;
   },
 

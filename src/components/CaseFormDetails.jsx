@@ -80,15 +80,15 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
   const [touchedFields, setTouchedFields] = useState({});
   const [loading, setLoading] = useState(false);
 
-  console.log("🔍 CaseFormDetails Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
-    deposit_type: formData.deposit_type,
-    hasData: !!formData.deposit_type
-  });
+  // console.log("🔍 CaseFormDetails Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
+  //   deposit_type: formData.deposit_type,
+  //   hasData: !!formData.deposit_type
+  // });
 
   // Reset field errors when formData changes
   useEffect(() => {
     if (mode !== 'create' && formData.deposit_type) {
-      console.log("🔄 Resetting field errors for loaded deposit data");
+      // console.log("🔄 Resetting field errors for loaded deposit data");
       setFieldErrors({});
       setTouchedFields({});
     }
@@ -124,7 +124,7 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
       const error = validateField(fieldName, formData[fieldName]);
       return !error;
     });
-    console.log("✅ Deposit form validation result:", isValid);
+    // console.log("✅ Deposit form validation result:", isValid);
     return isValid;
   }, [formData, validateField, mode]);
 
@@ -142,7 +142,7 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
     if (mode === 'view') return;
 
     const { name, value } = e.target;
-    console.log("📝 Deposit field change:", name, value);
+    // console.log("📝 Deposit field change:", name, value);
 
     // Update form data
     handleInputChange({
@@ -187,7 +187,7 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
   // Get input disabled state
   const getInputDisabled = useCallback((fieldName) => {
     const disabled = mode === 'view' || isLoading;
-    console.log(`🔒 Deposit input ${fieldName} disabled:`, disabled);
+    // console.log(`🔒 Deposit input ${fieldName} disabled:`, disabled);
     return disabled;
   }, [mode, isLoading]);
 
@@ -199,10 +199,10 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
   const handleNextClick = async (e) => {
     e.preventDefault();
-    console.log("🚀 Deposit Next button clicked - mode:", mode);
+    // console.log("🚀 Deposit Next button clicked - mode:", mode);
 
     if (mode === 'view') {
-      console.log("👀 View mode - proceeding to next step");
+      // console.log("👀 View mode - proceeding to next step");
       onNext();
       return;
     }
@@ -216,7 +216,7 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
     // Check if form is valid
     if (!isFormValid) {
-      console.log("❌ Deposit form validation failed");
+      // console.log("❌ Deposit form validation failed");
       // Validate all fields to show errors
       const errors = {};
       Object.keys(VALIDATION_RULES).forEach(fieldName => {
@@ -245,7 +245,7 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
   const handleBackClick = (e) => {
     e.preventDefault();
-    console.log("🔙 Deposit Back button clicked");
+    // console.log("🔙 Deposit Back button clicked");
     onBack();
   };
 

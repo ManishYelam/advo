@@ -74,7 +74,7 @@ const CaseEdit = () => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log("Case updated:", formData);
+      // console.log("Case updated:", formData);
       navigate(`/cases/${id}`);
     } catch (error) {
       console.error("Error updating case:", error);

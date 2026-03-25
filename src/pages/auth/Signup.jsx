@@ -137,7 +137,7 @@ const Signup = () => {
       // Remove confirmPassword from submission data
       const { confirmPassword, agreeToTerms, ...submitData } = formData;
       
-      console.log("Signup Data:", submitData);
+      // console.log("Signup Data:", submitData);
       await signupService(submitData);
       
       // Show success message and redirect
@@ -166,7 +166,7 @@ const Signup = () => {
   };
 
   const handleSocialSignup = (provider) => {
-    console.log(`Social signup with ${provider}`);
+    // console.log(`Social signup with ${provider}`);
     setError(`${provider} signup will be implemented soon`);
   };
 

@@ -67,16 +67,16 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
   const [touchedFields, setTouchedFields] = useState({});
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
-  console.log("🔍 BasicInfoForm Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
-    full_name: formData.full_name,
-    email: formData.email,
-    hasData: !!formData.full_name
-  });
+  // console.log("🔍 BasicInfoForm Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
+  //   full_name: formData.full_name,
+  //   email: formData.email,
+  //   hasData: !!formData.full_name
+  // });
 
   // Reset field errors when formData changes (for fetched data)
   useEffect(() => {
     if (mode !== 'create' && formData.full_name) {
-      console.log("🔄 Resetting field errors for loaded data");
+      // console.log("🔄 Resetting field errors for loaded data");
       setFieldErrors({});
       setTouchedFields({});
     }
@@ -119,7 +119,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
       const error = validateField(fieldName, formData[fieldName]);
       return !error;
     });
-    console.log("✅ Form validation result:", isValid);
+    // console.log("✅ Form validation result:", isValid);
     return isValid;
   }, [formData, validateField, mode]);
 
@@ -137,7 +137,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
     if (mode === 'view') return;
 
     const { name, value } = e.target;
-    console.log("📝 Field change:", name, value);
+    // console.log("📝 Field change:", name, value);
 
     handleInputChange(e);
 
@@ -171,10 +171,10 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
     if (mode === 'view') return;
 
     const date_of_birth = e.target.value;
-    console.log("🎂 DOB changed:", date_of_birth);
+    // console.log("🎂 DOB changed:", date_of_birth);
 
     const age = calculateAgeFromDOB(date_of_birth);
-    console.log("🔢 Calculated age:", age);
+    // console.log("🔢 Calculated age:", age);
 
     // Update both fields in the parent form data
     // First update DOB
@@ -205,10 +205,10 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
     if (mode === 'view') return;
 
     const age = e.target.value;
-    console.log("🔢 Age changed:", age);
+    // console.log("🔢 Age changed:", age);
 
     const date_of_birth = calculateDOBFromAge(age);
-    console.log("🎂 Calculated DOB:", date_of_birth);
+    // console.log("🎂 Calculated DOB:", date_of_birth);
 
     // Update both fields in the parent form data
     // First update age
@@ -243,25 +243,25 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
   // Get input disabled state
   const getInputDisabled = useCallback((fieldName) => {
     const disabled = mode === 'view' || isLoading;
-    console.log(`🔒 Input ${fieldName} disabled:`, disabled);
+    // console.log(`🔒 Input ${fieldName} disabled:`, disabled);
     return disabled;
   }, [mode, isLoading]);
 
   // Optimized form submission
   const handleNextClick = async (e) => {
     e.preventDefault();
-    console.log("🚀 Next button clicked - mode:", mode);
+    // console.log("🚀 Next button clicked - mode:", mode);
 
     // Debug: Check current form data before submission
-    console.log("📊 Current form data before submission:", {
-      full_name: formData.full_name,
-      date_of_birth: formData.date_of_birth,
-      age: formData.age,
-      email: formData.email
-    });
+    // console.log("📊 Current form data before submission:", {
+    //   full_name: formData.full_name,
+    //   date_of_birth: formData.date_of_birth,
+    //   age: formData.age,
+    //   email: formData.email
+    // });
 
     if (mode === 'view') {
-      console.log("👀 View mode - proceeding to next step");
+      // console.log("👀 View mode - proceeding to next step");
       onNext();
       return;
     }
@@ -275,7 +275,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
 
     // Check if form is valid
     if (!isFormValid) {
-      console.log("❌ Form validation failed");
+      // console.log("❌ Form validation failed");
       // Validate all fields to show errors
       const errors = {};
       Object.keys(VALIDATION_RULES).forEach(fieldName => {
@@ -291,10 +291,10 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
 
     // Validate that both age and date_of_birth are properly set
     if (!formData.date_of_birth || !formData.age) {
-      console.log("❌ Age or Date of Birth is missing:", {
-        date_of_birth: formData.date_of_birth,
-        age: formData.age
-      });
+      // console.log("❌ Age or Date of Birth is missing:", {
+      //   date_of_birth: formData.date_of_birth,
+      //   age: formData.age
+      // });
       showWarningToast("Please ensure both Date of Birth and Age are properly set");
       return;
     }
@@ -303,7 +303,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
 
     // Skip email check in edit mode
     if (mode === 'edit') {
-      console.log("✏️ Edit mode - skipping email check");
+      // console.log("✏️ Edit mode - skipping email check");
       showSuccessToast("Basic information updated successfully!");
       onNext();
       return;
@@ -312,12 +312,12 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
     if (user) formData.isLogin = true;
 
     setIsCheckingEmail(true);
-    console.log("📧 Checking email existence:", email);
+    // console.log("📧 Checking email existence:", email);
 
     try {
       // Skip check if user is editing their own email
       if (user && user.email && user.email.toLowerCase() === email.toLowerCase()) {
-        console.log("✅ Same user email - skipping check");
+        // console.log("✅ Same user email - skipping check");
         showSuccessToast("Basic information filled successfully!");
         onNext();
         return;
@@ -325,7 +325,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
 
       // Check email existence (only in create mode)
       const res = await checkExistsEmail(email);
-      console.log("📧 Email check response:", res);
+      // console.log("📧 Email check response:", res);
 
       if (res.data.exists) {
         showWarningToast("This email is already registered. Please use another one.");
@@ -335,7 +335,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
       showSuccessToast("Basic information filled successfully!");
       onNext();
     } catch (error) {
-      console.error("❌ Error checking email:", error);
+      // console.error("❌ Error checking email:", error);
       showWarningToast("Something went wrong while checking the email.");
     } finally {
       setIsCheckingEmail(false);
@@ -505,7 +505,7 @@ const BasicInfoForm = ({ formData, handleInputChange, onNext, errors, mode, isLo
             <p className="text-red-500 text-[9px]">{fieldErrors.occupation}</p>
           )}
 
-          <label className="font-semibold">Aadhar Number</label>
+          <label className="font-semibold">Aadhar Number <span className="text-red-500">*</span></label>
           <input
             type="text"
             name="adhar_number"

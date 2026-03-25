@@ -123,7 +123,7 @@ const Login = () => {
 
   const handleSocialLogin = (provider) => {
     // Implement social login logic here
-    console.log(`Social login with ${provider}`);
+    // console.log(`Social login with ${provider}`);
     setError(`${provider} login will be implemented soon`);
   };
 

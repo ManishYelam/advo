@@ -447,10 +447,10 @@ const Application = ({
 
   // Fetch case and applicant data for edit/view modes
   const fetchCaseAndApplicantData = useCallback(async () => {
-    console.log("🔄 Starting data fetch for mode:", mode, "caseId:", caseId);
+    // console.log("🔄 Starting data fetch for mode:", mode, "caseId:", caseId);
 
     if (!["edit", "view"].includes(mode) || !caseId) {
-      console.log("⏩ Skipping fetch - mode:", mode, "caseId:", caseId, "initialData:", !!initialData);
+      // console.log("⏩ Skipping fetch - mode:", mode, "caseId:", caseId, "initialData:", !!initialData);
       return;
     }
 
@@ -458,32 +458,32 @@ const Application = ({
     setFetchError(null);
 
     try {
-      console.log("📥 Fetching case data for ID:", caseId);
+      // console.log("📥 Fetching case data for ID:", caseId);
       const caseRes = await getCaseById(caseId);
-      console.log("📦 Case API Response:", caseRes);
+      // console.log("📦 Case API Response:", caseRes);
 
       const caseData = caseRes?.data?.data || caseRes?.data || caseRes;
       if (!caseData || Object.keys(caseData).length === 0) {
         throw new Error("Case data not found or empty");
       }
 
-      console.log("✅ Case data loaded:", caseData);
+      // console.log("✅ Case data loaded:", caseData);
 
       const client_id = caseData?.client_id || caseData?.data?.client_id;
-      console.log("👤 Client ID:", client_id);
+      // console.log("👤 Client ID:", client_id);
 
       if (!client_id) throw new Error("Client ID missing from case data");
 
-      console.log("📥 Fetching applicant data for client ID:", client_id);
+      // console.log("📥 Fetching applicant data for client ID:", client_id);
       const applicantRes = await userApplicant(client_id);
-      console.log("📦 Applicant API Response:", applicantRes);
+      // console.log("📦 Applicant API Response:", applicantRes);
 
       const applicantData = applicantRes?.data?.data || applicantRes?.data || applicantRes;
       if (!applicantData || Object.keys(applicantData).length === 0) {
         throw new Error("Applicant data not found or empty");
       }
 
-      console.log("✅ Applicant data loaded:", applicantData.user);
+      // ("✅ Applicant data loaded:", applicantData.user);
 
       // Merge the data with proper structure
       const mergedData = {
@@ -497,12 +497,12 @@ const Application = ({
         },
       };
 
-      console.log("🔄 Merged form data:", mergedData);
+      // console.log("🔄 Merged form data:", mergedData);
       setFormData(mergedData);
       setFetchError(null);
 
     } catch (err) {
-      console.error("❌ Data fetch failed:", err);
+      // console.error("❌ Data fetch failed:", err);
       const msg = err?.message || "Failed to load case or applicant data";
       setFetchError(msg);
       showErrorToast(
@@ -514,14 +514,14 @@ const Application = ({
   }, [mode, caseId, initialData]);
 
   useEffect(() => {
-    console.log("🎯 useEffect triggered - mode:", mode, "caseId:", caseId);
+    // console.log("🎯 useEffect triggered - mode:", mode, "caseId:", caseId);
     fetchCaseAndApplicantData();
   }, [fetchCaseAndApplicantData]);
 
   // Initialize form data when initialData changes
   useEffect(() => {
     if (initialData) {
-      console.log("🔄 Setting initial data:", initialData);
+      // console.log("🔄 Setting initial data:", initialData);
       setFormData(initialData);
     }
   }, [initialData]);
@@ -570,7 +570,7 @@ const Application = ({
     if (mode === 'view') return; // Prevent changes in view mode
 
     const { name, value } = e.target;
-    console.log("📝 Input change:", name, value);
+    // console.log("📝 Input change:", name, value);
 
     setFormData(prev => ({
       ...prev,
@@ -590,7 +590,7 @@ const Application = ({
   const handleDocumentsChange = useCallback((exhibit, updatedFiles) => {
     if (mode === 'view') return; // Prevent changes in view mode
 
-    console.log("📁 Documents change for exhibit:", exhibit, "files:", updatedFiles);
+    // console.log("📁 Documents change for exhibit:", exhibit, "files:", updatedFiles);
 
     setFormData(prev => ({
       ...prev,
@@ -612,7 +612,7 @@ const Application = ({
   const handleSaveCase = useCallback(async (documents = null) => {
     if (mode !== 'edit') return;
 
-    console.log("💾 Saving case...", documents);
+    // console.log("💾 Saving case...", documents);
     setIsSubmitting(true);
 
     try {
@@ -638,12 +638,12 @@ const Application = ({
         };
       }
 
-      console.log("📤 Updating case with data:", updatedFormData);
+      // console.log("📤 Updating case with data:", updatedFormData);
 
       // Call the update service
       const response = await updateApplicationData(caseId, updatedFormData);
 
-      console.log("////////////", response);
+      // console.log("////////////", response);
 
       // FIXED: Check the correct response structure
       if (response.data && response.data.data && response.data.data.success) {
@@ -651,7 +651,7 @@ const Application = ({
         const updatedCaseData = response.data.data || updatedFormData;
         setFormData(updatedCaseData);
 
-        console.log("✅ Case updated successfully:", updatedCaseData);
+        // console.log("✅ Case updated successfully:", updatedCaseData);
         showSuccessToast("✅ Case updated successfully!");
 
         // Call the onSave callback with updated data
@@ -663,7 +663,7 @@ const Application = ({
       }
 
     } catch (error) {
-      console.error("❌ Error saving case:", error);
+      // console.error("❌ Error saving case:", error);
       const errorMessage = error?.response?.data?.error || error?.message || "Failed to update case. Please try again.";
       showErrorToast(`❌ ${errorMessage}`);
     } finally {
@@ -673,7 +673,7 @@ const Application = ({
 
   // Optimized navigation handlers
   const goToNextStep = useCallback(() => {
-    console.log("➡️ Next step clicked - current:", currentStep, "mode:", mode);
+    // console.log("➡️ Next step clicked - current:", currentStep, "mode:", mode);
 
     if (mode === 'view') {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
@@ -710,7 +710,7 @@ const Application = ({
   }, [validateStep, mode, totalSteps, handleSaveCase, currentStep]);
 
   const goToPrevStep = useCallback(() => {
-    console.log("⬅️ Previous step clicked - current:", currentStep, "mode:", mode);
+    // console.log("⬅️ Previous step clicked - current:", currentStep, "mode:", mode);
 
     if (mode === 'view') {
       setCurrentStep(prev => Math.max(prev - 1, 1));
@@ -737,7 +737,7 @@ const Application = ({
 
   // Handle custom back action (goes to cases table)
   const handleBackToCases = useCallback(() => {
-    console.log("🔙 Back to cases action - onBack provided:", !!onBack);
+    // console.log("🔙 Back to cases action - onBack provided:", !!onBack);
     if (onBack) {
       onBack();
     }
@@ -745,7 +745,7 @@ const Application = ({
 
   // Handle step back action (goes to previous step)
   const handleStepBack = useCallback(() => {
-    console.log("🔙 Step back action - current step:", currentStep);
+    // console.log("🔙 Step back action - current step:", currentStep);
     goToPrevStep();
   }, [goToPrevStep, currentStep]);
 
@@ -753,7 +753,7 @@ const Application = ({
   const handlePaymentSuccess = useCallback(async (paymentResponse) => {
     if (mode !== 'create') return;
 
-    console.log("💳 Payment success:", paymentResponse);
+    // console.log("💳 Payment success:", paymentResponse);
     setIsSubmitting(true);
     try {
       const currentFormData = formDataRef.current;
@@ -798,7 +798,7 @@ const Application = ({
       }
 
     } catch (error) {
-      console.error("❌ Payment success handling error:", error);
+      // console.error("❌ Payment success handling error:", error);
       showErrorToast(`❌ Failed to ${mode === 'edit' ? 'update case' : 'process application'}. Please contact support.`);
     } finally {
       setIsSubmitting(false);
@@ -807,7 +807,7 @@ const Application = ({
 
   // Optimized reset function
   const resetForm = useCallback(() => {
-    console.log("🔄 Resetting form");
+    // console.log("🔄 Resetting form");
     setFormData(INITIAL_FORM_DATA);
     setSelectedExhibit("Exhibit A");
     setCurrentStep(1);
@@ -816,7 +816,7 @@ const Application = ({
 
   // Fast component lookup using object map
   const stepContent = useMemo(() => {
-    console.log("🔄 Rendering step content - currentStep:", currentStep, "isLoading:", isLoading, "fetchError:", fetchError);
+    // console.log("🔄 Rendering step content - currentStep:", currentStep, "isLoading:", isLoading, "fetchError:", fetchError);
 
     if (isLoading) {
       return (
@@ -845,7 +845,7 @@ const Application = ({
 
     const StepComponent = STEP_COMPONENTS[currentStep];
     if (!StepComponent) {
-      console.error("❌ No component found for step:", currentStep);
+      // console.error("❌ No component found for step:", currentStep);
       return null;
     }
 
@@ -904,7 +904,7 @@ const Application = ({
       }
     };
 
-    console.log("🎨 Creating component for step:", currentStep, "with props:", Object.keys(stepProps[currentStep]));
+    // console.log("🎨 Creating component for step:", currentStep, "with props:", Object.keys(stepProps[currentStep]));
     return React.createElement(StepComponent, stepProps[currentStep]);
   }, [
     currentStep,
@@ -928,7 +928,7 @@ const Application = ({
 
   // Render action buttons based on mode and current step
   const renderActionButtons = useCallback(() => {
-    console.log("🎯 Rendering action buttons - mode:", mode, "currentStep:", currentStep, "totalSteps:", totalSteps);
+    // console.log("🎯 Rendering action buttons - mode:", mode, "currentStep:", currentStep, "totalSteps:", totalSteps);
 
     // View Mode - Hide Next button in last step
     if (mode === 'view') {
@@ -981,7 +981,7 @@ const Application = ({
     return `${baseClasses} px-4`;
   }, [mode]);
 
-  console.log("🎬 Rendering Application component - mode:", mode, "currentStep:", currentStep, "formData loaded:", !!formData.full_name);
+  // console.log("🎬 Rendering Application component - mode:", mode, "currentStep:", currentStep, "formData loaded:", !!formData.full_name);
 
   return (
     <div className={containerClasses}>

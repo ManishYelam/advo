@@ -8,7 +8,7 @@ export const generateCourtApplicationPDF = async (formData = {}) => {
       exhibitArray.forEach((file) => uploadedFiles.push(file));
     });
   }
-  console.log("Uploaded Files:", uploadedFiles);
+  // console.log("Uploaded Files:", uploadedFiles);
 
   // Create hidden container
   const container = document.createElement("div");

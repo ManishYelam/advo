@@ -7,18 +7,18 @@ const CaseReview = ({ formData, setFormData, onNext, onBack, onSave, mode, isLoa
   const [check, setCheck] = useState(formData.verified || false);
   const [submitting, setSubmitting] = useState(false);
 
-  console.log("🔍 CaseReview Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
-    full_name: formData.full_name,
-    verified: formData.verified,
-    hasData: !!formData.full_name
-  });
+  // console.log("🔍 CaseReview Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
+  //   full_name: formData.full_name,
+  //   verified: formData.verified,
+  //   hasData: !!formData.full_name
+  // });
 
   // ✅ Handle checkbox verification
   const handleCheckboxChange = useCallback((e) => {
     if (mode === 'view') return;
 
     const verified = e.target.checked;
-    console.log("✅ Checkbox changed:", verified);
+    // console.log("✅ Checkbox changed:", verified);
     setCheck(verified);
     setFormData((prev) => ({ ...prev, verified }));
 
@@ -72,13 +72,13 @@ const CaseReview = ({ formData, setFormData, onNext, onBack, onSave, mode, isLoa
     ];
 
     const complete = requiredFields.every(field => formData[field]);
-    console.log("📋 Form completeness check:", complete);
+    // console.log("📋 Form completeness check:", complete);
     return complete;
   }, [formData]);
 
   // ✅ Validation and submission - OPTIMIZED
   const handleNext = useCallback(async () => {
-    console.log("🚀 CaseReview Next clicked - mode:", mode);
+    // console.log("🚀 CaseReview Next clicked - mode:", mode);
 
     if (mode === 'view') {
       onNext();
@@ -96,7 +96,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack, onSave, mode, isLoa
     }
 
     setSubmitting(true);
-    console.log("📄 Generating PDF...");
+    // console.log("📄 Generating PDF...");
 
     try {
       const element = document.getElementById("printableArea");
@@ -154,7 +154,7 @@ const CaseReview = ({ formData, setFormData, onNext, onBack, onSave, mode, isLoa
 
   // ✅ Handle back button
   const handleBack = useCallback(() => {
-    console.log("🔙 CaseReview Back clicked");
+    // console.log("🔙 CaseReview Back clicked");
     onBack();
   }, [onBack]);
 

@@ -109,7 +109,7 @@ export const useSupport = () => {
       // Format data before sending - DO NOT include ticket_number
       const formattedData = formatSupportData.formatTicketData(ticketData);
       
-      console.log('Submitting ticket data to API:', formattedData);
+      // console.log('Submitting ticket data to API:', formattedData);
       
       const response = await supportAPI.createTicket(formattedData);
       

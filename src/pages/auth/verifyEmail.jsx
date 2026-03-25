@@ -35,7 +35,7 @@ const VerifyEmail = () => {
 
       try {
         setIsLoading(true);
-        console.log('Verifying email for user:', userId);
+        // console.log('Verifying email for user:', userId);
         
         // Call the verification API using the service function
         const response = await verifyEmailService(userId, otp);
