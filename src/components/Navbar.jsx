@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logoutService } from "../services/authService";
-import SearchBar from "./SearchBar";
 import feedbackService from "../services/feedbackService";
 import {
   FaHome,
@@ -342,11 +341,6 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Center Section - Search Bar (Desktop) */}
-        <div className="hidden lg:flex flex-1 max-w-2xl mx-8">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-
         {/* Right Section - Navigation and Profile */}
         <div className="flex items-center space-x-4">
           {/* Desktop Navigation */}
@@ -359,8 +353,8 @@ const Navbar = () => {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                      ? "bg-green-600 text-white shadow-inner"
-                      : "text-green-100 hover:bg-green-600 hover:text-white"
+                    ? "bg-green-600 text-white shadow-inner"
+                    : "text-green-100 hover:bg-green-600 hover:text-white"
                     }`}
                 >
                   <Icon size={14} />
@@ -580,11 +574,6 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Search Bar */}
-      <div className="lg:hidden bg-green-600 px-4 py-2 border-t border-green-500">
-        <SearchBar onSearch={handleSearch} />
-      </div>
-
       {/* Mobile Menu */}
       {openMobileMenu && (
         <div className="lg:hidden bg-white shadow-lg border-t border-gray-200 z-40">
@@ -597,8 +586,8 @@ const Navbar = () => {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${isActive
-                      ? "bg-green-100 text-green-700 border-l-4 border-green-600"
-                      : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-green-100 text-green-700 border-l-4 border-green-600"
+                    : "text-gray-700 hover:bg-gray-100"
                     }`}
                   onClick={() => setOpenMobileMenu(false)}
                 >
@@ -735,8 +724,8 @@ const Navbar = () => {
               {/* Status Message */}
               {submitStatus.message && (
                 <div className={`mb-4 p-3 rounded-lg ${submitStatus.type === 'success'
-                    ? 'bg-green-50 border border-green-200 text-green-800'
-                    : 'bg-red-50 border border-red-200 text-red-800'
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
                   }`}>
                   {submitStatus.message}
                 </div>
@@ -764,8 +753,8 @@ const Navbar = () => {
                         onClick={() => handleRatingClick(star)}
                         disabled={isSubmitting}
                         className={`p-2 rounded-lg transition-all ${feedback.rating >= star
-                            ? "bg-yellow-100 text-yellow-500 border-2 border-yellow-400"
-                            : "bg-gray-100 text-gray-400 hover:bg-gray-200 border-2 border-transparent"
+                          ? "bg-yellow-100 text-yellow-500 border-2 border-yellow-400"
+                          : "bg-gray-100 text-gray-400 hover:bg-gray-200 border-2 border-transparent"
                           } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <FaStar size={20} />
