@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
-import { FaPlus, FaCheck, FaTimes, FaArrowLeft, FaDownload, FaSearch, FaFilePdf, FaEdit, FaEye, FaPrint, FaTrash, FaEllipsisV } from "react-icons/fa";
-import { FiTrash2, FiEdit, FiRefreshCcw, FiEye, FiPrinter, FiMoreVertical, FiUserPlus } from "react-icons/fi";
+import {
+  FaCheck, FaTimes, FaArrowLeft, FaDownload, FaSearch,
+  FaEye, FaPowerOff, FaEnvelope, FaPhone, FaMapMarkerAlt,
+  FaUser
+} from "react-icons/fa";
+import { FiRefreshCcw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { getAllUser } from "../services/applicationService"; // Import your service
+import { getAllUser } from "../services/applicationService";
+import { getClientById, updateClientstatus } from "../services/clientsService";
 
-// Debounce utility for search
+// ---------- Debounce utilities ----------
 const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
@@ -18,72 +23,134 @@ const debounce = (func, wait) => {
   };
 };
 
-// Custom hook for debounce
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
   }, [value, delay]);
-
   return debouncedValue;
 };
 
-// Token validation utility
-const isTokenExpired = (token) => {
-  if (!token) return true;
-  try {
-    const decodedToken = JSON.parse(atob(token.split(".")[1]));
-    const currentTime = Math.floor(Date.now() / 1000);
-    return decodedToken.exp < currentTime;
-  } catch (error) {
-    return true;
-  }
-};
-
-// Custom Confirmation Modal Component
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Delete", cancelText = "Cancel" }) => {
+// ---------- Modal Component ----------
+const ClientDetailsModal = ({ isOpen, onClose, client, loading }) => {
   if (!isOpen) return null;
 
+  const getField = (field, fallback = "N/A") => {
+    if (!client) return fallback;
+    const mappings = {
+      full_name: ["full_name", "fullName", "name"],
+      phone_number: ["phone_number", "phone", "mobile"],
+      reg_type: ["reg_type", "regType", "registrationType"],
+      isVerified: ["isVerified", "verified", "email_verified"],
+    };
+    if (mappings[field]) {
+      for (let key of mappings[field]) {
+        if (client[key] !== undefined && client[key] !== null) return client[key];
+      }
+      return fallback;
+    }
+    return client[field] !== undefined ? client[field] : fallback;
+  };
+
+  const status = getField("status", "").toLowerCase();
+  const isActive = status === "active";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-        <p className="text-gray-600 mb-6">{message}</p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            {cancelText}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-800">Client Details</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 focus:outline-none">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            {confirmText}
-          </button>
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+            </div>
+          ) : client ? (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <FaUser className="text-green-600 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{getField("full_name")}</h3>
+                    <p className="text-sm text-gray-500">Client ID: #{client.id || "N/A"}</p>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs ${isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                  {isActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <FaEnvelope className="text-gray-400" size={14} />
+                    <span className="text-sm text-gray-600">{getField("email")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FaPhone className="text-gray-400" size={14} />
+                    <span className="text-sm text-gray-600">{getField("phone_number")}</span>
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <FaMapMarkerAlt className="text-gray-400" size={14} />
+                    <span className="text-sm text-gray-600">{getField("address", "No address provided")}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personal Details */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Personal Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><p className="text-xs text-gray-500">Full Name</p><p className="text-sm text-gray-800">{getField("full_name")}</p></div>
+                  <div><p className="text-xs text-gray-500">Date of Birth</p><p className="text-sm text-gray-800">{client.date_of_birth ? new Date(client.date_of_birth).toLocaleDateString() : "N/A"}</p></div>
+                  <div><p className="text-xs text-gray-500">Gender</p><p className="text-sm text-gray-800">{getField("gender")}</p></div>
+                  <div><p className="text-xs text-gray-500">Age</p><p className="text-sm text-gray-800">{client.age || "N/A"}</p></div>
+                  <div><p className="text-xs text-gray-500">Aadhar Number</p><p className="text-sm text-gray-800">{client.adhar_number || "N/A"}</p></div>
+                </div>
+              </div>
+
+              {/* Professional Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Professional Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><p className="text-xs text-gray-500">Occupation</p><p className="text-sm text-gray-800">{getField("occupation")}</p></div>
+                  <div><p className="text-xs text-gray-500">Registration Type</p><p className="text-sm text-gray-800">{getField("reg_type", "Manual")}</p></div>
+                  <div><p className="text-xs text-gray-500">Verified</p><p className="text-sm text-gray-800">{getField("isVerified") ? "Yes" : "No"}</p></div>
+                </div>
+              </div>
+
+              {/* Account Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Account Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><p className="text-xs text-gray-500">Account Created</p><p className="text-sm text-gray-800">{client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "N/A"}</p></div>
+                  <div><p className="text-xs text-gray-500">Last Login</p><p className="text-sm text-gray-800">{client.last_login_at ? new Date(client.last_login_at).toLocaleString() : "N/A"}</p></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500">No client data available</div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const Clients = ({
-  onDeleteClient,
-  onEditClient,
-  onView,
-  onPrint,
-  onMore,
-  onAddClient,
-  userRole = "admin"
-}) => {
+// ---------- Main Clients Component ----------
+const Clients = ({ userRole = "admin" }) => {
   const [clients, setClients] = useState([]);
   const [filters, setFilters] = useState({
     globalSearch: "",
@@ -91,33 +158,27 @@ const Clients = ({
     verified: "",
     regType: "",
     searchField: "",
-    searchValue: ""
+    searchValue: "",
   });
-  const [selectedclient_ids, setSelectedclient_ids] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [totalRecords, setTotalRecords] = useState(0);
   const [exportLoading, setExportLoading] = useState(false);
-  const [bulkAction, setBulkAction] = useState("");
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState(null);
-
-  // Delete confirmation modal state
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [clientsToDelete, setCliientsToDelete] = useState([]);
-  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState("");
 
   const navigate = useNavigate();
   const debouncedSearchRef = React.useRef();
-
-  // Use debounce for global search
   const debouncedGlobalSearch = useDebounce(filters.globalSearch, 500);
 
   useEffect(() => {
     debouncedSearchRef.current = debounce((value) => {
-      setFilters(prev => ({ ...prev, globalSearch: value }));
-      setPagination(prev => ({ ...prev, page: 1 }));
+      setFilters((prev) => ({ ...prev, globalSearch: value }));
+      setPagination((prev) => ({ ...prev, page: 1 }));
     }, 300);
   }, []);
 
@@ -125,63 +186,53 @@ const Clients = ({
     setLoading(true);
     setError(null);
     try {
-      // Prepare request data for getAllUser API
       const requestData = {
         page: pagination.page,
         limit: pagination.limit,
-        search: debouncedGlobalSearch || '',
+        search: debouncedGlobalSearch || "",
         searchFields: filters.searchField ? [filters.searchField] : [],
-        // Apply filters - transform to match API expectations
         ...(filters.status && { status: filters.status.toLowerCase() }),
         ...(filters.verified && { isVerified: filters.verified }),
         ...(filters.regType && { reg_type: filters.regType }),
-        role: 'client' // Only fetch clients, not admins
+        role: "client",
       };
 
-      // Add field-specific search if applicable
       if (filters.searchField && filters.searchValue) {
         requestData.search = filters.searchValue;
         requestData.searchFields = [filters.searchField];
       }
 
-      console.log('API Request:', requestData); // For debugging
-
       const response = await getAllUser(requestData);
-
-      // Transform API response to match table format
-      const transformedData = response.data.data.map(user => ({
+      const users = response.data?.data || [];
+      const transformedData = users.map((user) => ({
         id: user.id,
         name: user.full_name,
         email: user.email,
         phone: user.phone_number,
         address: user.address,
-        company: user.occupation || 'N/A',
+        company: user.occupation || "N/A",
         createdAt: user.createdAt,
-        status: user.status === 'active' ? 'Active' : 'Inactive',
+        status: user.status === "active" ? "Active" : "Inactive",
         verified: user.isVerified,
-        regType: user.reg_type || 'Manual',
+        regType: user.reg_type || "Manual",
         clientSince: user.createdAt,
         lastActive: user.last_login_at || user.createdAt,
-        totalCases: 0, // You might need to calculate this from another API
-        activeCases: 0, // You might need to calculate this from another API
-        // Include additional fields that might be useful
+        totalCases: 0,
+        activeCases: 0,
         role: user.role,
         dateOfBirth: user.date_of_birth,
         gender: user.gender,
         age: user.age,
         adharNumber: user.adhar_number,
         isVerified: user.isVerified,
-        lastLoginAt: user.last_login_at
+        lastLoginAt: user.last_login_at,
       }));
 
       setClients(transformedData);
-      setTotalRecords(response.totalRecords || response.total || transformedData.length);
-
+      setTotalRecords(response.data?.totalRecords || transformedData.length);
     } catch (err) {
       setError(`Failed to fetch clients: ${err.message}`);
-      console.error('API Error:', err);
-
-      // Fallback to mock data if API fails (optional)
+      // Fallback mock data for development
       const fallbackData = [
         {
           id: 1,
@@ -190,15 +241,15 @@ const Clients = ({
           phone: "+1 (555) 123-4567",
           address: "123 Main Street, New York, NY 10001",
           company: "ABC Corp",
-          createdAt: "2025-01-15T10:30:00Z",
+          createdAt: "2024-01-15T10:30:00Z",
           status: "Active",
           verified: true,
           regType: "Manual",
           clientSince: "2024-01-15",
-          lastActive: "2025-01-10",
+          lastActive: "2024-01-10",
           totalCases: 5,
-          activeCases: 2
-        }
+          activeCases: 2,
+        },
       ];
       setClients(fallbackData);
       setTotalRecords(fallbackData.length);
@@ -216,159 +267,104 @@ const Clients = ({
     if (name === "globalSearch") {
       debouncedSearchRef.current(value);
     } else if (name === "searchField") {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
         searchField: value,
-        searchValue: "" // Reset search value when field changes
+        searchValue: "",
       }));
     } else {
-      setFilters(prev => ({ ...prev, [name]: value }));
-      setPagination(prev => ({ ...prev, page: 1 }));
+      setFilters((prev) => ({ ...prev, [name]: value }));
+      setPagination((prev) => ({ ...prev, page: 1 }));
     }
   };
 
   const filteredClients = useMemo(() => {
-    return clients.filter(client => {
-      const matchesGlobalSearch = !filters.globalSearch ||
-        Object.values(client).some(val =>
+    return clients.filter((client) => {
+      const matchesGlobalSearch =
+        !filters.globalSearch ||
+        Object.values(client).some((val) =>
           val?.toString().toLowerCase().includes(filters.globalSearch.toLowerCase())
         );
       const matchesStatus = !filters.status || client.status === filters.status;
-      const matchesVerified = filters.verified === "" ||
+      const matchesVerified =
+        filters.verified === "" ||
         (filters.verified === "true" && client.verified) ||
         (filters.verified === "false" && !client.verified);
       const matchesRegType = !filters.regType || client.regType === filters.regType;
-      const matchesFieldSearch = !filters.searchField || !filters.searchValue ||
+      const matchesFieldSearch =
+        !filters.searchField ||
+        !filters.searchValue ||
         client[filters.searchField]?.toString().toLowerCase().includes(filters.searchValue.toLowerCase());
 
-      return matchesGlobalSearch && matchesStatus && matchesVerified && matchesRegType && matchesFieldSearch;
+      return (
+        matchesGlobalSearch &&
+        matchesStatus &&
+        matchesVerified &&
+        matchesRegType &&
+        matchesFieldSearch
+      );
     });
   }, [clients, filters]);
 
-  const toggleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedclient_ids(filteredClients.map(c => c.id));
-    } else {
-      setSelectedclient_ids([]);
-    }
-  };
-
-  const toggleSelectOne = (id, e) => {
-    if (e) e.stopPropagation();
-    setSelectedclient_ids(prev =>
-      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
-    );
-  };
-
-  // ✅ Ultra-fast Delete Confirmation
-  const showDeleteConfirmation = useCallback((clientIds) => {
-    if (!clientIds || clientIds.length === 0) {
-      setError("No clients selected for deletion");
-      return;
-    }
-
-    setCliientsToDelete(clientIds);
-    setDeleteConfirmMessage(
-      clientIds.length === 1
-        ? `Are you sure you want to delete client #${clientIds[0]}? This action cannot be undone.`
-        : `Are you sure you want to delete ${clientIds.length} selected clients? This action cannot be undone.`
-    );
-    setShowDeleteConfirm(true);
-  }, []);
-
-  // ✅ Ultra-optimized DELETE CLIENT
-  const handleDeleteClient = useCallback(async () => {
-    setDeleteLoading(true);
-    setError(null);
-
+  const handleToggleStatus = async (client) => {
+    setToggleLoading(client.id);
     try {
-      const user = localStorage.getItem("user");
-      if (!user) throw new Error("User not logged in");
-
-      const parsedUser = JSON.parse(user);
-      const token = parsedUser?.token;
-
-      if (!token || isTokenExpired(token)) {
-        throw new Error("Token expired. Please login again.");
-      }
-
-      // Direct parallel deletion
-      await Promise.all(clientsToDelete.map(id => onDeleteClient?.(id)));
-
-      // Direct state updates
-      setShowDeleteConfirm(false);
-      setCliientsToDelete([]);
+      const newStatus = client.status === "Active" ? "inactive" : "active";
+      await updateClientstatus(client.id, { status: newStatus });
       await fetchClients();
-      setSelectedclient_ids([]);
-      setSelectedRowId(null);
-
-      setError(clientsToDelete.length === 1
-        ? `Client #${clientsToDelete[0]} deleted successfully`
-        : `${clientsToDelete.length} clients deleted successfully`
-      );
-
+      setError(`${client.name}'s status updated to ${newStatus}`);
+      setTimeout(() => setError(null), 3000);
     } catch (err) {
-      setError(`Failed to delete clients: ${err.message}`);
-      setShowDeleteConfirm(false);
-      setCliientsToDelete([]);
+      setError(`Failed to update status: ${err.message}`);
     } finally {
-      setDeleteLoading(false);
+      setToggleLoading(null);
     }
-  }, [clientsToDelete, fetchClients, onDeleteClient]);
+  };
 
-  // ✅ Ultra-fast Single Client Delete
-  const handleDeleteSingleClient = useCallback((client, e) => {
+  const handleViewClient = async (client, e) => {
     e.stopPropagation();
-    showDeleteConfirmation([client.id]);
-  }, [showDeleteConfirmation]);
-
-  // ✅ Fast Cancel Delete
-  const handleCancelDelete = useCallback(() => {
-    setShowDeleteConfirm(false);
-    setCliientsToDelete([]);
-    setDeleteConfirmMessage("");
-  }, []);
-
-  const handleBulkAction = () => {
-    if (bulkAction && selectedclient_ids.length > 0) {
-      switch (bulkAction) {
-        case "delete":
-          showDeleteConfirmation(selectedclient_ids);
-          break;
-        case "export":
-          handleExport();
-          break;
-        default:
-          break;
-      }
-      setBulkAction("");
+    setViewLoading(true);
+    try {
+      const response = await getClientById(client.id);
+      const clientData = response.data?.user || response.data;
+      setSelectedClient(clientData);
+      setIsModalOpen(true);
+    } catch (err) {
+      setError(`Failed to load client details: ${err.message}`);
+    } finally {
+      setViewLoading(false);
     }
   };
 
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const csvHeaders = ['ID', 'Name', 'Email', 'Phone', 'Company', 'Registration Type', 'Status', 'Verified', 'Client Since', 'Total Cases', 'Active Cases'].join(',');
-      const csvRows = filteredClients.map(client => [
-        client.id,
-        `"${client.name}"`,
-        client.email,
-        client.phone,
-        `"${client.company}"`,
-        client.regType,
-        client.status,
-        client.verified ? 'Yes' : 'No',
-        client.clientSince ? new Date(client.clientSince).toLocaleDateString() : '-',
-        client.totalCases || 0,
-        client.activeCases || 0
-      ].join(','));
-      const csvContent = [csvHeaders, ...csvRows].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const csvHeaders = [
+        "ID", "Name", "Email", "Phone", "Company", "Registration Type",
+        "Status", "Verified", "Client Since", "Total Cases", "Active Cases",
+      ].join(",");
+      const csvRows = filteredClients.map((client) =>
+        [
+          client.id,
+          `"${client.name}"`,
+          client.email,
+          client.phone,
+          `"${client.company}"`,
+          client.regType,
+          client.status,
+          client.verified ? "Yes" : "No",
+          client.clientSince ? new Date(client.clientSince).toLocaleDateString() : "-",
+          client.totalCases || 0,
+          client.activeCases || 0,
+        ].join(",")
+      );
+      const csvContent = [csvHeaders, ...csvRows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `clients-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `clients-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -380,200 +376,110 @@ const Clients = ({
   };
 
   const handleResetFilters = () => {
-    setFilters({ globalSearch: "", status: "", verified: "", regType: "", searchField: "", searchValue: "" });
+    setFilters({
+      globalSearch: "",
+      status: "",
+      verified: "",
+      regType: "",
+      searchField: "",
+      searchValue: "",
+    });
     setPagination({ page: 1, limit: 10 });
-    setSelectedclient_ids([]);
-    setSelectedRowId(null);
   };
 
-  // ✅ Ultra-fast Row Click Handler
   const handleRowClick = useCallback((clientId, e) => {
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
+    if (e.target.tagName === "BUTTON" || e.target.tagName === "INPUT" ||
+        e.target.closest("button") || e.target.closest("input")) {
       return;
     }
-    setSelectedRowId(clientId === selectedRowId ? null : clientId);
-  }, [selectedRowId]);
+    setSelectedRowId((prev) => (clientId === prev ? null : clientId));
+  }, []);
 
-  // ✅ Ultra-fast Row Background Color
-  const getRowBackgroundColor = useCallback((clientId) =>
-    clientId === selectedRowId ? 'bg-blue-200 border-l-4 border-blue-500' : 'bg-white hover:bg-pink-100',
-    [selectedRowId]);
+  const getRowBackgroundColor = useCallback(
+    (clientId) =>
+      clientId === selectedRowId
+        ? "bg-blue-200 border-l-4 border-blue-500"
+        : "bg-white hover:bg-pink-100",
+    [selectedRowId]
+  );
 
-  // ✅ Ultra-optimized Pagination Calculations
-  const paginationInfo = useMemo(() => ({
-    totalPages: Math.ceil(totalRecords / pagination.limit),
-    startIndex: (pagination.page - 1) * pagination.limit + 1,
-    endIndex: Math.min(pagination.page * pagination.limit, totalRecords)
-  }), [pagination, totalRecords]);
+  const paginationInfo = useMemo(
+    () => ({
+      totalPages: Math.ceil(totalRecords / pagination.limit),
+      startIndex: (pagination.page - 1) * pagination.limit + 1,
+      endIndex: Math.min(pagination.page * pagination.limit, totalRecords),
+    }),
+    [pagination, totalRecords]
+  );
 
   const getPageNumbers = useCallback(() => {
     const delta = 2;
     const range = [];
     const { totalPages } = paginationInfo;
-
     for (let i = Math.max(1, pagination.page - delta); i <= Math.min(totalPages, pagination.page + delta); i++) {
       range.push(i);
     }
-
     if (range[0] > 2) range.unshift("...");
     if (range[0] !== 1) range.unshift(1);
     if (range[range.length - 1] < totalPages - 1) range.push("...");
     if (range[range.length - 1] !== totalPages) range.push(totalPages);
-
     return range;
   }, [paginationInfo, pagination.page]);
 
-  // ✅ ULTRA-FAST Action Button Handler
-  const handleActionButtonClick = useCallback((action, client, e) => {
-    e.stopPropagation();
+  const canToggleStatus = userRole === "admin";
 
-    // Direct if-else chain - Fastest execution
-    if (action === 'view') onView?.(client);
-    else if (action === 'edit') onEditClient?.(client);
-    else if (action === 'print') onPrint?.(client);
-    else if (action === 'delete') handleDeleteSingleClient(client, e);
-    else if (action === 'more') onMore?.(client);
-  }, [onView, onEditClient, onPrint, onMore, handleDeleteSingleClient]);
-
-  const canEditDelete = userRole === "admin";
-  const canAddClients = userRole === "admin" || userRole === "advocate";
-
-  // Search field options matching API field names
   const searchFieldOptions = [
     { value: "full_name", label: "Name" },
     { value: "email", label: "Email" },
     { value: "occupation", label: "Company" },
     { value: "phone_number", label: "Phone" },
     { value: "reg_type", label: "Registration Type" },
-    { value: "adhar_number", label: "Aadhar Number" }
+    { value: "adhar_number", label: "Aadhar Number" },
   ];
 
   return (
     <DashboardLayout>
       <div className="m-3 min-h-screen bg-gray-50 rounded-lg p-3">
-        {/* Delete Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={showDeleteConfirm}
-          onClose={handleCancelDelete}
-          onConfirm={handleDeleteClient}
-          title="Confirm Deletion"
-          message={deleteConfirmMessage}
-          confirmText={deleteLoading ? "Deleting..." : "Delete"}
-          cancelText="Cancel"
+        {/* Modal */}
+        <ClientDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedClient(null);
+          }}
+          client={selectedClient}
+          loading={viewLoading}
         />
 
-        {/* Header - Compact */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-1.5 rounded hover:bg-gray-200 transition-colors duration-200 text-gray-600"
-              title="Go back"
-            >
+            <button onClick={() => navigate(-1)} className="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Go back">
               <FaArrowLeft size={14} />
             </button>
-            <div>
-              <h1 className="text-lg font-bold text-gray-800">Clients</h1>
-              {/* <p className="text-gray-600 text-xs">
-                Manage client relationships - Connected to API
-              </p> */}
-            </div>
-          </div>
-
-          {/* {canAddClients && (
-            <button
-              onClick={onAddClient}
-              className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors duration-200 flex items-center gap-1 font-medium"
-            >
-              <FiUserPlus size={12} />
-              Add Client
-            </button>
-          )} */}
-        </div>
-
-        {/* Compact Stats Overview - Small Size */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {/* Total Records Card */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-3 rounded-lg shadow-xs border border-slate-200 text-center hover:shadow-sm transition-all duration-150">
-            <div className="flex justify-center items-center mb-1">
-              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-lg font-bold text-slate-800">{totalRecords}</div>
-            <div className="text-slate-600 text-xs">Total</div>
-          </div>
-
-          {/* Active Clients Card */}
-          <div className="bg-gradient-to-br from-emerald-50 to-green-100 p-3 rounded-lg shadow-xs border border-emerald-200 text-center hover:shadow-sm transition-all duration-150">
-            <div className="flex justify-center items-center mb-1">
-              <div className="w-6 h-6 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-lg font-bold text-emerald-700">
-              {clients.filter(c => c.status === "Active").length}
-            </div>
-            <div className="text-emerald-700 text-xs">Active</div>
-          </div>
-
-          {/* Manual Registration Card */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-3 rounded-lg shadow-xs border border-amber-200 text-center hover:shadow-sm transition-all duration-150">
-            <div className="flex justify-center items-center mb-1">
-              <div className="w-6 h-6 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-lg font-bold text-amber-700">
-              {clients.filter(c => c.regType === "Manual").length}
-            </div>
-            <div className="text-amber-700 text-xs">Manual</div>
-          </div>
-
-          {/* Registration Link Card */}
-          <div className="bg-gradient-to-br from-violet-50 to-purple-100 p-3 rounded-lg shadow-xs border border-violet-200 text-center hover:shadow-sm transition-all duration-150">
-            <div className="flex justify-center items-center mb-1">
-              <div className="w-6 h-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-lg font-bold text-violet-700">
-              {clients.filter(c => c.regType === "Reg_Link").length}
-            </div>
-            <div className="text-violet-700 text-xs">Reg Link</div>
+            <h1 className="text-lg font-bold text-gray-800">Clients</h1>
           </div>
         </div>
 
-        {/* Error Display */}
+        {/* Error Message */}
         {error && (
-          <div className={`px-3 py-2 rounded mb-3 ${error.includes('successfully') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`} role="alert">
+          <div className={`px-3 py-2 rounded mb-3 ${error.includes("successfully") ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
             {error}
           </div>
         )}
 
-        {/* Loading State */}
-        {(loading || deleteLoading) && (
-          <div className="flex items-center justify-center py-4" aria-live="polite">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-            <span className="ml-2">{deleteLoading ? "Deleting clients..." : "Loading clients..."}</span>
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600" />
+            <span className="ml-2">Loading clients...</span>
           </div>
         )}
 
-        {/* Filters and Actions - Left & Right Aligned */}
-        {/* Filters and Actions - Left & Right Aligned */}
+        {/* Filters and Actions */}
         <div className="bg-white p-3 rounded shadow-sm border">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            {/* Filters - Left Side */}
+          <div className="flex flex-col sm:flex-row justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 flex-1">
-              {/* Global Search */}
               <div className="relative">
                 <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={10} />
                 <input
@@ -582,25 +488,20 @@ const Clients = ({
                   value={filters.globalSearch}
                   onChange={handleFilterChange}
                   placeholder="Search clients..."
-                  className="pl-7 pr-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-44 h-[28px]"
+                  className="pl-7 pr-2 py-1 border rounded text-xs w-44 h-[28px] focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 />
               </div>
-
-              {/* Field Search */}
               <select
                 name="searchField"
                 value={filters.searchField}
                 onChange={handleFilterChange}
-                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
+                className="px-2 py-1 border rounded text-xs w-28 h-[28px] focus:ring-1 focus:ring-green-500"
               >
                 <option value="">Search Field</option>
-                {searchFieldOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
+                {searchFieldOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-
               <input
                 type="text"
                 name="searchValue"
@@ -608,127 +509,58 @@ const Clients = ({
                 onChange={handleFilterChange}
                 placeholder="Search value..."
                 disabled={!filters.searchField}
-                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px] disabled:bg-gray-100"
+                className="px-2 py-1 border rounded text-xs w-28 h-[28px] disabled:bg-gray-100 focus:ring-1 focus:ring-green-500"
               />
-
-              {/* Status & Verified & Reg Type */}
               <select
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-24 h-[28px]"
+                className="px-2 py-1 border rounded text-xs w-24 h-[28px]"
               >
                 <option value="">All Status</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-
               <select
                 name="verified"
                 value={filters.verified}
                 onChange={handleFilterChange}
-                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
+                className="px-2 py-1 border rounded text-xs w-28 h-[28px]"
               >
                 <option value="">All Clients</option>
                 <option value="true">Verified Only</option>
                 <option value="false">Unverified Only</option>
               </select>
-
               <select
                 name="regType"
                 value={filters.regType}
                 onChange={handleFilterChange}
-                className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-28 h-[28px]"
+                className="px-2 py-1 border rounded text-xs w-28 h-[28px]"
               >
                 <option value="">All Types</option>
                 <option value="manual">Manual</option>
                 <option value="reg_link">Reg Link</option>
               </select>
-
-              {/* Bulk Actions */}
-              {canEditDelete && selectedclient_ids.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <select
-                    value={bulkAction}
-                    onChange={(e) => setBulkAction(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-green-500 focus:border-green-500 w-24 h-[28px]"
-                  >
-                    <option value="">Bulk Actions</option>
-                    <option value="delete">Delete</option>
-                    <option value="export">Export</option>
-                  </select>
-                  <button
-                    onClick={handleBulkAction}
-                    disabled={!bulkAction}
-                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 h-[28px]"
-                  >
-                    Apply
-                  </button>
-                  <span className="text-xs text-gray-600 ml-1">
-                    ({selectedclient_ids.length})
-                  </span>
-                </div>
-              )}
             </div>
-
-            {/* Actions - Right Side */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleResetFilters}
-                className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition-colors duration-200 flex items-center gap-1 h-[28px]"
-              >
-                <FiRefreshCcw size={10} />
-                Reset
+              <button onClick={handleResetFilters} className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 flex items-center gap-1 h-[28px]">
+                <FiRefreshCcw size={10} /> Reset
               </button>
-
-              <button
-                onClick={handleExport}
-                disabled={exportLoading || filteredClients.length === 0}
-                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1 h-[28px]"
-              >
-                {exportLoading ? (
-                  <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
-                ) : (
-                  <FaDownload size={10} />
-                )}
+              <button onClick={handleExport} disabled={exportLoading || filteredClients.length === 0}
+                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1 h-[28px]">
+                {exportLoading ? <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white" /> : <FaDownload size={10} />}
                 Export
               </button>
-
-              {/* Delete Selected - Only show for admin */}
-              {canEditDelete && (
-                <button
-                  onClick={() => showDeleteConfirmation(selectedclient_ids)}
-                  disabled={selectedclient_ids.length === 0 || deleteLoading}
-                  className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1 h-[28px]"
-                >
-                  {deleteLoading ? (
-                    <div className="animate-spin rounded-full h-2.5 w-2.5 border-b-2 border-white"></div>
-                  ) : (
-                    <FiTrash2 size={10} />
-                  )}
-                  {selectedclient_ids.length > 0 && `(${selectedclient_ids.length})`}
-                </button>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Table - Compact */}
+        {/* Table */}
         <div className="bg-white rounded shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead className="bg-green-700 text-white">
                 <tr>
-                  {canEditDelete && (
-                    <th className="px-2 py-2 text-left w-8">
-                      <input
-                        type="checkbox"
-                        checked={selectedclient_ids.length === filteredClients.length && filteredClients.length > 0}
-                        onChange={toggleSelectAll}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
-                      />
-                    </th>
-                  )}
                   <th className="px-2 py-2 text-left">Client</th>
                   <th className="px-2 py-2 text-left">Contact</th>
                   <th className="px-2 py-2 text-center">Cases</th>
@@ -741,22 +573,15 @@ const Clients = ({
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={canEditDelete ? 8 : 7} className="px-2 py-4 text-center">
-                      <div className="flex justify-center items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                        <span className="text-gray-600 text-xs">Loading clients...</span>
-                      </div>
-                    </td>
+                    <td colSpan={7} className="px-2 py-4 text-center">Loading clients...</td>
                   </tr>
                 ) : filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={canEditDelete ? 8 : 7} className="px-2 py-6 text-center">
+                    <td colSpan={7} className="px-2 py-6 text-center">
                       <div className="text-gray-400 text-2xl mb-1">👥</div>
                       <h3 className="text-sm font-medium text-gray-900 mb-1">No clients found</h3>
                       <p className="text-gray-500 text-xs">
-                        {Object.values(filters).some(f => f)
-                          ? "Adjust filters to see results"
-                          : "Add your first client"}
+                        {Object.values(filters).some((f) => f) ? "Adjust filters to see results" : "Add your first client"}
                       </p>
                     </td>
                   </tr>
@@ -764,116 +589,69 @@ const Clients = ({
                   filteredClients.map((client) => (
                     <tr
                       key={client.id}
-                      className={`cursor-pointer transition-all duration-200 ${getRowBackgroundColor(client.id)}`}
+                      className={`cursor-pointer transition-all ${getRowBackgroundColor(client.id)}`}
                       onClick={(e) => handleRowClick(client.id, e)}
                     >
-                      {canEditDelete && (
-                        <td className="px-2 py-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedclient_ids.includes(client.id)}
-                            onChange={(e) => toggleSelectOne(client.id, e)}
-                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 scale-90"
-                          />
-                        </td>
-                      )}
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                             <span className="text-green-800 font-semibold text-xs">
-                              {client.name.split(' ').map(n => n[0]).join('')}
+                              {client.name.split(" ").map((n) => n[0]).join("")}
                             </span>
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-gray-900 text-xs truncate">{client.name}</div>
-                            <div className="text-gray-500 text-xs truncate">{client.company}</div>
+                          <div>
+                            <div className="font-semibold text-gray-900 truncate max-w-[120px]">{client.name}</div>
+                            <div className="text-gray-500 text-xs truncate max-w-[120px]">{client.company}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-2 py-2">
                         <div className="space-y-0.5">
-                          <div className="text-gray-900 text-xs truncate">{client.email}</div>
-                          <div className="text-gray-600 text-xs">{client.phone}</div>
+                          <div className="text-gray-900 truncate max-w-[150px]">{client.email}</div>
+                          <div className="text-gray-600">{client.phone}</div>
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <div>
-                          <div className="text-sm font-bold text-gray-900">{client.totalCases || 0}</div>
-                          <div className="text-xs">
-                            <span className={`px-1.5 py-0.5 rounded-full ${(client.activeCases || 0) > 0
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                              }`}>
-                              {client.activeCases || 0}
-                            </span>
-                          </div>
+                        <div className="font-bold text-gray-900">{client.totalCases || 0}</div>
+                        <div className="text-xs">
+                          <span className={`px-1.5 py-0.5 rounded-full ${(client.activeCases || 0) > 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                            {client.activeCases || 0}
+                          </span>
                         </div>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${client.regType === 'Manual'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-purple-100 text-purple-800'
-                          }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs ${client.regType === "Manual" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"}`}>
                           {client.regType}
                         </span>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs ${client.status === 'Active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                          }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs ${client.status === "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                           {client.status}
                         </span>
                       </td>
                       <td className="px-2 py-2 text-center">
-                        {client.verified ? (
-                          <FaCheck className="text-green-600 mx-auto" size={12} />
-                        ) : (
-                          <FaTimes className="text-red-600 mx-auto" size={12} />
-                        )}
+                        {client.verified ? <FaCheck className="text-green-600 mx-auto" size={12} /> : <FaTimes className="text-red-600 mx-auto" size={12} />}
                       </td>
                       <td className="px-2 py-2">
                         <div className="flex justify-center gap-1">
                           <button
-                            onClick={(e) => handleActionButtonClick('view', client, e)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200"
+                            onClick={(e) => handleViewClient(client, e)}
+                            disabled={viewLoading}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded disabled:opacity-50"
                             title="View"
                           >
-                            <FaEye size={12} />
+                            {viewLoading ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" /> : <FaEye size={12} />}
                           </button>
-                          {canEditDelete && (
+                          {canToggleStatus && (
                             <button
-                              onClick={(e) => handleActionButtonClick('edit', client, e)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors duration-200"
-                              title="Edit"
+                              onClick={(e) => { e.stopPropagation(); handleToggleStatus(client); }}
+                              disabled={toggleLoading === client.id}
+                              className={`p-1 rounded ${client.status === "Active" ? "text-red-600 hover:bg-red-50" : "text-green-600 hover:bg-green-50"} disabled:opacity-50`}
+                              title={client.status === "Active" ? "Deactivate" : "Activate"}
                             >
-                              <FaEdit size={12} />
+                              {toggleLoading === client.id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" /> : <FaPowerOff size={12} />}
                             </button>
                           )}
-                          <button
-                            onClick={(e) => handleActionButtonClick('print', client, e)}
-                            className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
-                            title="Print"
-                          >
-                            <FaPrint size={12} />
-                          </button>
-                          {canEditDelete && (
-                            <button
-                              onClick={(e) => handleActionButtonClick('delete', client, e)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
-                              title="Delete"
-                              disabled={deleteLoading}
-                            >
-                              <FaTrash size={12} />
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => handleActionButtonClick('more', client, e)}
-                            className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors duration-200"
-                            title="More"
-                          >
-                            <FaEllipsisV size={12} />
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -884,115 +662,52 @@ const Clients = ({
           </div>
         </div>
 
-        {/* Pagination - Same as CaseTable */}
+        {/* Pagination */}
         {filteredClients.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-3 gap-2 text-xs">
             <div>
-              Showing{" "}
-              <span className="font-medium">{paginationInfo.startIndex}</span>{" "}
-              to{" "}
-              <span className="font-medium">{paginationInfo.endIndex}</span>{" "}
-              of <span className="font-medium">{totalRecords}</span> clients
+              Showing {paginationInfo.startIndex} to {paginationInfo.endIndex} of {totalRecords} clients
             </div>
-
             <div className="flex items-center gap-1 flex-wrap">
-              <div className="flex items-center gap-1 ml-2">
+              <div className="flex items-center gap-1">
                 <span>Show</span>
                 <select
                   value={pagination.limit}
-                  onChange={(e) =>
-                    setPagination((prev) => ({
-                      ...prev,
-                      limit: parseInt(e.target.value),
-                      page: 1,
-                    }))
-                  }
-                  className="px-2 py-1 border rounded text-xs focus:outline-none focus:border-green-500"
-                  aria-label="Items per page"
+                  onChange={(e) => setPagination((prev) => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))}
+                  className="px-2 py-1 border rounded text-xs"
                 >
-                  {[5, 10, 20, 50].map((num) => (
-                    <option key={num} value={num}>
-                      {num}
-                    </option>
-                  ))}
+                  {[5, 10, 20, 50].map((num) => <option key={num} value={num}>{num}</option>)}
                 </select>
                 <span>per page</span>
               </div>
-
-              <button
-                onClick={() => setPagination({ ...pagination, page: 1 })}
-                disabled={pagination.page === 1}
-                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Go to first page"
-              >
-                First
-              </button>
-              <button
-                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                disabled={pagination.page === 1}
-                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Go to previous page"
-              >
-                Prev
-              </button>
-
+              <button onClick={() => setPagination({ ...pagination, page: 1 })} disabled={pagination.page === 1} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50">First</button>
+              <button onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })} disabled={pagination.page === 1} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50">Prev</button>
               {getPageNumbers().map((p, i) =>
-                p === "..." ? (
-                  <span key={i} className="px-2 py-1 text-gray-500">
-                    ...
-                  </span>
-                ) : (
+                p === "..." ? <span key={i} className="px-2 py-1 text-gray-500">...</span> : (
                   <button
                     key={i}
                     onClick={() => setPagination({ ...pagination, page: p })}
-                    className={`px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-500 ${pagination.page === p
-                      ? "bg-green-800 text-white"
-                      : "bg-white border border-gray-300 hover:bg-green-100"
-                      }`}
-                    aria-label={`Go to page ${p}`}
-                    aria-current={pagination.page === p ? 'page' : undefined}
+                    className={`px-2 py-1 rounded ${pagination.page === p ? "bg-green-800 text-white" : "bg-white border border-gray-300 hover:bg-green-100"}`}
                   >
                     {p}
                   </button>
                 )
               )}
-
-              <button
-                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                disabled={pagination.page === paginationInfo.totalPages}
-                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Go to next page"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setPagination({ ...pagination, page: paginationInfo.totalPages })}
-                disabled={pagination.page === paginationInfo.totalPages}
-                className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Go to last page"
-              >
-                Last
-              </button>
+              <button onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })} disabled={pagination.page === paginationInfo.totalPages} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50">Next</button>
+              <button onClick={() => setPagination({ ...pagination, page: paginationInfo.totalPages })} disabled={pagination.page === paginationInfo.totalPages} className="px-2 py-1 bg-green-600 text-white rounded disabled:opacity-50">Last</button>
             </div>
           </div>
         )}
 
-        {/* Compact Help Section */}
+        {/* Quick Tips */}
         <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
           <h3 className="font-semibold text-blue-800 mb-1">💡 Quick Tips</h3>
           <ul className="text-blue-700 space-y-0.5 list-disc list-inside">
             <li>Use search and filters to find clients</li>
-            <li>Select multiple clients for bulk actions</li>
-            <li>Filter by Registration Type: Manual or Reg Link</li>
-            {/* {canAddClients && <li>Add new clients with the Add Client button</li>} */}
-            <li>Click anywhere on a row to <span className="font-medium text-blue-700">highlight and select</span> it.</li>
-            <li>Use the <span className="font-medium text-green-700">Export button</span> to download clients as CSV.</li>
-            {canEditDelete && (
-              <>
-                <li>Select multiple clients using checkboxes for bulk actions.</li>
-                <li>Use the <span className="font-medium text-red-700">Delete button</span> to remove individual clients or bulk delete selected clients.</li>
-              </>
-            )}
+            <li>Click <strong>View</strong> to see client details in a modal</li>
+            <li>Toggle <strong>Active/Inactive</strong> to manage client status</li>
+            <li>Click anywhere on a row to highlight and select it</li>
+            <li>Use the <strong>Export</strong> button to download clients as CSV</li>
           </ul>
         </div>
       </div>

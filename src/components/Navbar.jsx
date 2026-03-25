@@ -90,12 +90,12 @@ const Navbar = () => {
       await logoutService();
       localStorage.removeItem("user");
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
       localStorage.removeItem("user");
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.href = "/";
     }
   };
 

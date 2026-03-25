@@ -44,8 +44,6 @@ const ROLE_ACCESS = {
 const AppRoutes = () => {
   const { user } = useAuth();
 
-  // Fast dashboard route lookup
-  const getDashboardRoute = (role) => DASHBOARD_ROUTES[role] || "/login";
 
   // Check if user has required role access
   const hasRoleAccess = (requiredRoles) =>
@@ -57,7 +55,7 @@ const AppRoutes = () => {
         {/* Public Routes */}
         <Route
           path="/"
-          element={user ? <Navigate to={getDashboardRoute(user.role)} /> : <LandingPage />}
+          element={<LandingPage />}
         />
         <Route path="/apply" element={<Application />} />
         <Route path="/about" element={<About />} />
