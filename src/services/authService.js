@@ -12,7 +12,7 @@ export const forgetPasswordService = (email) => axiosInstance.post(`/forget-pass
 
 export const oldChangePasswordService = (data) => axiosInstance.post(`/change-password`, data);
 
-export const changePasswordWithOtp = (data) => axiosInstance.post(`/change-password-otp`, data);
+export const changePasswordWithOtp = (email,data) => axiosInstance.post(`/change-password-otp/${email}`, data);
 
 export const otpChangePasswordService = (email) => axiosInstance.post(`/reset-password/${email}`);
 
