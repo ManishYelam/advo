@@ -223,7 +223,7 @@ const ExhibitSelector = React.memo(({ selectedExhibit, onExhibitChange, document
         Select Exhibit to {mode === 'view' ? 'View' : 'Upload'} Documents
       </label>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {EXHIBITS.map((exhibit) => (
           <div
             key={exhibit.value}
@@ -260,15 +260,16 @@ const ExhibitSelector = React.memo(({ selectedExhibit, onExhibitChange, document
       {/* Required Documents List */}
       {selectedExhibit && (
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-800 text-sm mb-2 flex items-center">
+          <h4 className="font-semibold text-blue-800 text-sm mb-3 flex items-center">
             <FaExclamationTriangle className="mr-2" />
             Required Documents for {selectedExhibit}
           </h4>
-          <ul className="text-xs text-blue-700 space-y-1">
+          {/* Responsive grid: 1 column on mobile, 2 on md, 3 on lg and above */}
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs text-blue-700">
             {REQUIRED_DOCUMENTS[selectedExhibit]?.map((doc, index) => (
               <li key={index} className="flex items-center">
-                <FaCheckCircle className="text-green-500 mr-2" size={10} />
-                {doc}
+                <FaCheckCircle className="text-green-500 mr-2 flex-shrink-0" size={10} />
+                <span>{doc}</span>
               </li>
             ))}
           </ul>
@@ -305,7 +306,7 @@ const DocumentsSummary = React.memo(({ documents }) => {
         <FaClipboardCheck className="mr-2" />
         Uploaded Documents Summary
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {EXHIBITS.map((exhibit) => {
           const files = documents[exhibit.value] || [];
           if (files.length === 0) return null;
