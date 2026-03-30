@@ -44,7 +44,7 @@ const EXHIBITS = [
   {
     value: "Exhibit D",
     label: "Exhibit D - Police Statement",
-    description: "Statement copy submitted to Shrirampur Police Station"
+    description: "Statement copy submitted to Police Station"
   }
 ];
 
@@ -60,7 +60,7 @@ const REQUIRED_DOCUMENTS = {
     "Recurring Deposits (RD) Total Amount Sheet",
   ],
   "Exhibit C": ["Copy of Deposits made by Applicant to the said bank"],
-  "Exhibit D": ["Statement Copy submitted to Shrirampur Police Station"],
+  "Exhibit D": ["Statement Copy submitted to Police Station"],
 };
 
 // Different steps for different modes

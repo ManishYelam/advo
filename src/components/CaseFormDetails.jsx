@@ -60,6 +60,11 @@ const VALIDATION_RULES = {
     min: 0,
     max: 100,
     message: "Dynadhara rate is required and must be between 0-100%"
+  },
+  // New field added
+  case_scheme_name: {
+    required: true,
+    message: "Case scheme name is required"
   }
 };
 
@@ -75,20 +80,38 @@ const NUMERIC_FIELDS = [
   'dynadhara_rate'
 ];
 
+// Schemes dropdown options
+const schemes = [
+  { value: "", label: "-- Select Scheme --" },
+  { value: "current_deposit", label: "Current Deposit" },
+  { value: "dam_deposit", label: "Dam Deposit Scheme" },
+  { value: "dam_duplex", label: "Dam Duplex Scheme" },
+  { value: "dam_triplex", label: "Dam Triplex Scheme" },
+  { value: "dhanashree", label: "Dhanashree Deposit Scheme" },
+  { value: "dhanshuddhi", label: "Dhanshuddhi Deposit Scheme" },
+  { value: "janarashi_lakshmi", label: "Janarashi Lakshmi Deposit" },
+  { value: "janarashi_savings", label: "Janarashi Savings Scheme" },
+  { value: "fixed_deposit", label: "Fixed Deposit" },
+  { value: "kanyadan", label: "Kanyadan Deposit Scheme" },
+  { value: "locker_security", label: "Locker Security Deposit" },
+  { value: "monthly_income", label: "Monthly Income Scheme" },
+  { value: "pension_security", label: "Pension Security Deposit" },
+  { value: "pigmy_agent", label: "Pigmy Agent Scheme" },
+  { value: "recurring_deposit", label: "Recurring Deposit" },
+  { value: "savings_deposit", label: "Savings Deposit" },
+  { value: "daily_collection_pigmy", label: "Daily Collection (Pigmy)" },
+  { value: "term_deposit", label: "Term Deposit" },
+  { value: "ujwal_future", label: "Ujwal Future Deposit Scheme" }
+];
+
 const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, mode, isLoading }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // console.log("🔍 CaseFormDetails Debug - mode:", mode, "isLoading:", isLoading, "formData:", {
-  //   deposit_type: formData.deposit_type,
-  //   hasData: !!formData.deposit_type
-  // });
-
   // Reset field errors when formData changes
   useEffect(() => {
     if (mode !== 'create' && formData.deposit_type) {
-      // console.log("🔄 Resetting field errors for loaded deposit data");
       setFieldErrors({});
       setTouchedFields({});
     }
@@ -124,7 +147,6 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
       const error = validateField(fieldName, formData[fieldName]);
       return !error;
     });
-    // console.log("✅ Deposit form validation result:", isValid);
     return isValid;
   }, [formData, validateField, mode]);
 
@@ -142,7 +164,6 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
     if (mode === 'view') return;
 
     const { name, value } = e.target;
-    // console.log("📝 Deposit field change:", name, value);
 
     // Update form data
     handleInputChange({
@@ -187,7 +208,6 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
   // Get input disabled state
   const getInputDisabled = useCallback((fieldName) => {
     const disabled = mode === 'view' || isLoading;
-    // console.log(`🔒 Deposit input ${fieldName} disabled:`, disabled);
     return disabled;
   }, [mode, isLoading]);
 
@@ -199,10 +219,8 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
   const handleNextClick = async (e) => {
     e.preventDefault();
-    // console.log("🚀 Deposit Next button clicked - mode:", mode);
 
     if (mode === 'view') {
-      // console.log("👀 View mode - proceeding to next step");
       onNext();
       return;
     }
@@ -216,7 +234,6 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
     // Check if form is valid
     if (!isFormValid) {
-      // console.log("❌ Deposit form validation failed");
       // Validate all fields to show errors
       const errors = {};
       Object.keys(VALIDATION_RULES).forEach(fieldName => {
@@ -245,7 +262,6 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
 
   const handleBackClick = (e) => {
     e.preventDefault();
-    // console.log("🔙 Deposit Back button clicked");
     onBack();
   };
 
@@ -309,6 +325,30 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
           </select>
           {touchedFields.deposit_type && fieldErrors.deposit_type && (
             <p className="text-red-500 text-[9px]">{fieldErrors.deposit_type}</p>
+          )}
+
+          {/* NEW: Case Scheme Name dropdown */}
+          <label className="font-semibold">
+            {mandatoryLabel("Case Scheme Name")}
+          </label>
+          <select
+            name="case_scheme_name"
+            value={formData.case_scheme_name || ""}
+            onChange={handleEnhancedInputChange}
+            onBlur={handleFieldBlur}
+            disabled={getInputDisabled('case_scheme_name')}
+            className={`p-1 border rounded text-[10px] ${getFieldBorderClass('case_scheme_name')} ${getInputDisabled('case_scheme_name') ? 'bg-gray-50 text-gray-600 cursor-not-allowed' : ''
+              }`}
+            required
+          >
+            {schemes.map((scheme) => (
+              <option key={scheme.value} value={scheme.value}>
+                {scheme.label}
+              </option>
+            ))}
+          </select>
+          {touchedFields.case_scheme_name && fieldErrors.case_scheme_name && (
+            <p className="text-red-500 text-[9px]">{fieldErrors.case_scheme_name}</p>
           )}
 
           <label className="font-semibold">
@@ -532,8 +572,8 @@ const CaseFormDetails = ({ formData, handleInputChange, onNext, onBack, errors, 
           type="submit"
           disabled={mode !== 'view' && (!isFormValid || loading)}
           className={`px-3 py-1 text-white rounded text-[10px] flex items-center gap-2 transition-colors ${mode !== 'view' && (!isFormValid || loading)
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-green-600 hover:bg-green-700'
             }`}
         >
           {loading ? (
